@@ -1,0 +1,116 @@
+@import './theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border/20;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight;
+  }
+
+  /* A visible, on-brand focus ring everywhere, never remove it. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    @apply bg-primary/30 text-foreground;
+  }
+
+  /* Scrollbars, themed. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border/30;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border/50;
+  }
+}
+
+@layer components {
+  /*
+   * Glass surface. Deliberately scoped: pipeline stage cards, HITL review
+   * panels, floating nav/topbar, and metric tiles only. Never on long-form
+   * content: readability wins.
+   */
+  .glass {
+    background-color: hsl(var(--glass-fill) / var(--glass-fill-opacity));
+    border: 1px solid hsl(var(--border) / var(--glass-border-opacity));
+    @apply shadow-glass backdrop-blur-xl;
+  }
+
+  .glass-strong {
+    background-color: hsl(var(--glass-fill) / 0.82);
+    border: 1px solid hsl(var(--border) / var(--glass-border-opacity));
+    @apply shadow-glass-lg backdrop-blur-2xl;
+  }
+
+  /* Editorial section eyebrow. */
+  .eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground;
+  }
+
+  .text-gradient-honey {
+    @apply bg-gradient-to-br from-brand-butter-cream via-primary to-primary/70 bg-clip-text text-transparent;
+  }
+
+  /* Faint grain/vignette that gives the dark canvas its editorial depth. */
+  .canvas-grain::before {
+    content: '';
+    @apply pointer-events-none fixed inset-0 z-0;
+    background:
+      radial-gradient(60rem 40rem at 12% -10%, hsl(var(--primary) / 0.1), transparent 60%),
+      radial-gradient(50rem 36rem at 88% 8%, hsl(var(--butter-cream) / 0.07), transparent 62%);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/*
+ * Reduced motion: strip transforms and long transitions but keep opacity so
+ * nothing becomes invisible. Framer Motion is handled separately via
+ * useReducedMotion() in src/hooks/use-reduced-motion.ts.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
