@@ -1,0 +1,45 @@
+# --- dependencies ------------------------------------------------------------
+node_modules/
+.pnp
+.pnp.js
+
+# --- build output ------------------------------------------------------------
+dist/
+build/
+*.tsbuildinfo
+
+# --- python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- secrets -----------------------------------------------------------------
+# .env.example files ARE committed; the real ones never are.
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- vector store ------------------------------------------------------------
+.chroma/
+chroma_db/
+
+# --- editors and OS ----------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- logs and coverage -------------------------------------------------------
+*.log
+npm-debug.log*
+coverage/
+.nyc_output/
