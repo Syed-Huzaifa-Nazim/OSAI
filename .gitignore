@@ -30,6 +30,10 @@ env/
 .chroma/
 chroma_db/
 
+# --- private ------------------------------------------------------------------
+# The original project brief. Kept locally only, never pushed.
+Claude Prompts in md/
+
 # --- editors and OS ----------------------------------------------------------
 .vscode/*
 !.vscode/extensions.json
