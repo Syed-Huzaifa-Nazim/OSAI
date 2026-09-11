@@ -36,17 +36,46 @@ export type Industry =
   | 'manufacturing'
   | 'other'
 
+/** What the user is comparing themselves against. Stage 2 branches on this to
+ *  pick a data-acquisition strategy. */
+export type ComparisonType = 'website' | 'social_media' | 'ecommerce_product'
+
+/** An e-commerce marketplace a comparison can run against. Not a closed union:
+ *  the list of platforms is served by the backend's scraper registry, so a new
+ *  one appears in the picker without a frontend release. */
+export type EcommercePlatform = string
+
+/** The social platforms a social-media comparison can run against. A closed
+ *  union, unlike EcommercePlatform: there is no social scraper registry yet. */
+export type SocialComparisonPlatform = 'facebook' | 'instagram'
+
+export interface PlatformOption {
+  platform: EcommercePlatform
+  label: string
+  urlHint: string
+  urlExample: string
+}
+
 export interface Project {
   id: string
   ownerId: string
   /** The user's own brand: the subject of the analysis. */
   brandName: string
+  /** The user's own link: their website, their social page, or their product
+   *  listing, depending on comparisonType. Required on new projects. */
   brandWebsite: string | null
+  /** Up to 120 characters. */
   brandDescription: string
   industry: Industry
-  targetAudience: string
+  /** Optional, up to 120 characters. */
+  targetAudience: string | null
   /** Free-text goals from the stage-1 intake form. */
   objectives: string[]
+  comparisonType: ComparisonType
+  /** Set only when comparisonType is 'ecommerce_product'. */
+  ecommercePlatform: EcommercePlatform | null
+  /** Set only when comparisonType is 'social_media'. */
+  socialPlatform: SocialComparisonPlatform | null
   status: ProjectStatus
   currentStage: StageId
   competitorCount: number
@@ -89,6 +118,9 @@ export type SourceKind =
   | 'review'
   | 'forum_thread'
   | 'news_article'
+  /** One scraped marketplace listing. Its structured fields live in
+   *  EcommerceProduct; this row is its entry in the sources list. */
+  | 'ecommerce_product'
 
 export type SourceStatus = 'pending' | 'scraped' | 'embedded' | 'failed'
 
@@ -105,6 +137,132 @@ export interface ScrapedSource {
   /** Chunks written to the project's ChromaDB collection. */
   chunkCount: number
   scrapedAt: string
+}
+
+/* ------------------------------------ stage 2: scraped product listings --- */
+
+export type ProductRole = 'own' | 'competitor'
+
+/** How the page was actually read. Worth surfacing: a Playwright-only scrape is
+ *  slower and more fragile than a plain fetch, which matters when a result
+ *  looks thin. */
+export type ScrapeMethod = 'bs4' | 'playwright' | 'bs4+playwright' | 'unknown'
+
+/** Where on the page a photo was found, most trustworthy first. */
+export type ImageSource = 'gallery' | 'structured_data' | 'page' | 'og_image'
+
+/** One product photo. The URL is the platform's own CDN; nothing is re-hosted. */
+export interface ProductImage {
+  id: string
+  productId: string
+  projectId: string
+  /** 1-based gallery order. Position 1 is the main image. */
+  position: number
+  url: string
+  isPrimary: boolean
+  source: ImageSource
+}
+
+export interface EcommerceProduct {
+  id: string
+  projectId: string
+  competitorId: string | null
+  /** The ScrapedSource this listing produced, for citation lookups. */
+  sourceId: string | null
+  platform: EcommercePlatform
+  role: ProductRole
+  url: string
+  productName: string
+
+  brand: string | null
+  price: number | null
+  originalPrice: number | null
+  discountPercent: number | null
+  currency: string
+  rating: number | null
+  reviewCount: number
+  imageCount: number
+  sellerName: string | null
+  sellerRating: number | null
+  stockStatus: string | null
+  category: string | null
+  contentCompletenessScore: number | null
+
+  /** Chunkable content, keyed by field type. */
+  textFields: Record<string, string>
+  /** The full scraper output, including platform-specific fields. */
+  rawMetadata: Record<string, unknown>
+
+  scrapeMethod: ScrapeMethod
+  warnings: string[]
+  chunkCount: number
+  scrapedAt: string
+  /** Main image first. Empty when the listing had none, or was scraped before
+   *  images were collected. */
+  images: ProductImage[]
+}
+
+/** One directly comparable field, rendered as a row in the comparison table. */
+export interface MetricRow {
+  field: string
+  label: string
+  own: string | number | boolean | null
+  competitor: string | number | boolean | null
+  unit: string | null
+  kind: 'currency' | 'percent' | 'number' | 'rating' | 'bool' | 'text'
+  higherIsBetter: boolean | null
+  /** Null when the field is descriptive or one side is missing. Never
+   *  defaulted: an unmeasured field has no winner. */
+  winner: 'own' | 'competitor' | 'tie' | null
+  delta: number | null
+  deltaLabel: string | null
+}
+
+/** One comparison parameter group (A-H for Daraz) with its rows and findings. */
+export interface ComparisonGroup {
+  key: string
+  letter: string
+  label: string
+  description: string
+  gapCategory: GapCategory
+  metrics: MetricRow[]
+  ownDerived: Record<string, unknown>
+  competitorDerived: Record<string, unknown>
+  insights: string[]
+  ownWins: number
+  competitorWins: number
+  /** The text fields this group searches. Empty for a metadata-only group
+   *  (pricing, variants), which is compared from numbers alone. */
+  semanticFieldTypes: string[]
+  /** The query used to retrieve passages, if any. */
+  query: string | null
+}
+
+/** A passage retrieved from one listing's embedded text. */
+export interface SemanticSnippet {
+  fieldType: string
+  text: string
+  /** Cosine similarity to the group's query, 0-1. */
+  score: number | null
+  chunkIndex: number
+}
+
+/** One listing's half of a parameter comparison. */
+export interface ProductSide {
+  productId: string
+  role: ProductRole
+  productName: string
+  url: string
+  snippets: SemanticSnippet[]
+  derived: Record<string, unknown>
+}
+
+/** Everything the comparison page shows for one selected parameter. */
+export interface ParameterComparison {
+  parameter: ComparisonGroup
+  metadataOnly: boolean
+  own: ProductSide
+  competitor: ProductSide
 }
 
 /* ------------------------------------------ stage 4/5: gaps & HITL #1 ----- */
