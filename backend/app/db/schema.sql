@@ -21,13 +21,27 @@ create table if not exists public.projects (
     id                text primary key,
     owner_id          uuid not null references auth.users (id) on delete cascade,
     brand_name        text not null check (char_length(brand_name) between 2 and 120),
+    -- The user's own link: a website, a social page or a product listing.
+    -- Deliberately text with no length cap: marketplace links copied from
+    -- search results carry over a kilobyte of tracking parameters.
     brand_website     text,
-    brand_description text not null check (char_length(brand_description) between 40 and 1200),
+    brand_description text not null,
     industry          text not null check (industry in (
                           'saas','ecommerce','fintech','healthcare','education',
                           'hospitality','agency','manufacturing','other')),
-    target_audience   text not null,
+    -- Optional since migration 0002.
+    target_audience   text,
     objectives        jsonb not null default '[]'::jsonb,
+    -- What the user is comparing themselves against. Stage 2 branches on this
+    -- to pick a data-acquisition strategy.
+    comparison_type   text not null default 'website' check (comparison_type in (
+                          'website','social_media','ecommerce_product')),
+    -- The marketplace, when comparison_type is 'ecommerce_product'. Null
+    -- otherwise, and required when it is -- see the constraint below.
+    ecommerce_platform text check (ecommerce_platform is null or ecommerce_platform in ('daraz')),
+    -- The social platform, when comparison_type is 'social_media'. Null
+    -- otherwise, and required when it is.
+    social_platform   text,
     status            text not null default 'draft' check (status in (
                           'draft','running','awaiting_review','complete','failed','archived')),
     current_stage     smallint not null default 1 check (current_stage between 1 and 9),
@@ -35,7 +49,22 @@ create table if not exists public.projects (
     gap_count         smallint not null default 0,
     is_demo           boolean not null default false,
     created_at        timestamptz not null default now(),
-    updated_at        timestamptz not null default now()
+    updated_at        timestamptz not null default now(),
+    -- A platform only means something for an e-commerce comparison, and an
+    -- e-commerce comparison is meaningless without one.
+    constraint projects_platform_matches_type_check check (
+        (comparison_type = 'ecommerce_product' and ecommerce_platform is not null)
+        or (comparison_type <> 'ecommerce_product' and ecommerce_platform is null)),
+    -- Required, up to 120 characters (no minimum since migration 0002).
+    constraint projects_brand_description_check check (
+        char_length(brand_description) between 1 and 120),
+    constraint projects_target_audience_check check (
+        target_audience is null or char_length(target_audience) <= 120),
+    constraint projects_social_platform_check check (
+        social_platform is null or social_platform in ('facebook', 'instagram')),
+    constraint projects_social_platform_matches_type_check check (
+        (comparison_type = 'social_media' and social_platform is not null)
+        or (comparison_type <> 'social_media' and social_platform is null))
 );
 
 create index if not exists projects_owner_idx on public.projects (owner_id, updated_at desc);
@@ -61,7 +90,8 @@ create table if not exists public.scraped_sources (
     project_id    text not null references public.projects (id) on delete cascade,
     competitor_id text references public.competitors (id) on delete set null,
     kind          text not null check (kind in (
-                      'landing_page','social_post','review','forum_thread','news_article')),
+                      'landing_page','social_post','review','forum_thread','news_article',
+                      'ecommerce_product')),
     url           text not null,
     title         text not null,
     excerpt       text not null default '',
@@ -72,6 +102,89 @@ create table if not exists public.scraped_sources (
 );
 
 create index if not exists sources_project_idx on public.scraped_sources (project_id);
+
+-- ------------------------------------------- stage 2: scraped listings -----
+
+-- One row per scraped marketplace listing.
+--
+-- Deliberately not named daraz_products: the columns here are the fields every
+-- marketplace has, so a second platform reuses this table and is told apart by
+-- `platform`. Anything platform-specific lives in raw_metadata, which is what
+-- the comparison engine in app/scrapers/<platform>/metrics.py reads.
+create table if not exists public.ecommerce_products (
+    id            text primary key,
+    project_id    text not null references public.projects (id) on delete cascade,
+    -- Null for the user's own listing, set for a competitor's.
+    competitor_id text references public.competitors (id) on delete set null,
+    -- The scraped_sources row this listing produced, so gap evidence cites a
+    -- row the sources screen already shows.
+    source_id     text references public.scraped_sources (id) on delete set null,
+    platform      text not null check (platform in ('daraz')),
+    role          text not null check (role in ('own','competitor')),
+    url           text not null,
+    product_name  text not null,
+
+    -- fields every marketplace has, promoted to columns so they can be
+    -- filtered and sorted in SQL rather than dug out of jsonb
+    brand                      text,
+    price                      numeric(12,2),
+    original_price             numeric(12,2),
+    discount_percent           numeric(6,2),
+    currency                   text not null default 'PKR',
+    rating                     numeric(3,2) check (rating is null or (rating >= 0 and rating <= 5)),
+    review_count               integer not null default 0,
+    image_count                integer not null default 0,
+    seller_name                text,
+    seller_rating              numeric(3,2),
+    stock_status               text,
+    category                   text,
+    content_completeness_score numeric(5,2),
+
+    -- Chunkable content keyed by field type. Kept on the row so a re-embed
+    -- never needs a re-scrape.
+    text_fields   jsonb not null default '{}'::jsonb,
+    -- The complete scraper output, including fields with no column.
+    raw_metadata  jsonb not null default '{}'::jsonb,
+
+    scrape_method text not null default 'unknown' check (scrape_method in (
+                      'bs4','playwright','bs4+playwright','unknown')),
+    warnings      jsonb not null default '[]'::jsonb,
+    chunk_count   integer not null default 0,
+    scraped_at    timestamptz not null default now()
+);
+
+-- A project has exactly one listing of its own. This is what stops a re-run
+-- leaving two baselines behind.
+create unique index if not exists ecommerce_products_own_idx
+    on public.ecommerce_products (project_id) where role = 'own';
+create index if not exists ecommerce_products_project_idx
+    on public.ecommerce_products (project_id, role);
+create index if not exists ecommerce_products_competitor_idx
+    on public.ecommerce_products (competitor_id);
+create index if not exists ecommerce_products_source_idx
+    on public.ecommerce_products (source_id);
+
+-- One row per product photo, main image first. Only the platform's own image
+-- URLs are stored; nothing is downloaded or re-hosted. (Migration 0003.)
+create table if not exists public.ecommerce_product_images (
+    id          text primary key,
+    -- Re-scraping replaces the listing; the cascade takes its old photos.
+    product_id  text not null references public.ecommerce_products (id) on delete cascade,
+    -- Denormalised so RLS checks ownership with the usual one join.
+    project_id  text not null references public.projects (id) on delete cascade,
+    -- 1-based gallery order. Position 1 is the main image.
+    position    smallint not null check (position >= 1),
+    url         text not null,
+    is_primary  boolean not null default false,
+    source      text not null default 'gallery' check (source in (
+                    'gallery','structured_data','page','og_image')),
+    created_at  timestamptz not null default now(),
+    constraint ecommerce_product_images_position_unique unique (product_id, position),
+    constraint ecommerce_product_images_primary_is_first check (is_primary = (position = 1))
+);
+
+create index if not exists ecommerce_product_images_project_idx
+    on public.ecommerce_product_images (project_id, product_id, position);
 
 -- ------------------------------------------------- stage 4/5: gaps ---------
 
@@ -252,6 +365,8 @@ alter table public.projects            enable row level security;
 alter table public.competitors         enable row level security;
 alter table public.scraped_sources     enable row level security;
 alter table public.gaps_opportunities  enable row level security;
+alter table public.ecommerce_products  enable row level security;
+alter table public.ecommerce_product_images enable row level security;
 alter table public.strategies          enable row level security;
 alter table public.critic_feedback     enable row level security;
 alter table public.hitl_reviews        enable row level security;
@@ -287,6 +402,24 @@ create policy sources_owner_all on public.scraped_sources
     with check (exists (
         select 1 from public.projects p
         where p.id = scraped_sources.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists ecommerce_products_owner_all on public.ecommerce_products;
+create policy ecommerce_products_owner_all on public.ecommerce_products
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_products.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_products.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists ecommerce_product_images_owner_all on public.ecommerce_product_images;
+create policy ecommerce_product_images_owner_all on public.ecommerce_product_images
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_product_images.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_product_images.project_id and p.owner_id = auth.uid()));
 
 drop policy if exists gaps_owner_all on public.gaps_opportunities;
 create policy gaps_owner_all on public.gaps_opportunities
