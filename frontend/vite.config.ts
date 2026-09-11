@@ -1,5 +1,7 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
+// defineConfig comes from vitest/config, not vite, so the `test` block below is
+// typed. The triple-slash reference alone stopped being enough in Vitest 2.x,
+// which is what broke `npm run build` while `tsc --noEmit` stayed clean.
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'node:path'
 
@@ -36,5 +38,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Worker threads rather than child processes. Vitest's default `forks`
+    // pool dies with ERR_IPC_CHANNEL_CLOSED partway through this suite on
+    // Node 24, which surfaces as an unhandled rejection and takes the run
+    // with it regardless of whether the tests themselves passed.
+    pool: 'threads',
   },
 })
