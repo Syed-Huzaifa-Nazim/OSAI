@@ -58,6 +58,8 @@ class MemoryRepository:
     _reviews: list[dict[str, Any]] = []
     _documents: list[dict[str, Any]] = []
     _suggestions: list[dict[str, Any]] = []
+    _ecommerce_products: list[dict[str, Any]] = []
+    _ecommerce_product_images: list[dict[str, Any]] = []
     _integrations: list[dict[str, Any]] = []
     _pipelines: dict[str, dict[str, Any]] = {}
     _contact: list[dict[str, Any]] = []
@@ -143,6 +145,12 @@ class MemoryRepository:
             MemoryRepository._reviews = [r for r in self._reviews if r["project_id"] != project_id]
             MemoryRepository._documents = [r for r in self._documents if r["project_id"] != project_id]
             MemoryRepository._suggestions = [r for r in self._suggestions if r["project_id"] != project_id]
+            MemoryRepository._ecommerce_products = [
+                r for r in self._ecommerce_products if r["project_id"] != project_id
+            ]
+            MemoryRepository._ecommerce_product_images = [
+                r for r in self._ecommerce_product_images if r["project_id"] != project_id
+            ]
             self._pipelines.pop(project_id, None)
 
     # ---------------------------------------------------------- competitors
@@ -164,6 +172,45 @@ class MemoryRepository:
         with self._lock:
             MemoryRepository._sources = [r for r in self._sources if r["project_id"] != project_id]
             self._sources.extend(rows)
+
+    # --------------------------------------------- e-commerce products
+
+    def list_ecommerce_products(self, project_id: str) -> list[dict[str, Any]]:
+        return [dict(r) for r in self._ecommerce_products if r["project_id"] == project_id]
+
+    def replace_ecommerce_products(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        with self._lock:
+            MemoryRepository._ecommerce_products = [
+                r for r in self._ecommerce_products if r["project_id"] != project_id
+            ]
+            # Mirrors the ON DELETE CASCADE from images to products in Postgres.
+            MemoryRepository._ecommerce_product_images = [
+                r for r in self._ecommerce_product_images if r["project_id"] != project_id
+            ]
+            self._ecommerce_products.extend(rows)
+
+    def list_ecommerce_product_images(self, project_id: str) -> list[dict[str, Any]]:
+        rows = [dict(r) for r in self._ecommerce_product_images if r["project_id"] == project_id]
+        return sorted(rows, key=lambda row: (row["product_id"], row["position"]))
+
+    def replace_ecommerce_product_images(
+        self, project_id: str, rows: list[dict[str, Any]]
+    ) -> None:
+        with self._lock:
+            MemoryRepository._ecommerce_product_images = [
+                r for r in self._ecommerce_product_images if r["project_id"] != project_id
+            ]
+            self._ecommerce_product_images.extend(rows)
+
+    def update_ecommerce_product(
+        self, project_id: str, product_id: str, patch: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self._lock:
+            for row in self._ecommerce_products:
+                if row["id"] == product_id and row["project_id"] == project_id:
+                    row.update(patch)
+                    return dict(row)
+        raise NotFoundError(f"Product {product_id} was not found")
 
     # ----------------------------------------------------------------- gaps
 
@@ -349,6 +396,60 @@ class SupabaseRepository:
         self.client.table("scraped_sources").delete().eq("project_id", project_id).execute()
         if rows:
             self.client.table("scraped_sources").insert(rows).execute()
+
+    # --------------------------------------------- e-commerce products
+
+    def list_ecommerce_products(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("ecommerce_products")
+            .select("*")
+            .eq("project_id", project_id)
+            # Own first, so callers that want the baseline do not have to sort.
+            .order("role")
+            .execute()
+        )
+        return result.data or []
+
+    def replace_ecommerce_products(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        """A re-run replaces the whole set: a half-old, half-new pair of
+        listings would produce a comparison of two different moments in time."""
+        self.client.table("ecommerce_products").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("ecommerce_products").insert(rows).execute()
+
+    def list_ecommerce_product_images(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("ecommerce_product_images")
+            .select("*")
+            .eq("project_id", project_id)
+            .order("product_id")
+            .order("position")
+            .execute()
+        )
+        return result.data or []
+
+    def replace_ecommerce_product_images(
+        self, project_id: str, rows: list[dict[str, Any]]
+    ) -> None:
+        """Usually a no-op delete: replacing the products already cascaded the
+        old images away. Kept explicit so this never relies on call order."""
+        self.client.table("ecommerce_product_images").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("ecommerce_product_images").insert(rows).execute()
+
+    def update_ecommerce_product(
+        self, project_id: str, product_id: str, patch: dict[str, Any]
+    ) -> dict[str, Any]:
+        result = (
+            self.client.table("ecommerce_products")
+            .update(patch)
+            .eq("id", product_id)
+            .eq("project_id", project_id)
+            .execute()
+        )
+        if not result.data:
+            raise NotFoundError(f"Product {product_id} was not found")
+        return result.data[0]
 
     # ----------------------------------------------------------------- gaps
 
