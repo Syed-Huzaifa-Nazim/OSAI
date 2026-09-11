@@ -22,7 +22,7 @@ sequenceDiagram
     B->>S: signInWithPassword(email, password)
     S-->>B: JWT (access + refresh)
     B->>A: GET /api/v1/projects  ·  Bearer <JWT>
-    A->>A: verify signature (HS256, SUPABASE_JWT_SECRET)
+    A->>A: verify signature (ES256 via JWKS, or legacy HS256 secret)
     A->>P: select ... with the same JWT attached
     P->>P: RLS: owner_id = auth.uid()
     P-->>A: only this user's rows
@@ -31,16 +31,26 @@ sequenceDiagram
 
 Verification lives in `core/security.py`:
 
-```python
-jwt.decode(token, settings.supabase_jwt_secret,
-           algorithms=["HS256"], audience="authenticated")
-```
+Supabase signs sessions one of two ways, and a project can use either:
 
-- `algorithms` is pinned, so a token claiming `alg: none` is rejected.
+| Scheme | Token `alg` | Verified against |
+| --- | --- | --- |
+| **JWT signing keys** (current default) | `ES256` / `RS256` | the project's public keys at `/auth/v1/.well-known/jwks.json`, fetched once and cached |
+| **Legacy shared secret** | `HS256` | `SUPABASE_JWT_SECRET` |
+
+The token header only chooses *which* key to check; each branch pins its own
+allowed algorithms. Accepting HS256 alone used to reject every login on a
+project that had moved to signing keys — its anon key is still HS256, so the
+configuration looked correct right up until someone signed in.
+
+- `algorithms` is pinned per branch, so a token claiming `alg: none` is rejected.
 - `audience` is checked, so a token from another Supabase surface will not pass.
 - Expiry is enforced by the library and surfaced as `token_expired`, which the
   client turns into a re-login rather than a generic failure.
-- A missing `SUPABASE_JWT_SECRET` is logged as a **server misconfiguration** and
+- A token signed by a key the project does not publish is `invalid_token`; failing
+  to *reach* the JWKS endpoint is `auth_unavailable`, so an outage is not
+  mistaken for a bad session.
+- A missing `SUPABASE_JWT_SECRET` when an HS256 token arrives is logged as a **server misconfiguration** and
   returns `auth_misconfigured`, not silently treated as "every request is
   unauthorised", which would be a confusing outage.
 
