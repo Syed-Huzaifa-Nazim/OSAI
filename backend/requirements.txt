@@ -1,29 +1,57 @@
+# Floor pins (>=) rather than exact pins (==).
+#
+# Several of these ship compiled wheels (pydantic-core, chroma-hnswlib, lxml).
+# An exact pin has no wheel for any Python newer than the pin, so pip falls back
+# to building from source and the install fails on a machine with no Rust/C++
+# toolchain. Floor-pinning keeps the install working across Python versions,
+# which is what the standalone scraper did too.
+
 # --- web framework -----------------------------------------------------------
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-pydantic==2.10.4
-pydantic-settings==2.7.1
-email-validator==2.2.0
-python-multipart==0.0.20
+fastapi>=0.115.6
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.4
+pydantic-settings>=2.7.1
+email-validator>=2.2.0
+python-multipart>=0.0.20
 
 # --- auth & database ---------------------------------------------------------
 # Supabase's own client is used rather than an ORM so that every query runs
 # under the caller's JWT and Postgres row-level security stays the single
 # enforcement point. See docs/database.md.
-supabase==2.11.0
-PyJWT[crypto]==2.10.1
+supabase>=2.11.0
+PyJWT[crypto]>=2.10.1
 
 # --- vector store ------------------------------------------------------------
-chromadb==0.5.23
+# Chroma bundles all-MiniLM-L6-v2 as an ONNX model and uses it by default, so
+# embeddings work with no extra dependency and no API key.
+chromadb>=0.5.23
 
 # --- document generation (stage 8) ------------------------------------------
-reportlab==4.2.5
-python-docx==1.1.2
+reportlab>=4.2.5
+python-docx>=1.1.2
+
+# --- scrapers (app/scrapers/) ------------------------------------------------
+# requests + BeautifulSoup is the primary path; Playwright is the fallback for
+# listings whose price only appears after the SPA hydrates. After installing:
+#   python -m playwright install chromium
+requests>=2.32.0
+beautifulsoup4>=4.12.3
+lxml>=5.2.0
+playwright>=1.46.0
 
 # --- utilities ---------------------------------------------------------------
-httpx==0.28.1
-python-dotenv==1.0.1
+httpx>=0.28.1
+python-dotenv>=1.0.1
 
 # --- tests -------------------------------------------------------------------
-pytest==8.3.4
-pytest-asyncio==0.25.0
+pytest>=8.3.4
+pytest-asyncio>=0.25.0
+
+# --- optional ----------------------------------------------------------------
+# sentence-transformers gives stage 3 the torch build of all-MiniLM-L6-v2.
+# Deliberately NOT installed by default: it pulls ~2GB of torch to run the same
+# model Chroma already bundles, and its native libraries are blocked outright by
+# some corporate application-control policies. The pipeline detects its absence
+# and uses Chroma's built-in embedder, so retrieval is identical either way.
+# Install it only if you specifically want the torch path:
+#   pip install sentence-transformers
