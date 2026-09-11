@@ -30,6 +30,16 @@ env/
 .chroma/
 chroma_db/
 
+# --- model cache -------------------------------------------------------------
+# sentence-transformers downloads all-MiniLM-L6-v2 here on first use (~90MB).
+.models/
+
+# --- migrated source projects ------------------------------------------------
+# The standalone Daraz scraper this repo's app/scrapers/daraz/ came from.
+# Kept locally for reference; its code now lives in the backend, and its .env
+# holds real credentials that must never be committed.
+Sample_Pr/
+
 # --- private ------------------------------------------------------------------
 # The original project brief. Kept locally only, never pushed.
 Claude Prompts in md/
