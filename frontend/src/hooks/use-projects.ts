@@ -34,7 +34,10 @@ export function useCreateProject() {
     onSuccess: async (project) => {
       await client.invalidateQueries({ queryKey: queryKeys.projects.all })
       toast.success('Project created', {
-        description: `${project.brandName} is ready. Start the pipeline when you are.`,
+        description:
+          project.comparisonType === 'ecommerce_product'
+            ? `${project.brandName} is being scraped now.`
+            : `${project.brandName} is ready. Start the pipeline when you are.`,
       })
     },
     onError: (error) => {
