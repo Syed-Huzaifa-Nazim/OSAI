@@ -14,7 +14,12 @@ import type { PipelineState } from '@/types/pipeline'
  * Supabase Realtime / WebSockets are the natural upgrade here; see
  * docs/architecture.md.
  */
-export function usePipeline(projectId: string | undefined) {
+export function usePipeline(
+  projectId: string | undefined,
+  /** Keep polling while this holds, even with no stage marked running. For a
+   *  caller that knows the run is between two stages it chains together. */
+  keepPolling?: (state: PipelineState) => boolean,
+) {
   return useQuery({
     queryKey: queryKeys.projects.pipeline(projectId ?? ''),
     queryFn: () => pipelineApi.get(projectId as string),
@@ -23,7 +28,7 @@ export function usePipeline(projectId: string | undefined) {
       const data = query.state.data as PipelineState | undefined
       if (!data) return false
       const running = Object.values(data.stages).some((stage) => stage.status === 'running')
-      return running ? config.pipelinePollMs : false
+      return running || keepPolling?.(data) ? config.pipelinePollMs : false
     },
   })
 }
