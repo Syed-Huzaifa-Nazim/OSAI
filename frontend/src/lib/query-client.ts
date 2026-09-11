@@ -23,6 +23,10 @@ export const queryClient = new QueryClient({
 /** Central key factory: no stringly-typed keys scattered through components. */
 export const queryKeys = {
   currentUser: ['currentUser'] as const,
+  /** E-commerce platforms, served by the backend's scraper registry. Static
+   *  for the session, so it is cached aggressively by the hook. */
+  platforms: ['scrapers', 'platforms'] as const,
+
   projects: {
     all: ['projects'] as const,
     list: (filter?: string) => ['projects', 'list', filter ?? 'all'] as const,
@@ -36,6 +40,11 @@ export const queryKeys = {
     document: (id: string) => ['projects', id, 'document'] as const,
     automation: (id: string) => ['projects', id, 'automation'] as const,
     cost: (id: string) => ['projects', id, 'cost'] as const,
+    products: (id: string) => ['projects', id, 'products'] as const,
+    comparison: (id: string, competitorId?: string) =>
+      ['projects', id, 'comparison', competitorId ?? 'first'] as const,
+    parameter: (id: string, key: string, competitorId?: string) =>
+      ['projects', id, 'comparison', competitorId ?? 'first', key] as const,
   },
   dashboard: {
     stats: ['dashboard', 'stats'] as const,
