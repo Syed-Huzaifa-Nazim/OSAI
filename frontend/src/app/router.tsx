@@ -35,6 +35,8 @@ const DashboardPage = lazy(() => import('@/pages/app/dashboard'))
 const ProjectsPage = lazy(() => import('@/pages/app/projects'))
 const NewProjectPage = lazy(() => import('@/pages/app/project-new'))
 const PipelinePage = lazy(() => import('@/pages/app/project-pipeline'))
+const ProjectComparisonPage = lazy(() => import('@/pages/app/project-comparison'))
+const ProjectIndexRedirect = lazy(() => import('./project-index-redirect'))
 const InsightsPage = lazy(() => import('@/pages/app/project-insights'))
 const ReviewGapsPage = lazy(() => import('@/pages/app/project-review-gaps'))
 const StrategyPage = lazy(() => import('@/pages/app/project-strategy'))
@@ -98,7 +100,12 @@ export const routes: RouteObject[] = [
               {
                 path: ':projectId',
                 children: [
-                  { index: true, element: <Navigate to="pipeline" replace /> },
+                  { index: true, element: <ProjectIndexRedirect /> },
+                  {
+                    path: 'comparison',
+                    element: <ProjectComparisonPage />,
+                    handle: { crumb: 'Product comparison' },
+                  },
                   {
                     path: 'pipeline',
                     element: <PipelinePage />,
