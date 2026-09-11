@@ -10,6 +10,7 @@ import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { cn } from '@/lib/utils'
 import { spring } from '@/lib/motion'
 import { featureNavEntries } from '@/features/registry'
+import { useProject } from '@/hooks/use-projects'
 import { MAIN_NAV, SETTINGS_NAV, projectNav } from './nav-config'
 import { SidebarLink } from './sidebar-link'
 
@@ -45,6 +46,7 @@ export function AppSidebar() {
   const projectMatch = useMatch('/app/projects/:projectId/*')
   const projectId = projectMatch?.params.projectId
   const showProjectNav = Boolean(projectId && projectId !== 'new')
+  const project = useProject(showProjectNav ? projectId : undefined)
 
   const closeMobile = (): void => {
     setMobileOpen(false)
@@ -120,7 +122,7 @@ export function AppSidebar() {
                   </p>
                 ) : null}
                 <div className="space-y-1">
-                  {projectNav(projectId).map((item) => (
+                  {projectNav(projectId, project.data?.comparisonType).map((item) => (
                     <SidebarLink
                       key={item.to}
                       to={item.to}
