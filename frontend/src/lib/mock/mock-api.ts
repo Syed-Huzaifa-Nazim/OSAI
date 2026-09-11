@@ -22,13 +22,17 @@ import {
   demoSuggestions,
 } from './demo-data'
 import type {
+  ComparisonGroup,
   Competitor,
+  ParameterComparison,
   ContentSuggestion,
+  EcommerceProduct,
   Gap,
   GapDecision,
   GapPriority,
   HitlReview,
   Integration,
+  PlatformOption,
   Project,
   RunCost,
   ScrapedSource,
@@ -414,9 +418,12 @@ export const mockApi = {
     brandWebsite: string | null
     brandDescription: string
     industry: Project['industry']
-    targetAudience: string
+    targetAudience: string | null
     objectives: string[]
     competitors: Omit<Competitor, 'id' | 'projectId' | 'createdAt'>[]
+    comparisonType: Project['comparisonType']
+    ecommercePlatform: string | null
+    socialPlatform: Project['socialPlatform']
   }): Promise<Project> {
     await sleep(LATENCY_MS)
     const id = makeId('proj')
@@ -429,6 +436,10 @@ export const mockApi = {
       industry: input.industry,
       targetAudience: input.targetAudience,
       objectives: input.objectives,
+      comparisonType: input.comparisonType,
+      ecommercePlatform:
+        input.comparisonType === 'ecommerce_product' ? input.ecommercePlatform : null,
+      socialPlatform: input.comparisonType === 'social_media' ? input.socialPlatform : null,
       status: 'draft',
       currentStage: 1,
       competitorCount: input.competitors.length,
@@ -702,6 +713,67 @@ export const mockApi = {
   /* contact */
   async submitContact(): Promise<void> {
     await sleep(700)
+  },
+
+  /* scrapers */
+
+  /**
+   * Mirrors what the backend's scraper registry serves. Kept in sync by hand,
+   * which is the cost of demo mode working with no backend at all.
+   */
+  async listPlatforms(): Promise<PlatformOption[]> {
+    await sleep(200)
+    return [
+      {
+        platform: 'daraz',
+        label: 'Daraz',
+        urlHint: 'A Daraz product page link',
+        urlExample: 'https://www.daraz.pk/products/example-i123456789-s987654321.html',
+      },
+    ]
+  },
+
+  /**
+   * Demo mode never scrapes, so there are no listings to return. The
+   * e-commerce screens render their empty state, which is honest: nothing was
+   * fetched.
+   */
+  async listEcommerceProducts(_projectId: string): Promise<EcommerceProduct[]> {
+    await sleep(LATENCY_MS)
+    return []
+  },
+
+  async getEcommerceComparison(_projectId: string): Promise<ComparisonGroup[]> {
+    await sleep(LATENCY_MS)
+    return []
+  },
+
+  async getEcommerceParameter(
+    _projectId: string,
+    _parameterKey: string,
+  ): Promise<ParameterComparison> {
+    await sleep(LATENCY_MS)
+    throw new Error('Demo mode does not scrape, so there is no comparison to show.')
+  },
+
+  /**
+   * Demo mode has no backend to scrape with. Rather than pretend, the scrape
+   * stage fails at once with an explanation, which is what the comparison page
+   * shows.
+   */
+  async startScrape(projectId: string): Promise<PipelineState> {
+    await sleep(LATENCY_MS)
+    const pipeline = emptyPipeline(projectId)
+    pipeline.stages[2] = {
+      ...pipeline.stages[2],
+      status: 'error',
+      error:
+        'Demo mode does not scrape. Connect Supabase and set VITE_DEMO_MODE=false to compare real listings.',
+    }
+    state.pipelines[projectId] = pipeline
+    const project = state.projects.find((p) => p.id === projectId)
+    if (project) project.status = 'failed'
+    return clone(pipeline)
   },
 }
 
