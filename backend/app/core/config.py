@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+#: backend/ - so relative paths in .env resolve the same however the app is started.
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(BACKEND_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -27,6 +31,18 @@ class Settings(BaseSettings):
 
     # --- vector store ---
     chroma_persist_dir: str = "./.chroma"
+
+    # --- scrapers (app/scrapers/) -----------------------------------------
+    # The migrated Daraz scraper reads these. They are the standalone
+    # scraper's own defaults, kept verbatim so its timing behaviour is
+    # unchanged; only the place they are loaded from has moved here.
+    scraper_timeout: int = 25              # requests/HTTP timeout, seconds
+    playwright_timeout: int = 60           # browser navigation budget; must exceed the above
+    playwright_block_media: bool = True    # abort image/font/media requests for speed
+    playwright_serialize: bool = True      # one headless browser at a time
+    scraper_enable_playwright: bool = True
+    scraper_max_reviews: int = 40
+    embedding_cache_dir: str = "./.models"
 
     # --- app ---
     demo_mode: bool = True
@@ -47,6 +63,16 @@ class Settings(BaseSettings):
         """Demo mode is forced on whenever Supabase is not configured, so a
         fresh clone runs end to end with no external services."""
         return self.demo_mode or not self.has_supabase
+
+    @property
+    def embedding_cache_path(self) -> str:
+        """Keeps sentence-transformers downloads inside the project rather than
+        in the user profile."""
+        path = Path(self.embedding_cache_dir)
+        if not path.is_absolute():
+            path = BACKEND_DIR / path
+        path.mkdir(parents=True, exist_ok=True)
+        return str(path)
 
     @property
     def cors_origin_list(self) -> list[str]:
