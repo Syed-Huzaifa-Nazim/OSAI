@@ -19,6 +19,7 @@ import { ProjectStageChart } from '@/components/charts/project-status-chart'
 import { useProjects } from '@/hooks/use-projects'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { errorMessage } from '@/lib/api-client'
+import { projectHomePath } from '@/lib/project-routes'
 import { formatRelative } from '@/lib/utils'
 import { staggerContainer } from '@/lib/motion'
 
@@ -170,7 +171,7 @@ export default function DashboardPage() {
                         <div className="min-w-0">
                           <p className="truncate text-sm">
                             <Link
-                              to={`/app/projects/${project.id}/pipeline`}
+                              to={projectHomePath(project)}
                               className="hover:text-primary"
                             >
                               {project.brandName}
