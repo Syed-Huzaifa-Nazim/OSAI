@@ -66,51 +66,185 @@ export const contactSchema = z.object({
 })
 export type ContactValues = z.infer<typeof contactSchema>
 
+/**
+ * Upper bound on any link.
+ *
+ * Marketplace links copied out of search results carry kilobytes of tracking
+ * parameters -- a real Daraz product link runs past 1,100 characters -- so the
+ * old 500-character cap rejected ordinary input with "That URL is too long".
+ * 8,192 matches the backend (MAX_URL_LENGTH in app/models/project.py): the
+ * request-line limit most web servers enforce, so no link a site can actually
+ * serve is longer.
+ */
+export const MAX_URL_LENGTH = 8192
+
+/** Shared cap for the two short free-text intake fields. Mirrors the backend. */
+export const MAX_SHORT_TEXT = 120
+
 const urlSchema = z
   .string()
+  .trim()
+  .min(1, 'Add a link here')
   .url('Enter a full URL, including https://')
-  .max(500, 'That URL is too long')
+  .max(MAX_URL_LENGTH, 'That link is longer than any site can serve')
 
 export const competitorSchema = z.object({
   name: z.string().min(2, 'Enter the competitor name').max(120),
   landingPageUrl: urlSchema,
-  instagram: z.string().max(60).optional().or(z.literal('')),
-  linkedin: z.string().max(60).optional().or(z.literal('')),
   notes: z.string().max(500).optional().or(z.literal('')),
 })
 
-export const newProjectSchema = z.object({
-  brandName: z.string().min(2, 'Enter your brand name').max(120),
-  brandWebsite: urlSchema.optional().or(z.literal('')),
-  brandDescription: z
-    .string()
-    .min(40, 'Describe the business in at least 40 characters, the agents rely on this')
-    .max(1200),
-  industry: z.enum([
-    'saas',
-    'ecommerce',
-    'fintech',
-    'healthcare',
-    'education',
-    'hospitality',
-    'agency',
-    'manufacturing',
-    'other',
-  ]),
-  targetAudience: z
-    .string()
-    .min(20, 'Describe who you sell to in at least 20 characters')
-    .max(600),
-  objectives: z
-    .array(z.string().min(3).max(160))
-    .min(1, 'Add at least one objective')
-    .max(6, 'Six objectives is plenty, keep the run focused'),
-  competitors: z
-    .array(competitorSchema)
-    .min(1, 'Add at least one competitor to analyse')
-    .max(5, 'Five competitors is the current per-run limit'),
-})
+/**
+ * Which host a link must belong to, per platform.
+ *
+ * Covers the e-commerce platforms (mirroring the backend scraper's host check,
+ * ALLOWED_HOST_FRAGMENTS in app/scrapers/daraz/selectors.py) and the social
+ * ones (mirroring SOCIAL_PLATFORM_HOSTS in app/models/project.py), so a wrong
+ * link is caught on the form rather than after a pipeline run starts.
+ *
+ * Keyed by platform so a new one adds an entry rather than an if-branch. A
+ * platform with no entry is accepted as any valid URL and left for the backend
+ * to judge.
+ */
+const PLATFORM_URL_RULES: Record<string, { pattern: RegExp; message: string }> = {
+  daraz: {
+    pattern: /^https?:\/\/([a-z0-9-]+\.)*daraz\.[a-z.]+\//i,
+    message: 'Enter a Daraz product link, e.g. https://www.daraz.pk/products/...',
+  },
+  facebook: {
+    // The host itself or a subdomain (m., web.), never a lookalike such as
+    // facebook.com.example.net: the host has to end right there.
+    pattern: /^https?:\/\/([a-z0-9-]+\.)*(facebook\.com|fb\.com)(?=[/?#:]|$)/i,
+    message: 'Enter a Facebook link, e.g. https://www.facebook.com/yourpage',
+  },
+  instagram: {
+    pattern: /^https?:\/\/([a-z0-9-]+\.)*instagram\.com(?=[/?#:]|$)/i,
+    message: 'Enter an Instagram link, e.g. https://www.instagram.com/yourpage',
+  },
+}
+
+export function isValidPlatformUrl(platform: string, url: string): boolean {
+  const rule = PLATFORM_URL_RULES[platform]
+  if (!rule) return true
+  return rule.pattern.test(url.trim())
+}
+
+export function platformUrlMessage(platform: string): string {
+  return PLATFORM_URL_RULES[platform]?.message ?? 'Enter a full URL, including https://'
+}
+
+export const newProjectSchema = z
+  .object({
+    brandName: z.string().trim().min(2, 'Enter a name').max(120),
+    /** The user's own link. Required on every comparison type; what it has to
+     *  point at depends on the type, checked below. */
+    brandWebsite: urlSchema,
+    brandDescription: z
+      .string()
+      .trim()
+      .min(1, 'Describe what the business does')
+      .max(MAX_SHORT_TEXT, `Keep this to ${MAX_SHORT_TEXT} characters or fewer`),
+    industry: z.enum([
+      'saas',
+      'ecommerce',
+      'fintech',
+      'healthcare',
+      'education',
+      'hospitality',
+      'agency',
+      'manufacturing',
+      'other',
+    ]),
+    targetAudience: z
+      .string()
+      .trim()
+      .max(MAX_SHORT_TEXT, `Keep this to ${MAX_SHORT_TEXT} characters or fewer`)
+      .optional(),
+    objectives: z
+      .array(z.string().min(3).max(160))
+      .min(1, 'Add at least one objective')
+      .max(6, 'Six objectives is plenty, keep the run focused'),
+    competitors: z
+      .array(competitorSchema)
+      .min(1, 'Add at least one competitor to analyse')
+      .max(5, 'Five competitors is the current per-run limit'),
+    comparisonType: z.enum(['website', 'social_media', 'ecommerce_product']),
+    ecommercePlatform: z.string().max(40).optional().or(z.literal('')),
+    socialPlatform: z.enum(['facebook', 'instagram']).optional().or(z.literal('')),
+  })
+  /**
+   * Rules that depend on what is being compared.
+   *
+   * Social and e-commerce comparisons need a platform, and both the user's
+   * link and every competitor's have to live on it. A website comparison has
+   * no platform. These are in a superRefine because each depends on another
+   * field's value.
+   *
+   * Mirrored by ProjectCreate.check_type_specific_inputs on the backend, so a
+   * client that skips validation still cannot create a bad project.
+   */
+  .superRefine((values, ctx) => {
+    if (values.comparisonType === 'website') return
+
+    const isSocial = values.comparisonType === 'social_media'
+    const platform = (isSocial ? values.socialPlatform : values.ecommercePlatform) ?? ''
+    const platformField = isSocial ? 'socialPlatform' : 'ecommercePlatform'
+
+    if (!platform) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [platformField],
+        message: isSocial ? 'Choose a social media platform' : 'Choose an e-commerce platform',
+      })
+      return
+    }
+
+    // An empty or malformed link already has its own field error; only judge
+    // the host of a link that is otherwise valid.
+    const ownUrl = values.brandWebsite
+    if (ownUrl && !isValidPlatformUrl(platform, ownUrl)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['brandWebsite'],
+        message: platformUrlMessage(platform),
+      })
+    }
+
+    values.competitors.forEach((competitor, index) => {
+      const url = competitor.landingPageUrl
+      if (!url) return
+      if (!isValidPlatformUrl(platform, url)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['competitors', index, 'landingPageUrl'],
+          message: platformUrlMessage(platform),
+        })
+      } else if (!isSocial && ownUrl && stripTracking(url) === stripTracking(ownUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['competitors', index, 'landingPageUrl'],
+          message: 'This is the same listing as yours, use a different product',
+        })
+      }
+    })
+  })
 export type NewProjectValues = z.infer<typeof newProjectSchema>
+
+/**
+ * Compares two marketplace links by path, ignoring query strings.
+ *
+ * Two copies of the same listing carry different tracking parameters
+ * depending on where they were copied from, so comparing raw strings would
+ * miss a duplicate. The backend does the same thing properly, per platform.
+ */
+function stripTracking(url: string): string {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.hostname.replace(/^www\./, '')}${parsed.pathname}`.toLowerCase()
+  } catch {
+    return url.trim().toLowerCase()
+  }
+}
 
 export const profileSchema = z.object({
   fullName: z.string().min(2, 'Enter your name').max(80),
