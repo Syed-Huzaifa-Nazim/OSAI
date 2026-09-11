@@ -40,12 +40,19 @@ Nothing needs configuring to see it run. With no `.env` files at all, both
 halves start in **demo mode** and serve a seeded sample project ("Verdant
 Roast") end to end: no scraping, no database, no LLM spend.
 
+**Windows, one step:** right-click `start-dev.ps1` → *Run with PowerShell*. It
+installs whatever is missing on first run, then opens the backend and frontend
+in their own windows.
+
+Or by hand:
+
 ```bash
 # --- backend ---------------------------------------------------------------
 cd backend
 python -m venv .venv
 .venv/Scripts/activate          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+python -m playwright install chromium   # only needed for e-commerce scraping
 uvicorn app.main:app --reload   # http://127.0.0.1:8000  (docs at /docs)
 
 # --- frontend --------------------------------------------------------------
@@ -80,6 +87,8 @@ OptiStratixAI/
 │       ├── core/          config, security, errors, supabase clients
 │       ├── api/v1/        routers, one per pipeline area
 │       │   └── agents/    Scout / Insight / Strategist / Critic
+│       ├── scrapers/      one folder per platform, behind a shared contract
+│       │   └── daraz/     requests + BS4, Playwright fallback
 │       ├── models/  services/  db/  vectorstore/
 └── docs/              architecture, database, security, status, prompts
 ```
@@ -104,12 +113,23 @@ OptiStratixAI/
 
 ## Current state
 
-The full nine-stage pipeline runs end to end, but **the four agents are mock
-implementations**: they return hand-written, realistic data instead of calling
-an LLM. Everything around them is real: the state machine, the checkpoint
-enforcement, the evidence trail, the persistence layer, the auth model and the
-document generation. Swapping in a live agent is a one-line change in
-`backend/app/api/v1/agents/registry.py`.
+The full nine-stage pipeline runs end to end. Everything around the agents is
+real: the state machine, the checkpoint enforcement, the evidence trail, the
+persistence layer, the auth model and the document generation.
+
+The agents themselves are split:
+
+- **Website and social comparisons** still run the four **mock** agents, which
+  return hand-written, realistic data instead of calling an LLM. Swapping in a
+  live agent is a one-line change in
+  `backend/app/api/v1/agents/registry.py`.
+- **E-commerce product comparisons scrape and display.** Creating one
+  scrapes both Daraz listings for real (price, specs, reviews, seller details
+  and product images), embeds their text, and opens a comparison page with
+  eight parameter groups, side-by-side metrics and retrieved passages. No agent
+  runs on this path for now, and the pipeline cannot be started on these
+  projects. Website and social comparisons are listed as coming soon.
+  `backend/app/scrapers/` is built to take more platforms.
 
 See [docs/project-status.md](docs/project-status.md) for the honest inventory.
 
