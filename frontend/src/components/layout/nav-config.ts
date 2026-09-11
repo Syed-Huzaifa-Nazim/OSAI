@@ -6,6 +6,7 @@ import {
   ListChecks,
   Plug,
   Radar,
+  Scale,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -14,6 +15,7 @@ import {
   Workflow,
   type LucideIcon,
 } from 'lucide-react'
+import type { ComparisonType } from '@/types/domain'
 
 export interface NavItem {
   label: string
@@ -35,9 +37,19 @@ export const SETTINGS_NAV: NavItem[] = [
   { label: 'Billing', to: '/app/settings/billing', icon: CreditCard },
 ]
 
-/** Per-project workspace nav, shown only while inside a project. */
-export function projectNav(projectId: string): NavItem[] {
+/**
+ * Per-project workspace nav, shown only while inside a project.
+ *
+ * An e-commerce comparison scrapes and displays only, so it gets its one page
+ * and none of the pipeline's. Until the project has loaded, nothing is shown
+ * rather than a list that might be wrong.
+ */
+export function projectNav(projectId: string, comparisonType?: ComparisonType): NavItem[] {
   const base = `/app/projects/${projectId}`
+  if (comparisonType === undefined) return []
+  if (comparisonType === 'ecommerce_product') {
+    return [{ label: 'Product comparison', to: `${base}/comparison`, icon: Scale }]
+  }
   return [
     { label: 'Pipeline', to: `${base}/pipeline`, icon: Workflow },
     { label: 'Insights', to: `${base}/insights`, icon: Lightbulb },
