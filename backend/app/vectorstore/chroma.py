@@ -71,13 +71,27 @@ def add_chunks(
     return len(ids)
 
 
-def query(project_id: str, text: str, n_results: int = 8) -> list[dict[str, Any]]:
-    """Similarity search within one project's collection."""
+def query(
+    project_id: str,
+    text: str,
+    n_results: int = 8,
+    where: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Similarity search within one project's collection.
+
+    ``where`` narrows the search by chunk metadata. E-commerce comparisons use
+    it to scope retrieval to one side of the comparison and one kind of text --
+    review chunks from the competitor's listing, say -- which a collection-wide
+    search cannot express.
+    """
     collection = get_collection(project_id)
     if collection is None:
         return []
 
-    result = collection.query(query_texts=[text], n_results=n_results)
+    kwargs: dict[str, Any] = {"query_texts": [text], "n_results": n_results}
+    if where:
+        kwargs["where"] = where
+    result = collection.query(**kwargs)
     documents = (result.get("documents") or [[]])[0]
     metadatas = (result.get("metadatas") or [[]])[0]
     distances = (result.get("distances") or [[]])[0]
