@@ -9,6 +9,7 @@ import { ProjectStatusBadge } from './project-status-badge'
 import { DemoBadge } from './demo-badge'
 import type { Project } from '@/types/domain'
 import { getStage } from '@/lib/pipeline-stages'
+import { isScrapeOnly, projectHomePath } from '@/lib/project-routes'
 import { formatRelative, titleCase } from '@/lib/utils'
 import { staggerItem } from '@/lib/motion'
 
@@ -19,7 +20,25 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, onDelete }: ProjectCardProps) {
   const stage = getStage(project.currentStage)
-  const progress = Math.round((project.currentStage / 9) * 100)
+  const scrapeOnly = isScrapeOnly(project)
+  // A scrape-only comparison has two steps, not nine: read the listings, then
+  // show them. Its bar tracks that rather than a pipeline it never runs.
+  const progress = scrapeOnly
+    ? project.status === 'complete'
+      ? 100
+      : project.status === 'running'
+        ? 50
+        : 0
+    : Math.round((project.currentStage / 9) * 100)
+  const progressLabel = scrapeOnly
+    ? project.status === 'complete'
+      ? 'Product comparison · scraped'
+      : project.status === 'running'
+        ? 'Product comparison · scraping'
+        : project.status === 'failed'
+          ? 'Product comparison · scrape failed'
+          : 'Product comparison · not scraped'
+    : `Stage ${project.currentStage} · ${stage.title}`
 
   return (
     <motion.div variants={staggerItem} whileHover={{ y: -3 }} className="h-full">
@@ -49,9 +68,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
 
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
-              Stage {project.currentStage} · {stage.title}
-            </span>
+            <span className="text-muted-foreground">{progressLabel}</span>
             <span className="font-mono tabular-nums text-muted-foreground">{progress}%</span>
           </div>
           <Progress value={progress} />
@@ -80,7 +97,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
               </Button>
             ) : null}
             <Button asChild size="sm" variant="outline">
-              <Link to={`/app/projects/${project.id}/pipeline`}>
+              <Link to={projectHomePath(project)}>
                 Open
                 <ArrowUpRight />
               </Link>
