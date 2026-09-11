@@ -12,14 +12,18 @@ import { api } from '../api-client'
 import { isDemoMode } from '../config'
 import { mockApi } from '../mock/mock-api'
 import type {
+  ComparisonGroup,
   Competitor,
   ContentSuggestion,
   ContactSubmission,
+  EcommerceProduct,
   Gap,
+  ParameterComparison,
   GapDecision,
   GapPriority,
   HitlReview,
   Integration,
+  PlatformOption,
   Project,
   ReviewDecision,
   RunCost,
@@ -34,9 +38,14 @@ export interface CreateProjectInput {
   brandWebsite: string | null
   brandDescription: string
   industry: Project['industry']
-  targetAudience: string
+  targetAudience: string | null
   objectives: string[]
   competitors: Omit<Competitor, 'id' | 'projectId' | 'createdAt'>[]
+  comparisonType: Project['comparisonType']
+  /** Null unless comparisonType is 'ecommerce_product'. */
+  ecommercePlatform: string | null
+  /** Null unless comparisonType is 'social_media'. */
+  socialPlatform: Project['socialPlatform']
 }
 
 /* ------------------------------------------------------------ projects --- */
@@ -221,4 +230,57 @@ export const contactApi = {
     isDemoMode
       ? mockApi.submitContact()
       : api.post<void>('/contact', input, { anonymous: true }),
+}
+
+/* ------------------------------------------------------------ scrapers --- */
+
+export const scrapersApi = {
+  /**
+   * The e-commerce platforms a comparison can run against.
+   *
+   * Served by the backend's scraper registry rather than hardcoded here, so
+   * registering a scraper makes it selectable in the UI with no frontend
+   * change. In demo mode the mock returns the same shape.
+   */
+  platforms: (): Promise<PlatformOption[]> =>
+    isDemoMode ? mockApi.listPlatforms() : api.get<PlatformOption[]>('/scrapers/platforms'),
+
+  /**
+   * Scrapes both listings and embeds their text, in the background. Progress
+   * is reported as pipeline stages 2 and 3; nothing after that runs.
+   */
+  start: (projectId: string): Promise<PipelineState> =>
+    isDemoMode
+      ? mockApi.startScrape(projectId)
+      : api.post<PipelineState>(`/scrapers/projects/${projectId}/scrape`),
+
+  /** The scraped listings behind an e-commerce project. */
+  products: (projectId: string): Promise<EcommerceProduct[]> =>
+    isDemoMode
+      ? mockApi.listEcommerceProducts(projectId)
+      : api.get<EcommerceProduct[]>(`/scrapers/projects/${projectId}/products`),
+
+  /** Every parameter group, with who leads each, against one competitor. */
+  comparison: (projectId: string, competitorId?: string): Promise<ComparisonGroup[]> =>
+    isDemoMode
+      ? mockApi.getEcommerceComparison(projectId)
+      : api.get<ComparisonGroup[]>(
+          `/scrapers/projects/${projectId}/comparison${competitorQuery(competitorId)}`,
+        ),
+
+  /** One parameter in full: metrics, read-out and retrieved passages. */
+  parameter: (
+    projectId: string,
+    parameterKey: string,
+    competitorId?: string,
+  ): Promise<ParameterComparison> =>
+    isDemoMode
+      ? mockApi.getEcommerceParameter(projectId, parameterKey)
+      : api.get<ParameterComparison>(
+          `/scrapers/projects/${projectId}/comparison/${encodeURIComponent(parameterKey)}${competitorQuery(competitorId)}`,
+        ),
+}
+
+function competitorQuery(competitorId: string | undefined): string {
+  return competitorId ? `?competitor=${encodeURIComponent(competitorId)}` : ''
 }
