@@ -28,6 +28,13 @@ logger = logging.getLogger("optistratix.pipeline")
 #: Stages the runner drives on its own. 1 is the intake form, 5 and 7 are human.
 AUTOMATED_STAGES = (2, 3, 4, 6, 8, 9)
 
+#: What an e-commerce comparison runs today: scrape both listings (stage 2),
+#: then chunk and embed their text (stage 3) so the comparison page can show
+#: retrieved passages. Nothing after that runs -- no gap analysis, strategy or
+#: human checkpoints. The comparison is displayed straight from the scraped
+#: data, the way the standalone scraper did.
+SCRAPE_STAGES = (2, 3)
+
 CHECKPOINT_MESSAGES = {
     5: "Waiting for you to prioritise the identified gaps",
     7: "Waiting for your final approval of the strategy",
@@ -163,18 +170,42 @@ async def _run_stage(
 
     if stage_id == 2:
         context["competitors"] = repo.list_competitors(project_id)
-        result = await get_agent(2).run(context)
+        result = await get_agent(2, project).run(context)
         repo.replace_sources(project_id, result.payload)
+        # An e-commerce Scout also returns the structured listings behind those
+        # sources. Persisting them here keeps the agent free of storage concerns,
+        # exactly as the sources themselves are handled.
+        products = result.artifacts.get("ecommerce_products")
+        if products is not None:
+            repo.replace_ecommerce_products(project_id, products)
+            # After the products: each image row references its product.
+            # Photos are an extra, not the comparison, so failing to store them
+            # (say, before the images migration has been applied) is recorded
+            # as a warning and the scrape carries on.
+            try:
+                repo.replace_ecommerce_product_images(
+                    project_id, result.artifacts.get("ecommerce_product_images") or []
+                )
+            except Exception as exc:  # noqa: BLE001 - never fail a scrape over photos
+                logger.warning("Could not store product images for %s: %s", project_id, exc)
+                result.warnings.append(
+                    f"Product images were scraped but could not be saved ({type(exc).__name__})."
+                )
         message = f"{result.items_processed} sources collected"
 
     elif stage_id == 3:
         context["sources"] = repo.list_sources(project_id)
-        result = await get_agent(3).run(context)
+        context["ecommerce_products"] = repo.list_ecommerce_products(project_id)
+        result = await get_agent(3, project).run(context)
+        counts = result.artifacts.get("product_chunk_counts") or {}
+        for product_id, chunk_count in counts.items():
+            repo.update_ecommerce_product(project_id, product_id, {"chunk_count": chunk_count})
         message = f"{result.items_processed} chunks embedded into the project collection"
 
     elif stage_id == 4:
         context["sources"] = repo.list_sources(project_id)
-        result = await get_agent(4).run(context)
+        context["ecommerce_products"] = repo.list_ecommerce_products(project_id)
+        result = await get_agent(4, project).run(context)
         repo.replace_gaps(project_id, result.payload)
         repo.update_project(project_id, {"gap_count": len(result.payload)})
         message = f"{result.items_processed} gaps identified"
@@ -334,12 +365,91 @@ async def _run_automation_stage(repo: Repository, project_id: str) -> Any:
 
 def start(repo: Repository, project_id: str) -> dict[str, Any]:
     """Opens a run. The caller schedules ``run_from`` as a background task."""
+    project = repo.get_project(project_id)
+    if project.get("comparison_type") == "ecommerce_product":
+        # The agent pipeline is switched off for these for now; they scrape and
+        # display only. Refused here, not just hidden in the UI, so no route
+        # can start agents on one by accident.
+        raise ConflictError(
+            "E-commerce comparisons scrape and display only; the agent pipeline is "
+            "switched off for them. Use the product comparison page instead."
+        )
     state = load_state(repo, project_id)
     if state["stages"]["2"]["status"] == StageStatus.RUNNING.value:
         raise ConflictError("This pipeline is already running.")
 
     repo.update_project(project_id, {"status": "running", "current_stage": 2})
     return state
+
+
+def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
+    """Opens a scrape-only run. The caller schedules ``run_scrape`` in the background.
+
+    Stage 2 is marked running *before* returning, so a client that starts
+    polling immediately sees progress rather than an idle pipeline for the
+    moment before the background task picks the job up.
+    """
+    project = repo.get_project(project_id)
+    if project.get("comparison_type") != "ecommerce_product":
+        raise ConflictError("Only e-commerce comparisons can be scraped.")
+
+    current = load_state(repo, project_id)
+    if any(
+        current["stages"][str(stage_id)]["status"] == StageStatus.RUNNING.value
+        for stage_id in SCRAPE_STAGES
+    ):
+        raise ConflictError("These listings are already being scraped.")
+
+    # Every scrape starts clean, so a re-run never mixes old vectors or an old
+    # stage error into the new result.
+    state = empty_state(project_id)
+    _set_stage(
+        state,
+        2,
+        status=StageStatus.RUNNING.value,
+        progress=0,
+        started_at=demo_data.iso(),
+        message="Queued",
+    )
+    state["current_stage"] = 2
+    repo.save_pipeline(project_id, state)
+    chroma.delete_collection(project_id)
+    repo.update_project(project_id, {"status": "running", "current_stage": 2})
+    return state
+
+
+async def run_scrape(project_id: str, user_id: str) -> None:
+    """Runs the scrape stages and stops. Never starts an agent.
+
+    A failure is recorded on the stage that failed, in the scraper's own
+    words -- those messages are written for the user ("not a Daraz domain",
+    "HTTP 404") -- and the project is marked failed so the page can offer a
+    retry.
+    """
+    repo = get_worker_repository(user_id)
+    state = load_state(repo, project_id)
+
+    for stage_id in SCRAPE_STAGES:
+        try:
+            await _run_stage(repo, project_id, state, stage_id)
+        except Exception as exc:  # noqa: BLE001 - surface it on the stage, then stop
+            logger.exception("Scrape stage %d failed for project %s", stage_id, project_id)
+            _set_stage(
+                state,
+                stage_id,
+                status=StageStatus.ERROR.value,
+                error=str(exc) or type(exc).__name__,
+                message=None,
+            )
+            state["blocked_on"] = None
+            repo.save_pipeline(project_id, state)
+            repo.update_project(project_id, {"status": "failed"})
+            return
+
+    state["blocked_on"] = None
+    repo.save_pipeline(project_id, state)
+    repo.update_project(project_id, {"status": "complete", "current_stage": SCRAPE_STAGES[-1]})
+    logger.info("Project %s scraped and embedded", project_id)
 
 
 def reset(repo: Repository, project_id: str) -> dict[str, Any]:
