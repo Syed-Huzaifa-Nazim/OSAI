@@ -17,7 +17,7 @@ same shape:
   "error": {
     "code": "validation_error",
     "message": "Some of the values you submitted are not valid.",
-    "fields": { "brandDescription": "String should have at least 40 characters" },
+    "fields": { "brandDescription": "String should have at most 120 characters" },
     "requestId": "9c1f2b7e-4a2d-4f77-9e01-2b3a4c5d6e7f"
   }
 }
