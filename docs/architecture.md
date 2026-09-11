@@ -141,6 +141,65 @@ _MOCK_AGENTS: dict[int, type[BaseAgent]] = {
 }
 ```
 
+### E-commerce comparisons: scrape and display
+
+A project carries a `comparison_type`. For `ecommerce_product` the product
+currently scrapes and displays; it does not run the agent pipeline.
+
+    POST /scrapers/projects/{id}/scrape   -> pipeline_service.start_scrape + run_scrape
+        stage 2  EcommerceScoutAgent        scrape both listings (data + product images)
+        stage 3  EcommercePreprocessAgent   chunk and embed each text field into Chroma
+        (stops -- stages 4-9 stay idle)
+
+Progress is still recorded as pipeline stages 2 and 3, so polling, errors and
+retries reuse the pipeline state. `pipeline_service.start` refuses these
+projects, so no route can start the agents on one. The frontend opens them on
+`/app/projects/{id}/comparison`, which reads:
+
+| Endpoint | What it returns |
+|---|---|
+| `GET /scrapers/projects/{id}/products` | Both listings, with their images in gallery order |
+| `GET /scrapers/projects/{id}/comparison` | Every A-H parameter with its metric rows and who leads |
+| `GET /scrapers/projects/{id}/comparison/{parameter}` | One parameter: metrics, rule-based read-out, retrieved passages |
+
+Everything shown is arithmetic over the two scraped rows plus stored chunks; no
+model is called. `EcommerceInsightAgent` (rule-based gaps) remains registered
+for stage 4 and is covered by tests, but nothing runs it while the pipeline is
+switched off for these projects.
+
+### Scrapers
+
+```
+backend/app/scrapers/
+    base.py        the ProductScraper contract and its result type
+    registry.py    platform key -> scraper; also what the UI's dropdown reads
+    daraz/
+        scraper.py     requests/BS4, with a Playwright fallback
+        images.py      product photo URLs, extracted in the same pass
+        selectors.py   every CSS selector, JSON path and keyword
+        utils.py       generic parsing primitives
+        metrics.py     the A-H comparison parameters for Daraz metadata
+```
+
+`scraper.py`, `selectors.py` and `utils.py` came from a standalone Daraz
+scraper. Their extraction logic is unchanged; only the settings import was
+repointed. The rest of the backend talks to them solely through
+`ProductScraper`, so no pipeline code contains the word "Daraz".
+
+Adding a marketplace is: write `app/scrapers/<platform>/`, `register()` it, and
+extend two check constraints in a migration. Nothing in the frontend changes --
+the platform dropdown is served from `GET /api/v1/scrapers/platforms`.
+
+Two constraints the design is shaped around:
+
+- **Playwright's sync API refuses to run inside an event loop.** Scrapers are
+  therefore synchronous, and the Scout dispatches them with
+  `asyncio.to_thread` rather than making every implementation carry an async
+  wrapper it does not need.
+- **Two headless Chromium instances on a laptop starve each other.** The Daraz
+  scraper serialises its own browser launches internally, so the Scout can scrape
+  listings concurrently without tuning anything.
+
 ### The Critic is the load-bearing one
 
 "Reduces hallucinated and misleading insights" is the project's central claim,
