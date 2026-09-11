@@ -33,6 +33,11 @@ def create_project(repo: Repository, owner_id: str, payload: ProjectCreate) -> d
         "industry": payload.industry.value,
         "target_audience": payload.target_audience,
         "objectives": payload.objectives,
+        "comparison_type": payload.comparison_type.value,
+        # Each platform is null except on its own comparison type; ProjectCreate
+        # clears the other one.
+        "ecommerce_platform": payload.ecommerce_platform,
+        "social_platform": payload.social_platform.value if payload.social_platform else None,
         "status": "draft",
         "current_stage": 1,
         "competitor_count": len(payload.competitors),
