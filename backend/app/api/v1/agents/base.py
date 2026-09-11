@@ -22,6 +22,12 @@ class AgentResult:
     tokens_used: int | None = None
     cost_usd: float | None = None
     warnings: list[str] = field(default_factory=list)
+    #: Secondary output the runner persists alongside ``payload``, keyed by
+    #: what it is. A stage whose agent produces more than one kind of record
+    #: uses this rather than overloading ``payload``, which keeps the runner
+    #: the only place that knows how anything is stored. Stage 2 puts scraped
+    #: ``ecommerce_products`` here; the website and social paths leave it empty.
+    artifacts: dict[str, Any] = field(default_factory=dict)
 
 
 class BaseAgent(abc.ABC):
