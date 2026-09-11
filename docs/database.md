@@ -36,6 +36,8 @@ erDiagram
 | `projects` | One brand analysis run | Root of every ownership check |
 | `competitors` | Who to analyse | `social_handles` is JSONB |
 | `scraped_sources` | Stage 2/3 output | `excerpt` for lists; full text lives in Chroma |
+| `ecommerce_products` | Stage 2 output for e-commerce comparisons | One scraped listing; common fields are columns, the rest is JSONB |
+| `ecommerce_product_images` | Stage 2 output for e-commerce comparisons | One product photo per row, in gallery order (position 1 is the main image). Stores the marketplace's own image URL; nothing is downloaded. Cascades from its listing |
 | `gaps_opportunities` | Stage 4 output + stage 5 decisions | `evidence` JSONB, never empty |
 | `strategies` | Stage 6 output | `initiatives` and `critic_feedback` JSONB; versioned |
 | `critic_feedback` | Critic interventions, relational copy | Queryable across projects for the report's evaluation chapter |
@@ -45,6 +47,28 @@ erDiagram
 | `pipeline_states` | Nine-stage run state | One JSONB doc per project |
 | `integrations` | Teammates' feature modules | `feature_key` joins to the frontend registry |
 | `contact_submissions` | Public contact form | Write-only under RLS |
+
+### Why `ecommerce_products` is not `daraz_products`
+
+The columns on it -- price, rating, review count, brand, seller, stock, images
+-- are the ones every marketplace has. A platform is told apart by the
+`platform` column, so Amazon or AliExpress reuse the table rather than each
+bringing their own. Anything that genuinely is platform-specific lives in
+`raw_metadata`, which is also what the comparison engine reads, so a scraper can
+return fields nobody has modelled yet without a migration.
+
+Two columns exist that look redundant and are not:
+
+- `text_fields` keeps the chunkable content (title, description, specs,
+  reviews, ...) on the row as well as in Chroma. Re-embedding is then a local
+  operation rather than a re-scrape, which matters because scraping is slow,
+  rate-limited and may fail.
+- `source_id` points back at the `scraped_sources` row the listing produced, so
+  a gap's evidence cites something the sources screen already shows.
+
+A partial unique index enforces one `role = 'own'` listing per project: that row
+is the baseline every comparison is measured against, and two of them would make
+the result ambiguous.
 
 ### Design decisions worth stating
 
@@ -174,10 +198,17 @@ supabase db execute --file backend/app/db/schema.sql
 
 or paste it into the Supabase SQL editor.
 
-No migration tool is wired up. While the schema is still moving, edit
-`schema.sql` and re-run it. **Once real data exists, switch to numbered
-migrations** under `backend/app/db/migrations/` before altering a column in
-place.
+No migration tool is wired up. `schema.sql` builds a database from nothing;
+**a database that already exists moves forward through the numbered files in
+`backend/app/db/migrations/`**, applied in order by hand. Both are kept in step,
+so a schema change means editing `schema.sql` *and* adding a migration. See
+`backend/app/db/README.md` for what each migration does.
+
+Link columns (`projects.brand_website`, `competitors.landing_page_url`,
+`scraped_sources.url`, `ecommerce_products.url`) are `text` on purpose:
+marketplace links copied from search results carry over a kilobyte of tracking
+parameters. Any length bound belongs in the API (`MAX_URL_LENGTH`), not in a
+column type.
 
 ---
 
