@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from functools import lru_cache
 
 import jwt
 from fastapi import Depends, Request
@@ -35,18 +36,74 @@ class CurrentUser:
     is_demo: bool = False
 
 
+#: Algorithms Supabase's asymmetric JWT signing keys use. Listed explicitly so
+#: a token can never pick its own verification method (e.g. "none").
+ASYMMETRIC_ALGORITHMS = ["ES256", "RS256", "EdDSA"]
+
+
+@lru_cache
+def _jwks_client() -> jwt.PyJWKClient:
+    """The project's public signing keys, fetched once and cached.
+
+    Supabase projects created or migrated to *JWT signing keys* sign user
+    sessions with an asymmetric key (ES256 here), published at this endpoint.
+    Only the public half is fetched; nothing secret is involved.
+    """
+    return jwt.PyJWKClient(
+        f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json",
+        cache_keys=True,
+        headers={"apikey": settings.supabase_anon_key},
+        timeout=10,
+    )
+
+
 def _decode(token: str) -> dict:
+    """Verifies a Supabase session token, whichever way the project signs it.
+
+    Supabase supports two signing schemes and a project can have either:
+
+      * legacy: HS256 with the shared JWT secret
+      * signing keys: ES256/RS256, verified against the public JWKS
+
+    Accepting only HS256 -- as this used to -- rejects every login on a project
+    using signing keys, even though the anon key (still HS256) verifies fine.
+    The algorithm is read from the token header only to choose *which* key to
+    check against; each branch still pins its allowed algorithms.
+    """
     try:
-        return jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
+        algorithm = jwt.get_unverified_header(token).get("alg")
+
+        if algorithm == "HS256":
+            if not settings.supabase_jwt_secret:
+                # Misconfiguration, not a client error, so say so plainly
+                # rather than letting every request fail as "unauthorized".
+                logger.error("SUPABASE_JWT_SECRET is not set; HS256 tokens cannot be verified")
+                raise UnauthorizedError(
+                    "The server cannot verify sessions right now.", code="auth_misconfigured"
+                )
+            key: object = settings.supabase_jwt_secret
+            algorithms = ["HS256"]
+        elif algorithm in ASYMMETRIC_ALGORITHMS:
+            key = _jwks_client().get_signing_key_from_jwt(token).key
+            algorithms = ASYMMETRIC_ALGORITHMS
+        else:
+            raise UnauthorizedError(
+                "That session token is not valid.", code="invalid_token"
+            )
+
+        return jwt.decode(token, key, algorithms=algorithms, audience="authenticated")
     except jwt.ExpiredSignatureError as exc:
         raise UnauthorizedError(
             "Your session has expired. Please log in again.", code="token_expired"
         ) from exc
+    except jwt.PyJWKClientConnectionError as exc:
+        logger.error("Could not fetch Supabase signing keys: %s", exc)
+        raise UnauthorizedError(
+            "The server cannot verify sessions right now.", code="auth_unavailable"
+        ) from exc
+    except jwt.PyJWKClientError as exc:
+        # Unknown key id: signed by a key this project does not publish.
+        raise UnauthorizedError("That session token is not valid.", code="invalid_token") from exc
     except jwt.InvalidTokenError as exc:
         raise UnauthorizedError("That session token is not valid.", code="invalid_token") from exc
 
@@ -68,14 +125,6 @@ async def get_current_user(
 
     if credentials is None or not credentials.credentials:
         raise UnauthorizedError("You need to be signed in to do that.")
-
-    if not settings.supabase_jwt_secret:
-        # Misconfiguration, not a client error, say so plainly rather than
-        # letting every request fail as "unauthorized".
-        logger.error("SUPABASE_JWT_SECRET is not set; tokens cannot be verified")
-        raise UnauthorizedError(
-            "The server cannot verify sessions right now.", code="auth_misconfigured"
-        )
 
     payload = _decode(credentials.credentials)
     user_id = payload.get("sub")
