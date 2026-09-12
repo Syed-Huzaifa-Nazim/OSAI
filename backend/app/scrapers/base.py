@@ -40,7 +40,7 @@ class ScrapedProductRecord:
     """
 
     role: str                                   # OWN | COMPETITOR
-    platform: str                               # "daraz"
+    platform: str                               # "daraz" | "alibaba"
     url: str
     product_name: str
     text_fields: dict[str, str] = field(default_factory=dict)
@@ -50,6 +50,13 @@ class ScrapedProductRecord:
     #: Product photos, main image first: ``{"url", "position", "source"}``
     #: with 1-based positions. URLs point at the platform's own CDN.
     images: list[dict[str, Any]] = field(default_factory=list)
+    #: Quantity price breaks, lowest quantity first: ``{"min_quantity",
+    #: "max_quantity" (None = open-ended), "price", "currency", "unit"}``.
+    #: Empty for platforms that sell at a single price (Daraz).
+    price_tiers: list[dict[str, Any]] = field(default_factory=list)
+    #: The selling business's public trust profile, for platforms that publish
+    #: one (Alibaba). Never contains contact details.
+    supplier: dict[str, Any] | None = None
 
     @property
     def excerpt(self) -> str:
