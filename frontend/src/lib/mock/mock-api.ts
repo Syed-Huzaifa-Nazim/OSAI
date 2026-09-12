@@ -730,6 +730,13 @@ export const mockApi = {
         urlHint: 'A Daraz product page link',
         urlExample: 'https://www.daraz.pk/products/example-i123456789-s987654321.html',
       },
+      {
+        platform: 'alibaba',
+        label: 'Alibaba',
+        urlHint: 'An Alibaba product page link',
+        urlExample:
+          'https://www.alibaba.com/product-detail/Mini-Wireless-Mouse-Ergonomic-4-Buttons_1601364965690.html',
+      },
     ]
   },
 
