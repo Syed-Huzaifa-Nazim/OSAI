@@ -38,6 +38,8 @@ erDiagram
 | `scraped_sources` | Stage 2/3 output | `excerpt` for lists; full text lives in Chroma |
 | `ecommerce_products` | Stage 2 output for e-commerce comparisons | One scraped listing; common fields are columns, the rest is JSONB |
 | `ecommerce_product_images` | Stage 2 output for e-commerce comparisons | One product photo per row, in gallery order (position 1 is the main image). Stores the marketplace's own image URL; nothing is downloaded. Cascades from its listing |
+| `ecommerce_product_price_tiers` | Stage 2 output, Alibaba listings | One quantity price break per row ("100-499 pieces: US$0.77"), lowest quantity first; `max_quantity` null for the open-ended top tier. Cascades from its listing |
+| `ecommerce_product_suppliers` | Stage 2 output, Alibaba listings | The selling supplier's public trust credentials, one per listing: years on Alibaba, Gold / Verified / Trade Assurance, response rate, order history. No contact details. Cascades from its listing |
 | `gaps_opportunities` | Stage 4 output + stage 5 decisions | `evidence` JSONB, never empty |
 | `strategies` | Stage 6 output | `initiatives` and `critic_feedback` JSONB; versioned |
 | `critic_feedback` | Critic interventions, relational copy | Queryable across projects for the report's evaluation chapter |
@@ -52,10 +54,16 @@ erDiagram
 
 The columns on it -- price, rating, review count, brand, seller, stock, images
 -- are the ones every marketplace has. A platform is told apart by the
-`platform` column, so Amazon or AliExpress reuse the table rather than each
-bringing their own. Anything that genuinely is platform-specific lives in
-`raw_metadata`, which is also what the comparison engine reads, so a scraper can
-return fields nobody has modelled yet without a migration.
+`platform` column (`'daraz'` or `'alibaba'`), so a new marketplace reuses the
+table rather than bringing its own. Anything that genuinely is platform-specific
+lives in `raw_metadata`, which is also what the comparison engine reads, so a
+scraper can return fields nobody has modelled yet without a migration.
+
+Alibaba is a wholesale marketplace, so migration 0004 added what B2B listings
+share: nullable `max_price`, `moq`, `moq_unit` and `lead_time_days` columns
+(null on Daraz rows), `price` / `original_price` widened to `numeric(14,4)` for
+sub-cent unit prices, and the two linked tables above for data with its own
+shape (a ladder of tiers, a supplier profile).
 
 Two columns exist that look redundant and are not:
 
