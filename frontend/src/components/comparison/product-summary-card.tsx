@@ -1,7 +1,7 @@
 import { ArrowUpRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { formatPrice } from '@/lib/comparison-format'
+import { formatPrice, formatQuantity } from '@/lib/comparison-format'
 import type { EcommerceProduct } from '@/types/domain'
 import { ProductGallery } from './product-gallery'
 
@@ -44,13 +44,18 @@ export function ProductSummaryCard({ product, platformLabel }: ProductSummaryCar
       </h3>
 
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-        <Stat label="Price" value={formatPrice(product.price)} />
+        <Stat label="Price" value={formatPrice(product.price, product.currency, product.maxPrice)} />
         <Stat label="Brand" value={product.brand ?? '—'} />
         <Stat
           label="Rating"
           value={product.rating !== null ? `${product.rating.toFixed(1)} / 5` : '—'}
         />
         <Stat label="Reviews" value={product.reviewCount.toLocaleString()} />
+        {/* Wholesale platforms (Alibaba) only; a Daraz card is unchanged. */}
+        {product.moq !== null ? (
+          <Stat label="Min. order" value={formatQuantity(product.moq, product.moqUnit)} />
+        ) : null}
+        {product.supplier ? <Stat label="Supplier" value={product.supplier.name} /> : null}
       </dl>
 
       <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border/15 pt-4 text-xs text-muted-foreground">
