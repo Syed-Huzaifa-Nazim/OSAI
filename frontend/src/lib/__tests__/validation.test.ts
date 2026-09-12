@@ -367,6 +367,54 @@ describe('newProjectSchema, e-commerce comparisons', () => {
   })
 })
 
+describe('newProjectSchema, Alibaba comparisons', () => {
+  const MOUSE =
+    'https://www.alibaba.com/product-detail/Mini-Wireless-Mouse-Ergonomic-4-Buttons_1601364965690.html?spm=a2700.galleryofferlist.normal_offer.d_title.1'
+  const GAMING =
+    'https://www.alibaba.com/product-detail/MLOONG-MX302-Ultra-Lightweight-Wireless-Gaming_1601688290824.html'
+
+  const alibaba = (own: string, competitor: string) => ({
+    ...VALID_ECOMMERCE_PROJECT,
+    ecommercePlatform: 'alibaba',
+    brandWebsite: own,
+    competitors: [{ ...VALID_ECOMMERCE_PROJECT.competitors[0], landingPageUrl: competitor }],
+  })
+
+  it('accepts two different Alibaba products', () => {
+    expect(issuePaths(newProjectSchema.safeParse(alibaba(MOUSE, GAMING)))).toEqual([])
+  })
+
+  it.each([
+    ['a mobile link', 'https://m.alibaba.com/product/1601688290824/MLOONG-MX302.html'],
+    ['a bare mobile link', 'https://m.alibaba.com/product/1601688290824.html'],
+    ['a regional site', 'https://french.alibaba.com/product-detail/Souris-Gaming_1601688290824.html'],
+  ])('accepts %s', (_label, link) => {
+    expect(issuePaths(newProjectSchema.safeParse(alibaba(MOUSE, link)))).toEqual([])
+  })
+
+  it.each([
+    ['a Daraz link', 'https://www.daraz.pk/products/their-kettle-i222-s222.html'],
+    ['a lookalike host', 'https://alibaba.com.evil.example/product-detail/Mouse_1601688290824.html'],
+    ['a lookalike name', 'https://notalibaba.com/product-detail/Mouse_1601688290824.html'],
+    ['a search page', 'https://www.alibaba.com/showroom/wireless-mouse.html'],
+    ['a supplier storefront', 'https://kingmega.en.alibaba.com/productlist.html'],
+  ])('rejects %s', (_label, link) => {
+    const result = newProjectSchema.safeParse(alibaba(MOUSE, link))
+    expect(issuePaths(result)).toEqual(['competitors.0.landingPageUrl'])
+    expect(result.success ? '' : result.error.issues[0]?.message).toMatch(/alibaba product link/i)
+  })
+
+  it.each([
+    ['tracking parameters', MOUSE.replace('d_title.1', 'd_image.9')],
+    ['a reworded title', 'https://www.alibaba.com/product-detail/Other-Title_1601364965690.html'],
+    ['the mobile site', 'https://m.alibaba.com/product/1601364965690/Mini-Mouse.html'],
+  ])('recognises the same product behind %s', (_label, sameProduct) => {
+    const result = newProjectSchema.safeParse(alibaba(MOUSE, sameProduct))
+    expect(issuePaths(result)).toEqual(['competitors.0.landingPageUrl'])
+    expect(result.success ? '' : result.error.issues[0]?.message).toMatch(/same listing/i)
+  })
+})
+
 /** The dotted field paths a failed parse complained about. */
 function issuePaths(result: ReturnType<typeof newProjectSchema.safeParse>): string[] {
   return result.success ? [] : result.error.issues.map((issue) => issue.path.join('.'))
