@@ -191,6 +191,20 @@ async def _run_stage(
                 result.warnings.append(
                     f"Product images were scraped but could not be saved ({type(exc).__name__})."
                 )
+            # Price tiers and supplier profiles (Alibaba) are extras in the same
+            # sense: the comparison reads raw_metadata, so failing to store the
+            # structured copies is a warning, not a failed scrape.
+            for artifact, store, label in (
+                ("ecommerce_product_price_tiers", repo.replace_ecommerce_product_price_tiers, "price tiers"),
+                ("ecommerce_product_suppliers", repo.replace_ecommerce_product_suppliers, "supplier profiles"),
+            ):
+                try:
+                    store(project_id, result.artifacts.get(artifact) or [])
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Could not store %s for %s: %s", label, project_id, exc)
+                    result.warnings.append(
+                        f"Product {label} were scraped but could not be saved ({type(exc).__name__})."
+                    )
         message = f"{result.items_processed} sources collected"
 
     elif stage_id == 3:
