@@ -60,6 +60,8 @@ class MemoryRepository:
     _suggestions: list[dict[str, Any]] = []
     _ecommerce_products: list[dict[str, Any]] = []
     _ecommerce_product_images: list[dict[str, Any]] = []
+    _ecommerce_product_price_tiers: list[dict[str, Any]] = []
+    _ecommerce_product_suppliers: list[dict[str, Any]] = []
     _integrations: list[dict[str, Any]] = []
     _pipelines: dict[str, dict[str, Any]] = {}
     _contact: list[dict[str, Any]] = []
@@ -108,6 +110,10 @@ class MemoryRepository:
             cls._integrations = []
             cls._pipelines = {}
             cls._contact = []
+            cls._ecommerce_products = []
+            cls._ecommerce_product_images = []
+            cls._ecommerce_product_price_tiers = []
+            cls._ecommerce_product_suppliers = []
         cls._seed()
 
     # ------------------------------------------------------------- projects
@@ -151,6 +157,12 @@ class MemoryRepository:
             MemoryRepository._ecommerce_product_images = [
                 r for r in self._ecommerce_product_images if r["project_id"] != project_id
             ]
+            MemoryRepository._ecommerce_product_price_tiers = [
+                r for r in self._ecommerce_product_price_tiers if r["project_id"] != project_id
+            ]
+            MemoryRepository._ecommerce_product_suppliers = [
+                r for r in self._ecommerce_product_suppliers if r["project_id"] != project_id
+            ]
             self._pipelines.pop(project_id, None)
 
     # ---------------------------------------------------------- competitors
@@ -183,9 +195,16 @@ class MemoryRepository:
             MemoryRepository._ecommerce_products = [
                 r for r in self._ecommerce_products if r["project_id"] != project_id
             ]
-            # Mirrors the ON DELETE CASCADE from images to products in Postgres.
+            # Mirrors the ON DELETE CASCADE from images, tiers and suppliers to
+            # products in Postgres.
             MemoryRepository._ecommerce_product_images = [
                 r for r in self._ecommerce_product_images if r["project_id"] != project_id
+            ]
+            MemoryRepository._ecommerce_product_price_tiers = [
+                r for r in self._ecommerce_product_price_tiers if r["project_id"] != project_id
+            ]
+            MemoryRepository._ecommerce_product_suppliers = [
+                r for r in self._ecommerce_product_suppliers if r["project_id"] != project_id
             ]
             self._ecommerce_products.extend(rows)
 
@@ -201,6 +220,31 @@ class MemoryRepository:
                 r for r in self._ecommerce_product_images if r["project_id"] != project_id
             ]
             self._ecommerce_product_images.extend(rows)
+
+    def list_ecommerce_product_price_tiers(self, project_id: str) -> list[dict[str, Any]]:
+        rows = [dict(r) for r in self._ecommerce_product_price_tiers if r["project_id"] == project_id]
+        return sorted(rows, key=lambda row: (row["product_id"], row["position"]))
+
+    def replace_ecommerce_product_price_tiers(
+        self, project_id: str, rows: list[dict[str, Any]]
+    ) -> None:
+        with self._lock:
+            MemoryRepository._ecommerce_product_price_tiers = [
+                r for r in self._ecommerce_product_price_tiers if r["project_id"] != project_id
+            ]
+            self._ecommerce_product_price_tiers.extend(rows)
+
+    def list_ecommerce_product_suppliers(self, project_id: str) -> list[dict[str, Any]]:
+        return [dict(r) for r in self._ecommerce_product_suppliers if r["project_id"] == project_id]
+
+    def replace_ecommerce_product_suppliers(
+        self, project_id: str, rows: list[dict[str, Any]]
+    ) -> None:
+        with self._lock:
+            MemoryRepository._ecommerce_product_suppliers = [
+                r for r in self._ecommerce_product_suppliers if r["project_id"] != project_id
+            ]
+            self._ecommerce_product_suppliers.extend(rows)
 
     def update_ecommerce_product(
         self, project_id: str, product_id: str, patch: dict[str, Any]
@@ -436,6 +480,42 @@ class SupabaseRepository:
         self.client.table("ecommerce_product_images").delete().eq("project_id", project_id).execute()
         if rows:
             self.client.table("ecommerce_product_images").insert(rows).execute()
+
+    def list_ecommerce_product_price_tiers(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("ecommerce_product_price_tiers")
+            .select("*")
+            .eq("project_id", project_id)
+            .order("product_id")
+            .order("position")
+            .execute()
+        )
+        return result.data or []
+
+    def replace_ecommerce_product_price_tiers(
+        self, project_id: str, rows: list[dict[str, Any]]
+    ) -> None:
+        """Usually a no-op delete: replacing the products cascaded the old tiers."""
+        self.client.table("ecommerce_product_price_tiers").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("ecommerce_product_price_tiers").insert(rows).execute()
+
+    def list_ecommerce_product_suppliers(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("ecommerce_product_suppliers")
+            .select("*")
+            .eq("project_id", project_id)
+            .execute()
+        )
+        return result.data or []
+
+    def replace_ecommerce_product_suppliers(
+        self, project_id: str, rows: list[dict[str, Any]]
+    ) -> None:
+        """Usually a no-op delete: replacing the products cascaded the old profiles."""
+        self.client.table("ecommerce_product_suppliers").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("ecommerce_product_suppliers").insert(rows).execute()
 
     def update_ecommerce_product(
         self, project_id: str, product_id: str, patch: dict[str, Any]
