@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     playwright_serialize: bool = True      # one headless browser at a time
     scraper_enable_playwright: bool = True
     scraper_max_reviews: int = 40
+    # Alibaba (app/scrapers/alibaba/): minimum gap between requests to the site,
+    # widened automatically if robots.txt declares a longer Crawl-delay, and how
+    # many wordings of a product title are searched before giving up.
+    alibaba_request_delay_seconds: float = 2.5
+    alibaba_max_search_queries: int = 3
     embedding_cache_dir: str = "./.models"
 
     # --- app ---
