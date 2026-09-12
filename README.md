@@ -88,7 +88,8 @@ OptiStratixAI/
 │       ├── api/v1/        routers, one per pipeline area
 │       │   └── agents/    Scout / Insight / Strategist / Critic
 │       ├── scrapers/      one folder per platform, behind a shared contract
-│       │   └── daraz/     requests + BS4, Playwright fallback
+│       │   ├── daraz/     requests + BS4, Playwright fallback
+│       │   └── alibaba/   permitted wholesale listings, robots.txt enforced
 │       ├── models/  services/  db/  vectorstore/
 └── docs/              architecture, database, security, status, prompts
 ```
@@ -123,13 +124,15 @@ The agents themselves are split:
   return hand-written, realistic data instead of calling an LLM. Swapping in a
   live agent is a one-line change in
   `backend/app/api/v1/agents/registry.py`.
-- **E-commerce product comparisons scrape and display.** Creating one
-  scrapes both Daraz listings for real (price, specs, reviews, seller details
-  and product images), embeds their text, and opens a comparison page with
-  eight parameter groups, side-by-side metrics and retrieved passages. No agent
-  runs on this path for now, and the pipeline cannot be started on these
-  projects. Website and social comparisons are listed as coming soon.
-  `backend/app/scrapers/` is built to take more platforms.
+- **E-commerce product comparisons scrape and display**, on Daraz or Alibaba.
+  Creating one scrapes both listings for real (price, specs, reviews, seller
+  details and product images; on Alibaba also minimum order, quantity price
+  tiers, dispatch time and supplier credentials), embeds their text, and opens
+  a comparison page with side-by-side metrics and retrieved passages: eight
+  parameter groups for Daraz, ten for Alibaba. No agent runs on this path for
+  now, and the pipeline cannot be started on these projects. Website and social
+  comparisons are listed as coming soon. `backend/app/scrapers/` is built to
+  take more platforms.
 
 See [docs/project-status.md](docs/project-status.md) for the honest inventory.
 
