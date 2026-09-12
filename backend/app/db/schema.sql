@@ -38,7 +38,7 @@ create table if not exists public.projects (
                           'website','social_media','ecommerce_product')),
     -- The marketplace, when comparison_type is 'ecommerce_product'. Null
     -- otherwise, and required when it is -- see the constraint below.
-    ecommerce_platform text check (ecommerce_platform is null or ecommerce_platform in ('daraz')),
+    ecommerce_platform text,
     -- The social platform, when comparison_type is 'social_media'. Null
     -- otherwise, and required when it is.
     social_platform   text,
@@ -52,6 +52,8 @@ create table if not exists public.projects (
     updated_at        timestamptz not null default now(),
     -- A platform only means something for an e-commerce comparison, and an
     -- e-commerce comparison is meaningless without one.
+    constraint projects_ecommerce_platform_check check (
+        ecommerce_platform is null or ecommerce_platform in ('daraz', 'alibaba')),
     constraint projects_platform_matches_type_check check (
         (comparison_type = 'ecommerce_product' and ecommerce_platform is not null)
         or (comparison_type <> 'ecommerce_product' and ecommerce_platform is null)),
@@ -119,7 +121,7 @@ create table if not exists public.ecommerce_products (
     -- The scraped_sources row this listing produced, so gap evidence cites a
     -- row the sources screen already shows.
     source_id     text references public.scraped_sources (id) on delete set null,
-    platform      text not null check (platform in ('daraz')),
+    platform      text not null,
     role          text not null check (role in ('own','competitor')),
     url           text not null,
     product_name  text not null,
@@ -127,8 +129,9 @@ create table if not exists public.ecommerce_products (
     -- fields every marketplace has, promoted to columns so they can be
     -- filtered and sorted in SQL rather than dug out of jsonb
     brand                      text,
-    price                      numeric(12,2),
-    original_price             numeric(12,2),
+    -- numeric(14,4): Alibaba quotes sub-cent unit prices (migration 0004).
+    price                      numeric(14,4),
+    original_price             numeric(14,4),
     discount_percent           numeric(6,2),
     currency                   text not null default 'PKR',
     rating                     numeric(3,2) check (rating is null or (rating >= 0 and rating <= 5)),
@@ -150,7 +153,20 @@ create table if not exists public.ecommerce_products (
                       'bs4','playwright','bs4+playwright','unknown')),
     warnings      jsonb not null default '[]'::jsonb,
     chunk_count   integer not null default 0,
-    scraped_at    timestamptz not null default now()
+    scraped_at    timestamptz not null default now(),
+
+    -- B2B order terms, for platforms that publish them (Alibaba; migration
+    -- 0004). Null for Daraz. `price` is the lowest tier, max_price the highest.
+    max_price       numeric(14,4),
+    moq             integer,
+    moq_unit        text,
+    lead_time_days  smallint,
+
+    constraint ecommerce_products_platform_check check (platform in ('daraz', 'alibaba')),
+    constraint ecommerce_products_order_terms_check check (
+        (max_price is null or max_price >= 0)
+        and (moq is null or moq >= 1)
+        and (lead_time_days is null or lead_time_days >= 0))
 );
 
 -- A project has exactly one listing of its own. This is what stops a re-run
@@ -185,6 +201,51 @@ create table if not exists public.ecommerce_product_images (
 
 create index if not exists ecommerce_product_images_project_idx
     on public.ecommerce_product_images (project_id, product_id, position);
+
+-- Quantity price breaks (Alibaba), lowest quantity first. (Migration 0004.)
+create table if not exists public.ecommerce_product_price_tiers (
+    id            text primary key,
+    product_id    text not null references public.ecommerce_products (id) on delete cascade,
+    project_id    text not null references public.projects (id) on delete cascade,
+    position      smallint not null check (position >= 1),
+    min_quantity  integer not null check (min_quantity >= 1),
+    -- Null for the open-ended top tier ("1000+").
+    max_quantity  integer,
+    price         numeric(14,4) not null check (price >= 0),
+    currency      text not null,
+    unit          text,
+    created_at    timestamptz not null default now(),
+    constraint ecommerce_product_price_tiers_position_unique unique (product_id, position),
+    constraint ecommerce_product_price_tiers_range_check
+        check (max_quantity is null or max_quantity >= min_quantity)
+);
+
+create index if not exists ecommerce_product_price_tiers_project_idx
+    on public.ecommerce_product_price_tiers (project_id, product_id, position);
+
+-- The supplier's public trust credentials (Alibaba), one per listing. No
+-- contact details. (Migration 0004.)
+create table if not exists public.ecommerce_product_suppliers (
+    id                    text primary key,
+    product_id            text not null unique references public.ecommerce_products (id) on delete cascade,
+    project_id            text not null references public.projects (id) on delete cascade,
+    name                  text not null,
+    country_code          text,
+    country_name          text,
+    years_on_platform     smallint check (years_on_platform is null or years_on_platform >= 0),
+    gold_supplier         boolean not null default false,
+    verified              boolean not null default false,
+    trade_assurance       boolean not null default false,
+    transaction_level     smallint check (transaction_level is null or transaction_level >= 0),
+    response_rate         numeric(5,2) check (response_rate is null or response_rate between 0 and 100),
+    historic_order_count  integer check (historic_order_count is null or historic_order_count >= 0),
+    historic_gmv_label    text,
+    main_products         text,
+    created_at            timestamptz not null default now()
+);
+
+create index if not exists ecommerce_product_suppliers_project_idx
+    on public.ecommerce_product_suppliers (project_id);
 
 -- ------------------------------------------------- stage 4/5: gaps ---------
 
@@ -367,6 +428,8 @@ alter table public.scraped_sources     enable row level security;
 alter table public.gaps_opportunities  enable row level security;
 alter table public.ecommerce_products  enable row level security;
 alter table public.ecommerce_product_images enable row level security;
+alter table public.ecommerce_product_price_tiers enable row level security;
+alter table public.ecommerce_product_suppliers enable row level security;
 alter table public.strategies          enable row level security;
 alter table public.critic_feedback     enable row level security;
 alter table public.hitl_reviews        enable row level security;
@@ -420,6 +483,24 @@ create policy ecommerce_product_images_owner_all on public.ecommerce_product_ima
     with check (exists (
         select 1 from public.projects p
         where p.id = ecommerce_product_images.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists ecommerce_product_price_tiers_owner_all on public.ecommerce_product_price_tiers;
+create policy ecommerce_product_price_tiers_owner_all on public.ecommerce_product_price_tiers
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_product_price_tiers.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_product_price_tiers.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists ecommerce_product_suppliers_owner_all on public.ecommerce_product_suppliers;
+create policy ecommerce_product_suppliers_owner_all on public.ecommerce_product_suppliers
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_product_suppliers.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = ecommerce_product_suppliers.project_id and p.owner_id = auth.uid()));
 
 drop policy if exists gaps_owner_all on public.gaps_opportunities;
 create policy gaps_owner_all on public.gaps_opportunities
