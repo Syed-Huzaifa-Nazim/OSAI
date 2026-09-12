@@ -163,6 +163,41 @@ export interface ProductImage {
   source: ImageSource
 }
 
+/** One quantity price break (Alibaba), lowest quantity first. */
+export interface PriceTier {
+  id: string
+  productId: string
+  projectId: string
+  /** 1-based, lowest quantity first. */
+  position: number
+  minQuantity: number
+  /** Null for the open-ended top tier ("1,000+"). */
+  maxQuantity: number | null
+  price: number
+  currency: string
+  unit: string | null
+}
+
+/** The selling business's public trust credentials (Alibaba). No contact details. */
+export interface SupplierProfile {
+  id: string
+  productId: string
+  projectId: string
+  name: string
+  countryCode: string | null
+  countryName: string | null
+  yearsOnPlatform: number | null
+  goldSupplier: boolean
+  verified: boolean
+  tradeAssurance: boolean
+  transactionLevel: number | null
+  /** 0-100. */
+  responseRate: number | null
+  historicOrderCount: number | null
+  historicGmvLabel: string | null
+  mainProducts: string | null
+}
+
 export interface EcommerceProduct {
   id: string
   projectId: string
@@ -188,6 +223,13 @@ export interface EcommerceProduct {
   category: string | null
   contentCompletenessScore: number | null
 
+  /** B2B order terms, for platforms that publish them (Alibaba); null for
+   *  Daraz. `price` is the lowest unit price and `maxPrice` the highest. */
+  maxPrice: number | null
+  moq: number | null
+  moqUnit: string | null
+  leadTimeDays: number | null
+
   /** Chunkable content, keyed by field type. */
   textFields: Record<string, string>
   /** The full scraper output, including platform-specific fields. */
@@ -200,6 +242,10 @@ export interface EcommerceProduct {
   /** Main image first. Empty when the listing had none, or was scraped before
    *  images were collected. */
   images: ProductImage[]
+  /** Quantity price breaks, lowest quantity first. Empty for Daraz. */
+  priceTiers: PriceTier[]
+  /** Supplier trust profile. Null for Daraz. */
+  supplier: SupplierProfile | null
 }
 
 /** One directly comparable field, rendered as a row in the comparison table. */
@@ -218,7 +264,8 @@ export interface MetricRow {
   deltaLabel: string | null
 }
 
-/** One comparison parameter group (A-H for Daraz) with its rows and findings. */
+/** One comparison parameter group (A-H for Daraz, A-J for Alibaba) with its
+ *  rows and findings. */
 export interface ComparisonGroup {
   key: string
   letter: string
