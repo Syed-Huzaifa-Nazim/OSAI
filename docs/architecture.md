@@ -158,8 +158,8 @@ projects, so no route can start the agents on one. The frontend opens them on
 
 | Endpoint | What it returns |
 |---|---|
-| `GET /scrapers/projects/{id}/products` | Both listings, with their images in gallery order |
-| `GET /scrapers/projects/{id}/comparison` | Every A-H parameter with its metric rows and who leads |
+| `GET /scrapers/projects/{id}/products` | Both listings, with their images in gallery order (and, on Alibaba, price tiers and supplier profile) |
+| `GET /scrapers/projects/{id}/comparison` | Every parameter (A-H for Daraz, A-J for Alibaba) with its metric rows and who leads |
 | `GET /scrapers/projects/{id}/comparison/{parameter}` | One parameter: metrics, rule-based read-out, retrieved passages |
 
 Everything shown is arithmetic over the two scraped rows plus stored chunks; no
@@ -179,12 +179,38 @@ backend/app/scrapers/
         selectors.py   every CSS selector, JSON path and keyword
         utils.py       generic parsing primitives
         metrics.py     the A-H comparison parameters for Daraz metadata
+    alibaba/
+        scraper.py     link -> permitted listing search -> the offer with that id
+        listing.py     embedded listing JSON, markup fallback, block detection
+        extract.py     one offer -> text fields, metadata, price tiers, supplier
+        images.py      product photo URLs, from the same offer
+        urls.py        reading product links, building listing URLs
+        robots.py      RFC 9309 robots.txt matching, checked before every request
+        selectors.py   every host, JSON path and keyword
+        metrics.py     the A-J comparison parameters for Alibaba metadata
 ```
 
-`scraper.py`, `selectors.py` and `utils.py` came from a standalone Daraz
-scraper. Their extraction logic is unchanged; only the settings import was
-repointed. The rest of the backend talks to them solely through
-`ProductScraper`, so no pipeline code contains the word "Daraz".
+The Daraz `scraper.py`, `selectors.py` and `utils.py` came from a standalone
+Daraz scraper. Their extraction logic is unchanged; only the settings import
+was repointed. The rest of the backend talks to both platforms solely through
+`ProductScraper`, so no pipeline code names a marketplace.
+
+**Alibaba reads listings, not product pages.** Alibaba answers
+`/product-detail/` pages -- the links users paste -- with a CAPTCHA, to plain
+HTTP and a headless browser alike, and the scraper never tries to get past one.
+Instead it reads the product id and title words from the pasted link, searches
+the robots.txt-permitted `wholesaler.alibaba.com/w/wholesale-<words>.html`
+listing (which embeds every result as JSON), and uses the record whose id
+matches. Requests identify themselves honestly, are paced
+(`ALIBABA_REQUEST_DELAY_SECONDS`, or the site's Crawl-delay if longer), back off
+once on HTTP 429/503, and stop at the first anti-bot page. A product that does
+not appear on the first page of any of up to `ALIBABA_MAX_SEARCH_QUERIES`
+wordings is reported as not found. Supplier contact routes, chat tokens and
+click-tracking links in the listing data are never read or stored.
+
+Alibaba's A-H parameters are the same eight lenses as Daraz's, filled with the
+closest data a listing publishes; I (Order Terms & Bulk Pricing) and J
+(Supplier Credibility) exist only for Alibaba. Daraz's parameters are unchanged.
 
 Adding a marketplace is: write `app/scrapers/<platform>/`, `register()` it, and
 extend two check constraints in a migration. Nothing in the frontend changes --
@@ -196,9 +222,11 @@ Two constraints the design is shaped around:
   therefore synchronous, and the Scout dispatches them with
   `asyncio.to_thread` rather than making every implementation carry an async
   wrapper it does not need.
-- **Two headless Chromium instances on a laptop starve each other.** The Daraz
+- **Two headless Chromium instances on a laptop starve each other.** Each
   scraper serialises its own browser launches internally, so the Scout can scrape
-  listings concurrently without tuning anything.
+  listings concurrently without tuning anything. The Alibaba scraper also
+  serialises every request to Alibaba, so parallel listings never reach the site
+  at the same moment.
 
 ### The Critic is the load-bearing one
 
