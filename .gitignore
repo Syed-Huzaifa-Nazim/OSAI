@@ -39,6 +39,9 @@ chroma_db/
 # Kept locally for reference; its code now lives in the backend, and its .env
 # holds real credentials that must never be committed.
 Sample_Pr/
+# The standalone Alibaba scraper app/scrapers/alibaba/ was built from. Kept
+# locally for reference only.
+AliBaba-Sample-Scraper/
 
 # --- private ------------------------------------------------------------------
 # The original project brief. Kept locally only, never pushed.
