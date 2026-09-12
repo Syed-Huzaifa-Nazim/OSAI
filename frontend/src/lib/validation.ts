@@ -97,19 +97,38 @@ export const competitorSchema = z.object({
 /**
  * Which host a link must belong to, per platform.
  *
- * Covers the e-commerce platforms (mirroring the backend scraper's host check,
- * ALLOWED_HOST_FRAGMENTS in app/scrapers/daraz/selectors.py) and the social
+ * Covers the e-commerce platforms (mirroring the backend scrapers' link checks,
+ * ALLOWED_HOST_FRAGMENTS in app/scrapers/daraz/selectors.py and
+ * PRODUCT_URL_PATTERNS in app/scrapers/alibaba/selectors.py) and the social
  * ones (mirroring SOCIAL_PLATFORM_HOSTS in app/models/project.py), so a wrong
  * link is caught on the form rather than after a pipeline run starts.
+ *
+ * `productId`, where a platform has one, reads the listing's id out of a link,
+ * so the same product under two differently worded links is still recognised
+ * as one listing.
  *
  * Keyed by platform so a new one adds an entry rather than an if-branch. A
  * platform with no entry is accepted as any valid URL and left for the backend
  * to judge.
  */
-const PLATFORM_URL_RULES: Record<string, { pattern: RegExp; message: string }> = {
+const PLATFORM_URL_RULES: Record<
+  string,
+  { pattern: RegExp; message: string; productId?: (url: URL) => string | null }
+> = {
   daraz: {
     pattern: /^https?:\/\/([a-z0-9-]+\.)*daraz\.[a-z.]+\//i,
     message: 'Enter a Daraz product link, e.g. https://www.daraz.pk/products/...',
+  },
+  alibaba: {
+    // alibaba.com or a subdomain (www., m., french.), on a single product page:
+    // desktop /product-detail/<Title>_<id>.html or mobile /product/<id>[/<Title>].
+    pattern:
+      /^https?:\/\/([a-z0-9-]+\.)*alibaba\.com\/(product-detail\/[^/?#]*_\d{6,}\.html|product\/\d{6,}(\/[^/?#]+)?(\.html)?\/?)(?=[?#]|$)/i,
+    message: 'Enter an Alibaba product link, e.g. https://www.alibaba.com/product-detail/...',
+    productId: (url) =>
+      /^\/product-detail\/[^/]*_(\d{6,})\.html$/i.exec(url.pathname)?.[1] ??
+      /^\/product\/(\d{6,})/i.exec(url.pathname)?.[1] ??
+      null,
   },
   facebook: {
     // The host itself or a subdomain (m., web.), never a lookalike such as
@@ -219,7 +238,7 @@ export const newProjectSchema = z
           path: ['competitors', index, 'landingPageUrl'],
           message: platformUrlMessage(platform),
         })
-      } else if (!isSocial && ownUrl && stripTracking(url) === stripTracking(ownUrl)) {
+      } else if (!isSocial && ownUrl && listingKey(platform, url) === listingKey(platform, ownUrl)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['competitors', index, 'landingPageUrl'],
@@ -231,15 +250,20 @@ export const newProjectSchema = z
 export type NewProjectValues = z.infer<typeof newProjectSchema>
 
 /**
- * Compares two marketplace links by path, ignoring query strings.
+ * One key per marketplace listing, for spotting the same listing on both sides.
  *
  * Two copies of the same listing carry different tracking parameters
  * depending on where they were copied from, so comparing raw strings would
- * miss a duplicate. The backend does the same thing properly, per platform.
+ * miss a duplicate. Where the platform puts a product id in its links, the id
+ * alone decides (a desktop link, a mobile link and a reworded title are one
+ * product); otherwise the host and path do. The backend does the same thing
+ * properly, per platform.
  */
-function stripTracking(url: string): string {
+function listingKey(platform: string, url: string): string {
   try {
     const parsed = new URL(url)
+    const productId = PLATFORM_URL_RULES[platform]?.productId?.(parsed)
+    if (productId) return `${platform}:${productId}`
     return `${parsed.hostname.replace(/^www\./, '')}${parsed.pathname}`.toLowerCase()
   } catch {
     return url.trim().toLowerCase()
