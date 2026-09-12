@@ -152,7 +152,7 @@ function ValueCell({ metric, side }: { metric: MetricRow; side: 'own' | 'competi
   const leads = metric.winner === side
   return (
     <td className={cn('p-3 align-top tabular-nums', leads && 'font-medium')}>
-      <span className="break-words">{formatMetric(metric[side], metric.kind, metric.unit)}</span>
+      <span className="break-words">{formatMetric(metric[side], metric.kind, metric.unit, side)}</span>
       {leads ? (
         <Badge variant="success" className="ml-2">
           lead
