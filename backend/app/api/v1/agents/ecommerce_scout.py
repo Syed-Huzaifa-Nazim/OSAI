@@ -80,6 +80,8 @@ class EcommerceScoutAgent(BaseAgent):
         sources: list[dict[str, Any]] = []
         products: list[dict[str, Any]] = []
         images: list[dict[str, Any]] = []
+        price_tiers: list[dict[str, Any]] = []
+        suppliers: list[dict[str, Any]] = []
         warnings: list[str] = []
         failures: list[str] = []
 
@@ -122,6 +124,10 @@ class EcommerceScoutAgent(BaseAgent):
             )
             products.append(product_row)
             images.extend(self._to_image_rows(project_id, product_row["id"], result))
+            price_tiers.extend(self._to_price_tier_rows(project_id, product_row["id"], result))
+            supplier_row = self._to_supplier_row(project_id, product_row["id"], result)
+            if supplier_row is not None:
+                suppliers.append(supplier_row)
             warnings.extend(f"{who}: {warning}" for warning in result.warnings)
 
         # The user's own listing is not optional: without it there is no
@@ -140,7 +146,12 @@ class EcommerceScoutAgent(BaseAgent):
 
         return AgentResult(
             payload=sources,
-            artifacts={"ecommerce_products": products, "ecommerce_product_images": images},
+            artifacts={
+                "ecommerce_products": products,
+                "ecommerce_product_images": images,
+                "ecommerce_product_price_tiers": price_tiers,
+                "ecommerce_product_suppliers": suppliers,
+            },
             items_processed=len(sources),
             duration_ms=self._elapsed_ms(started),
             # No LLM calls happen here; the UI renders a dash rather than a zero.
@@ -180,6 +191,55 @@ class EcommerceScoutAgent(BaseAgent):
         return rows
 
     @staticmethod
+    def _to_price_tier_rows(
+        project_id: str, product_id: str, record: ScrapedProductRecord
+    ) -> list[dict[str, Any]]:
+        """One ``ecommerce_product_price_tiers`` row per quantity break, lowest first."""
+        rows: list[dict[str, Any]] = []
+        currency = record.metadata.get("currency")
+        for tier in record.price_tiers:
+            if tier.get("price") is None or not tier.get("min_quantity"):
+                continue
+            rows.append({
+                "id": new_id("tier"),
+                "product_id": product_id,
+                "project_id": project_id,
+                "position": len(rows) + 1,
+                "min_quantity": tier["min_quantity"],
+                "max_quantity": tier.get("max_quantity"),
+                "price": tier["price"],
+                "currency": tier.get("currency") or currency or "USD",
+                "unit": tier.get("unit"),
+            })
+        return rows
+
+    @staticmethod
+    def _to_supplier_row(
+        project_id: str, product_id: str, record: ScrapedProductRecord
+    ) -> dict[str, Any] | None:
+        """The listing's supplier trust profile, if the platform publishes one."""
+        supplier = record.supplier
+        if not supplier or not supplier.get("name"):
+            return None
+        return {
+            "id": new_id("sup"),
+            "product_id": product_id,
+            "project_id": project_id,
+            "name": supplier["name"],
+            "country_code": supplier.get("country_code"),
+            "country_name": supplier.get("country_name"),
+            "years_on_platform": supplier.get("years_on_platform"),
+            "gold_supplier": bool(supplier.get("gold_supplier")),
+            "verified": bool(supplier.get("verified")),
+            "trade_assurance": bool(supplier.get("trade_assurance")),
+            "transaction_level": supplier.get("transaction_level"),
+            "response_rate": supplier.get("response_rate"),
+            "historic_order_count": supplier.get("historic_order_count"),
+            "historic_gmv_label": supplier.get("historic_gmv_label"),
+            "main_products": supplier.get("main_products"),
+        }
+
+    @staticmethod
     def _to_product_row(
         *,
         project_id: str,
@@ -208,7 +268,8 @@ class EcommerceScoutAgent(BaseAgent):
             "price": meta.get("price"),
             "original_price": meta.get("original_price"),
             "discount_percent": meta.get("discount_percent"),
-            "currency": "PKR",
+            # Daraz publishes no currency field; its prices are rupees.
+            "currency": meta.get("currency") or "PKR",
             "rating": meta.get("rating"),
             "review_count": meta.get("review_count") or 0,
             "image_count": meta.get("image_count") or 0,
@@ -223,4 +284,12 @@ class EcommerceScoutAgent(BaseAgent):
             "warnings": record.warnings[:6],
             "chunk_count": 0,
             "scraped_at": scraped_at,
+            # B2B order terms (migration 0004). Only sent when the platform
+            # publishes them, so a Daraz row never names these columns and keeps
+            # working on a database that predates them.
+            **{
+                column: meta.get(column)
+                for column in ("max_price", "moq", "moq_unit", "lead_time_days")
+                if meta.get(column) is not None
+            },
         }
