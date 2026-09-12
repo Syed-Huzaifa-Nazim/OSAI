@@ -87,9 +87,10 @@ def stub_scraper(monkeypatch: pytest.MonkeyPatch) -> None:
 # ------------------------------------------------------------------ registry
 
 
-def test_daraz_is_the_registered_platform() -> None:
-    assert platform_keys() == ["daraz"]
+def test_daraz_and_alibaba_are_the_registered_platforms() -> None:
+    assert platform_keys() == ["alibaba", "daraz"]
     assert get_scraper("daraz").label == "Daraz"
+    assert get_scraper("alibaba").label == "Alibaba"
 
 
 def test_unknown_platform_names_what_is_available() -> None:
