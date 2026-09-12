@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Callable
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
@@ -86,21 +87,30 @@ async def list_products(
     repo = get_repository(user.id, user.token)
     repo.get_project(project_id)  # 404s unless the caller owns it
 
-    # Photos are an extra: if they cannot be read (for instance before the
-    # images migration has been applied), the listings still load without them.
-    images_by_product: dict[str, list[dict]] = {}
-    try:
-        stored_images = repo.list_ecommerce_product_images(project_id)
-    except Exception as exc:  # noqa: BLE001 - never fail the comparison over photos
-        logger.warning("Could not read product images for %s: %s", project_id, exc)
-        stored_images = []
-    for image in stored_images:
-        images_by_product.setdefault(image["product_id"], []).append(image)
+    # Photos, price tiers and supplier profiles are extras: if a table cannot be
+    # read (for instance before its migration has been applied), the listings
+    # still load without that part.
+    def grouped(reader: Callable[[str], list[dict]], label: str) -> dict[str, list[dict]]:
+        try:
+            rows = reader(project_id)
+        except Exception as exc:  # noqa: BLE001 - never fail the comparison over extras
+            logger.warning("Could not read %s for %s: %s", label, project_id, exc)
+            rows = []
+        by_product: dict[str, list[dict]] = {}
+        for row in rows:
+            by_product.setdefault(row["product_id"], []).append(row)
+        return by_product
+
+    images_by_product = grouped(repo.list_ecommerce_product_images, "product images")
+    tiers_by_product = grouped(repo.list_ecommerce_product_price_tiers, "price tiers")
+    suppliers_by_product = grouped(repo.list_ecommerce_product_suppliers, "supplier profiles")
 
     return [
         EcommerceProduct.model_validate({
             **row,
             "images": sorted(images_by_product.get(row["id"], []), key=lambda i: i["position"]),
+            "price_tiers": sorted(tiers_by_product.get(row["id"], []), key=lambda t: t["position"]),
+            "supplier": (suppliers_by_product.get(row["id"]) or [None])[0],
         })
         for row in repo.list_ecommerce_products(project_id)
     ]
