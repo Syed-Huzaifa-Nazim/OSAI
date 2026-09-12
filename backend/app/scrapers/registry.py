@@ -15,6 +15,7 @@ platform dropdown is served from :func:`available_platforms`.
 
 from __future__ import annotations
 
+from app.scrapers.alibaba import AlibabaProductScraper
 from app.scrapers.base import PlatformInfo, ProductScraper, ScraperError
 from app.scrapers.daraz import DarazProductScraper
 
@@ -30,6 +31,7 @@ def register(scraper_class: type[ProductScraper]) -> type[ProductScraper]:
 
 
 register(DarazProductScraper)
+register(AlibabaProductScraper)
 
 
 def get_scraper(platform: str) -> ProductScraper:
