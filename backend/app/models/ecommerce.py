@@ -60,6 +60,42 @@ class ProductImage(CamelModel):
     source: ImageSource = ImageSource.GALLERY
 
 
+class PriceTier(CamelModel):
+    """One quantity price break (Alibaba). Lowest quantity first."""
+
+    id: str
+    product_id: str
+    project_id: str
+    position: int
+    min_quantity: int
+    #: None for the open-ended top tier ("1000+").
+    max_quantity: int | None = None
+    price: float
+    currency: str
+    unit: str | None = None
+
+
+class SupplierProfile(CamelModel):
+    """The selling business's public trust credentials (Alibaba). No contact details."""
+
+    id: str
+    product_id: str
+    project_id: str
+    name: str
+    country_code: str | None = None
+    country_name: str | None = None
+    years_on_platform: int | None = None
+    gold_supplier: bool = False
+    verified: bool = False
+    trade_assurance: bool = False
+    transaction_level: int | None = None
+    #: 0-100.
+    response_rate: float | None = None
+    historic_order_count: int | None = None
+    historic_gmv_label: str | None = None
+    main_products: str | None = None
+
+
 class EcommerceProduct(CamelModel):
     id: str
     project_id: str
@@ -87,6 +123,13 @@ class EcommerceProduct(CamelModel):
     category: str | None = None
     content_completeness_score: float | None = None
 
+    # --- B2B order terms, for platforms that publish them (Alibaba) ---------
+    #: Highest unit price across quantity tiers; `price` is the lowest.
+    max_price: float | None = None
+    moq: int | None = None
+    moq_unit: str | None = None
+    lead_time_days: int | None = None
+
     # --- everything else ----------------------------------------------------
     #: Chunkable content, keyed by field type.
     text_fields: dict[str, str] = Field(default_factory=dict)
@@ -101,6 +144,10 @@ class EcommerceProduct(CamelModel):
     #: Main image first. Not a column: attached from ecommerce_product_images
     #: when the listing is read back.
     images: list[ProductImage] = Field(default_factory=list)
+    #: Quantity price breaks, lowest quantity first. Empty for Daraz.
+    price_tiers: list[PriceTier] = Field(default_factory=list)
+    #: Supplier trust profile. None for Daraz.
+    supplier: SupplierProfile | None = None
 
 
 class MetricRow(CamelModel):
@@ -122,7 +169,7 @@ class MetricRow(CamelModel):
 
 
 class ComparisonGroup(CamelModel):
-    """One parameter group (A-H for Daraz) with its rows and findings."""
+    """One parameter group (A-H for Daraz, A-J for Alibaba) with its rows and findings."""
 
     key: str
     letter: str
