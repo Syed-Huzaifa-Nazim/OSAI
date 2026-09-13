@@ -42,6 +42,11 @@ Sample_Pr/
 # The standalone Alibaba scraper app/scrapers/alibaba/ was built from. Kept
 # locally for reference only.
 AliBaba-Sample-Scraper/
+# The standalone website and Instagram scrapers app/scrapers/website/ and
+# app/scrapers/instagram/ were built from. Reference only; their .env held real
+# credentials, which now live in backend/.env alone.
+Instagram And Webiste Scraper/
+Apify token/
 
 # --- private ------------------------------------------------------------------
 # The original project brief. Kept locally only, never pushed.
