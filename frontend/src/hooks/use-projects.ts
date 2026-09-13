@@ -33,11 +33,9 @@ export function useCreateProject() {
     mutationFn: (input: CreateProjectInput) => projectsApi.create(input),
     onSuccess: async (project) => {
       await client.invalidateQueries({ queryKey: queryKeys.projects.all })
+      // Every comparison type scrapes on creation now, whatever it compares.
       toast.success('Project created', {
-        description:
-          project.comparisonType === 'ecommerce_product'
-            ? `${project.brandName} is being scraped now.`
-            : `${project.brandName} is ready. Start the pipeline when you are.`,
+        description: `${project.brandName} is being scraped now.`,
       })
     },
     onError: (error) => {
