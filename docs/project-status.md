@@ -1,10 +1,214 @@
 # Project status
 
-Last updated: 2026-09-07
+Last updated: 2026-09-13
 
 Living log. **Most recent entry on top.** The point of this file is that it
 distinguishes what is real from what is stubbed. If you read nothing else,
 read [§ What is mocked](#what-is-mocked).
+
+---
+
+## 2026-09-13: the wrong username, post detail, website images (session 9)
+
+**Reported: a profile displayed as `@beingssinglemom`.** The submitted link was
+`umar_here.official`, and everything else about the scrape was correct. The name
+was taken from the first post's `ownerUsername` -- the post's *author* -- and
+that profile's newest post was a collaboration, which Instagram publishes on
+both collaborators' profiles under the originating account's name. So the label
+was a real field, read off the wrong object. The actor already reports the
+profile's own `username` on the profile item; the scraper now reads it from
+there and stores it as `instagram_posts.profile_username` (migration `0008`).
+`owner_username` stays per-post, and the post detail now *uses* the difference:
+a post whose author is not the profile is marked as a collaboration.
+
+**Posts are shown, not just counted.** The media and comments were already being
+scraped and stored; nothing served them. `/documents` now attaches each page's
+images and each post's media and comments in the same request, and each profile
+renders as a grid of its posts. Opening one opens a modal with the full image
+(or a playable video), the caption as written, likes, hashtags and every comment
+collected for it. Comments are now read for **every** collected post rather than
+the busiest five -- an opened post with no comments is a dead end -- and the
+post budget absorbs the cost instead: `INSTAGRAM_POSTS_LIMIT` is 12, and
+`INSTAGRAM_COMMENT_POSTS_LIMIT` defaults to 0, meaning "every post".
+
+**Websites keep their pictures too.** A comparison judges how a site presents
+itself, so `images.py` keeps each page's social preview, its hero and its
+content images in `website_page_images` (migration `0009`), filtering out icons,
+logos, sprites, SVGs, data URIs and tracking pixels. Read before the cleaner
+strips the page, for the same reason the signals are: the hero lives in the
+header. The A-F parameters are untouched; the images sit beside them.
+
+**Instagram's pictures needed one more thing.** Storing the URL and pointing an
+`<img>` at it -- what Daraz and Alibaba do -- renders nothing: Meta's CDN sends
+`Cross-Origin-Resource-Policy: same-origin` on every image and video, so the
+browser refuses them whatever the markup says. Confirmed against all three CDN
+host forms before changing anything; the live grid showed "Image unavailable"
+on every tile. `GET /scrapers/media?url=` now fetches them server-side, where
+that rule does not apply. It is unauthenticated (an `<img>` cannot carry a
+token, and the bytes are public), and bounded instead by a host allowlist, the
+website scraper's SSRF guard re-run on every redirect hop, an image/video
+content-type check, and a size cap. Nothing is stored, so the storage rule is
+still one rule everywhere: keep the source's own URL, download nothing.
+
+**Two smaller things the live runs turned up.** The actor occasionally answers
+with the profile item alone and no posts at all; that was being stored as if it
+were a post, putting a tile in the grid with no picture, no author and no
+caption while the run still reported success. A profile item carrying no posts
+is now skipped, so such a scrape says "No public posts were found" instead. And
+the proxy passes a player's `Range` through in both directions: without it a
+video can only be played from the start and never scrubbed.
+
+**A version-skew crash, found the hard way.** With the new frontend running
+against a backend that had not been restarted, every scraped-data page died on
+"Cannot read properties of undefined". The API simply does not send `images`,
+`media` or `comments` until it is restarted, and `pages.flatMap(p => p.images)`
+folds a missing field in as an `undefined` element. The three fields are now
+optional in `types/domain.ts`, so TypeScript forces a guard at each read, and
+two tests render a page and a post with those fields absent. The rule this
+settles: the screen may show less when the API is older, but it must never
+break.
+
+All three reuse one component, `shared/safe-image.tsx`, which degrades a broken
+or expired link to a placeholder instead of collapsing the card. Instagram's CDN
+links are signed and do expire; a re-scrape restores them.
+
+Backend tests: 313 -> 345, including a file of their own for what the media
+proxy refuses. Frontend tests: 158 -> 168, including a new page test covering
+the profile name, the grid, the post detail, and what renders when the API is
+older than the screen.
+
+---
+
+## 2026-09-13: Instagram bug, website parameters, shared loader (session 8)
+
+**The Instagram bug, and why it looked like a scraper failure.** Two real public
+profiles returned "Nothing was collected". Apify was never at fault: the run
+collected 24 posts and wrote all 24 `scraped_sources` rows. `instagram_posts`
+was unique on `(project_id, post_url)`, and two of those posts were Instagram
+*collaboration* posts, which appear on every collaborator's profile under one
+URL. The insert is a single batch, so one collision rejected all 24 rows; the
+posts' media and comments then failed their foreign key, and stage 3 had
+nothing to embed. Migration `0006` widens the key to
+`(project_id, role, post_url)` -- the post belongs to both sides and is counted
+for both -- and the scraper now drops a post repeated *within* one profile
+before storage rather than after.
+
+The failure was only a warning, so the run reported success with nothing
+stored. That is what hid it. Stage 2 now fails, loudly and with the database's
+own message, if the pages or posts cannot be saved; their media and comments
+stay non-fatal, because those hang off a row that is already stored.
+
+**Instagram speed.** The comments run is a second actor call and by far the
+slowest part (~80s for one profile). It now reads comments for the busiest
+`INSTAGRAM_COMMENT_POSTS_LIMIT` posts (5 by default) instead of every post;
+every post keeps its like and comment counts regardless. Measured on the two
+reported profiles: 12 posts each, ~35s per profile, and the two sides are
+already scraped in parallel.
+
+**Website comparison parameters.** `signals.py` now reads the facts a page
+gives away -- viewport, heading order, alt-text coverage, internal and external
+links, calls to action, forms, pricing and legal links, social proof and
+certification wording, analytics/chat/payment scripts, and robots.txt and
+sitemap at the site level -- into `website_pages.signals` (migration `0007`).
+`metrics.py` scores two sites on six groups (A-F) from those facts, with the
+conditions behind every judged score listed in the row itself. No model is
+called, and the scoring runs on read, so re-scoring never needs a re-crawl. The
+existing `/comparison` endpoints serve it, so the website page reuses the same
+parameter grid and read-out the product comparison has always used.
+
+**One loader for all four scrapers.** `components/shared/scrape-loader.tsx`:
+the brand mark with a slow pulse, an indeterminate accent bar, and the status
+lines rotating through what that scraper is actually doing. Deliberately
+indeterminate, because a scrape cannot honestly report a percentage. It
+replaced the two ad-hoc progress cards, so the product and website pages report
+a run identically.
+
+Backend tests: 287 -> 313. Frontend tests: 158, with the loader refactor and
+the new comparison section covered by the existing page tests.
+
+---
+
+## 2026-09-12: all four scrapers stop at scrape-and-display (session 7b)
+
+Reported: running a Website or Instagram comparison looked like it ran the whole
+pipeline, unlike Daraz and Alibaba.
+
+**It did not.** Only stages 2 and 3 ran in both cases, exactly as they do for a
+product comparison: stages 4-9 stayed idle, no gaps and no strategy were
+produced, and `POST /scout/run` answered 409. What differed was the screen. A
+website or social project opened on the **pipeline page**, which lists all nine
+stages and labels stage 2 "Scout Agent" and stage 3 "Preprocessing & Storage",
+so a run that correctly stops at 3 reads as a pipeline that started and stalled.
+A product comparison never shows that screen.
+
+**Fixed by giving them the same treatment as Daraz and Alibaba**, rather than
+changing what runs: a new scraped-data page at
+`/app/projects/:id/sources`, served by a new `GET
+/scrapers/projects/{id}/documents`, showing each side's crawled pages (title,
+URL, text preview, words, headings, links, depth) or posts (caption, hashtags,
+likes, comments, media). `projectHomePath` and `projectNav` now send every real
+comparison to its own results page and none to the pipeline; only the seeded
+demo project still opens there. The scrape-phase logic the product page already
+used moved to `lib/scrape-phase.ts` so both pages report a run identically.
+
+All four scrapers therefore behave the same today: scrape both sides, embed the
+text, show what was collected, stop. Nothing downstream of stage 3 is triggered
+automatically for any of them.
+
+---
+
+## 2026-09-12: website and Instagram scrapers (session 7)
+
+The last two comparison types got real scrapers, so all three now scrape and
+display rather than being listed as coming soon.
+
+**Website** (`backend/app/scrapers/website/`). Crawls from the submitted link:
+same host only, robots.txt respected, 12 pages and 2 clicks deep by default.
+`requests` first, Chromium only when a page arrives as a JavaScript shell.
+Keeps each page's title, meta description, h1-h3 headings, links and readable
+text, with nav, footers, cookie banners, scripts and styles stripped.
+
+**Instagram** (`backend/app/scrapers/instagram/`). Runs on Apify's hosted
+Instagram actor rather than touching Instagram: one actor run for a profile's
+recent posts, a second for those posts' comments. Public content only, no
+login, and the actor's raw payload is never stored. The Apify token moved into
+`backend/.env` as `APIFY_API_TOKEN`, so the backend has a single environment
+configuration again; the standalone token file is gone.
+
+**Facebook** stays listed and disabled ("Coming soon"), because nothing can read
+it yet. The form disables it and the backend refuses it, so neither half can be
+bypassed.
+
+**Storage.** Migration `0005` adds `website_pages`, `instagram_posts`,
+`instagram_post_media` and `instagram_post_comments`. Every page and post also
+gets the usual `scraped_sources` row, so the sources screen and the citation
+trail work unchanged; `scraped_sources.kind` already allowed `landing_page` and
+`social_post`.
+
+**Pipeline.** `start_scrape` now accepts all three comparison types, and `start`
+(the agent pipeline) refuses every real project. The seeded demo project is the
+exception on both counts: its links do not resolve, so it keeps the mock agents
+and is the only thing that still walks the nine stages.
+
+**Security.** The website scraper fetches URLs a user typed, from a server that
+can reach things the user cannot, which turned gap 3 in
+[security.md](security.md) from hypothetical into live. It is now closed:
+`app/scrapers/website/safety.py` resolves every URL and refuses private,
+loopback, link-local, reserved and multicast addresses, before the request and
+again after a redirect, on both the HTTP and the browser path. DNS rebinding
+stays open and is named as the remaining case.
+
+**Found by running it against real sites rather than fixtures.**
+`books.toscrape.com` serves `/` and `/index.html` identically and both were
+being stored, so the crawler now skips a page whose text it has already kept:
+the page budget is no longer spent twice, and the same text does not enter the
+vector store twice.
+
+Backend tests: 218 -> 287, the new ones covering cleaning, crawl rules (same
+host, depth, budget, robots, duplicates), the SSRF guard, the Apify output
+shapes, and both comparisons end to end through the API. Frontend tests stayed
+at 157, with the existing ones updated: Facebook is now refused, and all three
+comparison types are selectable.
 
 ---
 
