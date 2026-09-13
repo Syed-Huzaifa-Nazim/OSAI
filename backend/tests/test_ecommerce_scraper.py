@@ -190,9 +190,21 @@ def test_ecommerce_projects_get_the_scraper_backed_agents() -> None:
     assert type(get_agent(6, project)).__name__ == "MockStrategistAgent"
 
 
-def test_other_comparison_types_keep_the_default_agents() -> None:
-    for project in ({"comparison_type": "website"}, {"comparison_type": "social_media"}, None):
-        assert type(get_agent(2, project)).__name__ == "MockScoutAgent"
+def test_website_and_social_projects_get_their_own_scrapers() -> None:
+    website = {"comparison_type": "website"}
+    social = {"comparison_type": "social_media", "social_platform": "instagram"}
+    assert type(get_agent(2, website)).__name__ == "WebsiteScoutAgent"
+    assert type(get_agent(2, social)).__name__ == "SocialScoutAgent"
+    # Stage 3 is shared between them; stages 4+ are still the defaults.
+    assert type(get_agent(3, website)).__name__ == "SourcePreprocessAgent"
+    assert type(get_agent(6, social)).__name__ == "MockStrategistAgent"
+
+
+def test_the_seeded_demo_project_keeps_the_mock_agents() -> None:
+    """Its links do not resolve: it exists to walk the stages with no network."""
+    demo = {"comparison_type": "website", "is_demo": True}
+    assert type(get_agent(2, demo)).__name__ == "MockScoutAgent"
+    assert type(get_agent(2, None)).__name__ == "MockScoutAgent"
 
 
 # ---------------------------------------------------------------- stage 2
