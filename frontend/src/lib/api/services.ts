@@ -27,6 +27,7 @@ import type {
   Project,
   ReviewDecision,
   RunCost,
+  ScrapedDocuments,
   ScrapedSource,
   Strategy,
   StrategyDocument,
@@ -259,6 +260,16 @@ export const scrapersApi = {
     isDemoMode
       ? mockApi.listEcommerceProducts(projectId)
       : api.get<EcommerceProduct[]>(`/scrapers/projects/${projectId}/products`),
+
+  /**
+   * The crawled pages or scraped posts behind a website or social project.
+   * The counterpart of `products` for the two comparison types whose unit is a
+   * page or a post rather than a listing.
+   */
+  documents: (projectId: string): Promise<ScrapedDocuments> =>
+    isDemoMode
+      ? mockApi.listScrapedDocuments(projectId)
+      : api.get<ScrapedDocuments>(`/scrapers/projects/${projectId}/documents`),
 
   /** Every parameter group, with who leads each, against one competitor. */
   comparison: (projectId: string, competitorId?: string): Promise<ComparisonGroup[]> =>
