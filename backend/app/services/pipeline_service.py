@@ -19,6 +19,7 @@ from typing import Any
 from app.api.v1.agents.registry import get_agent, get_critic
 from app.core.errors import ConflictError
 from app.models.pipeline import CHECKPOINT_STAGES, StageStatus
+from app.scrapers import is_source_supported, source_kind_for, source_kinds
 from app.services import demo_data
 from app.services.repository import Repository, get_worker_repository, new_id
 from app.vectorstore import chroma
@@ -205,15 +206,61 @@ async def _run_stage(
                     result.warnings.append(
                         f"Product {label} were scraped but could not be saved ({type(exc).__name__})."
                     )
+
+        # The website and social Scouts return the structured copy of what they
+        # read. Parents before children, so a foreign key always has something
+        # to point at.
+        #
+        # Unlike the product extras, the pages and posts ARE the result here:
+        # stage 3 embeds them and the screen renders them, so failing to store
+        # one fails the stage. Reporting success with nothing stored is exactly
+        # what hid the duplicate-post bug behind "Nothing was collected".
+        for artifact, store, label in (
+            ("website_pages", repo.replace_website_pages, "website pages"),
+            ("instagram_posts", repo.replace_instagram_posts, "Instagram posts"),
+        ):
+            if artifact in result.artifacts:
+                try:
+                    store(project_id, result.artifacts[artifact] or [])
+                except Exception as exc:  # noqa: BLE001 - re-raised with context
+                    raise RuntimeError(f"The scraped {label} could not be saved: {exc}") from exc
+
+        # Media and comments hang off a post that is already stored. Losing
+        # them thins the result rather than emptying it.
+        for artifact, store, label in (
+            ("website_page_images", repo.replace_website_page_images, "website images"),
+            ("instagram_post_media", repo.replace_instagram_post_media, "Instagram media"),
+            ("instagram_post_comments", repo.replace_instagram_post_comments, "Instagram comments"),
+        ):
+            if artifact not in result.artifacts:
+                continue
+            try:
+                store(project_id, result.artifacts[artifact] or [])
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Could not store %s for %s: %s", label, project_id, exc)
+                result.warnings.append(
+                    f"{label.capitalize()} were scraped but could not be saved "
+                    f"({type(exc).__name__})."
+                )
         message = f"{result.items_processed} sources collected"
 
     elif stage_id == 3:
         context["sources"] = repo.list_sources(project_id)
         context["ecommerce_products"] = repo.list_ecommerce_products(project_id)
+        context["source_documents"] = _source_documents(repo, project)
         result = await get_agent(3, project).run(context)
         counts = result.artifacts.get("product_chunk_counts") or {}
         for product_id, chunk_count in counts.items():
             repo.update_ecommerce_product(project_id, product_id, {"chunk_count": chunk_count})
+        # A page or post is embedded against its source row, so the sources
+        # screen shows what is actually retrievable.
+        for source_id, chunk_count in (result.artifacts.get("source_chunk_counts") or {}).items():
+            try:
+                repo.update_source(
+                    project_id, source_id, {"chunk_count": chunk_count, "status": "embedded"}
+                )
+            except Exception as exc:  # noqa: BLE001 - a count is not worth failing a run
+                logger.warning("Could not update source %s: %s", source_id, exc)
         message = f"{result.items_processed} chunks embedded into the project collection"
 
     elif stage_id == 4:
@@ -374,19 +421,72 @@ async def _run_automation_stage(repo: Repository, project_id: str) -> Any:
     )
 
 
+def _source_documents(repo: Repository, project: dict[str, Any]) -> list[dict[str, Any]]:
+    """The pages or posts stage 3 embeds, for a website or social comparison.
+
+    Read back from storage rather than passed along from stage 2, so a re-embed
+    never needs a re-scrape. An unreadable table (its migration not applied yet)
+    yields nothing rather than failing the stage.
+    """
+    kind = source_kind_for(project.get("comparison_type") or "", project.get("social_platform"))
+    readers = {
+        "website": (repo.list_website_pages, "page_url"),
+        "instagram": (repo.list_instagram_posts, "post_url"),
+    }
+    if kind not in readers:
+        return []
+
+    reader, url_key = readers[kind]
+    try:
+        rows = reader(project["id"])
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not read %s documents for %s: %s", kind, project["id"], exc)
+        return []
+
+    return [{**row, "kind": kind, "url": row.get(url_key) or ""} for row in rows]
+
+
+def _require_scrapable(project: dict[str, Any]) -> None:
+    """Refuses a project nothing can scrape, before any stage is marked running."""
+    comparison_type = project.get("comparison_type") or ""
+    if comparison_type == "ecommerce_product":
+        return
+
+    kind = source_kind_for(comparison_type, project.get("social_platform"))
+    if kind is None:
+        raise ConflictError("This project has nothing that can be scraped.")
+    if not is_source_supported(kind):
+        # Either no scraper exists for it, or the one that does cannot run --
+        # Instagram without an Apify token, say. Both are told plainly rather
+        # than failing halfway through a run.
+        raise ConflictError(
+            get_source_scraper_reason(kind)
+            if kind in source_kinds()
+            else f"{kind.title()} comparisons are not available yet."
+        )
+
+
+def get_source_scraper_reason(kind: str) -> str:
+    from app.scrapers import get_source_scraper
+
+    return get_source_scraper(kind).unavailable_reason()
+
+
 # ------------------------------------------------------------- transitions ---
 
 
 def start(repo: Repository, project_id: str) -> dict[str, Any]:
     """Opens a run. The caller schedules ``run_from`` as a background task."""
     project = repo.get_project(project_id)
-    if project.get("comparison_type") == "ecommerce_product":
-        # The agent pipeline is switched off for these for now; they scrape and
-        # display only. Refused here, not just hidden in the UI, so no route
-        # can start agents on one by accident.
+    if not project.get("is_demo"):
+        # Every comparison type now has a real scraper behind it, and all three
+        # scrape and display rather than running the agent pipeline. Refused
+        # here, not just hidden in the UI, so no route can start agents by
+        # accident. The seeded demo project is exempt: walking the nine stages
+        # with no network is the whole reason it exists.
         raise ConflictError(
-            "E-commerce comparisons scrape and display only; the agent pipeline is "
-            "switched off for them. Use the product comparison page instead."
+            "Comparisons scrape and display; the agent pipeline is switched off for them. "
+            "Start a scrape instead."
         )
     state = load_state(repo, project_id)
     if state["stages"]["2"]["status"] == StageStatus.RUNNING.value:
@@ -404,8 +504,14 @@ def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
     moment before the background task picks the job up.
     """
     project = repo.get_project(project_id)
-    if project.get("comparison_type") != "ecommerce_product":
-        raise ConflictError("Only e-commerce comparisons can be scraped.")
+    if project.get("is_demo"):
+        # The seeded project's links do not resolve; it exists to walk the nine
+        # stages with no network, and scraping it would only fail.
+        raise ConflictError(
+            "The demo project is seeded data, not a real comparison, so there is nothing "
+            "to scrape. Create an analysis of your own."
+        )
+    _require_scrapable(project)
 
     current = load_state(repo, project_id)
     if any(
