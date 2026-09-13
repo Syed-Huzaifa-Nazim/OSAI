@@ -41,6 +41,8 @@ export const queryKeys = {
     automation: (id: string) => ['projects', id, 'automation'] as const,
     cost: (id: string) => ['projects', id, 'cost'] as const,
     products: (id: string) => ['projects', id, 'products'] as const,
+    /** Crawled pages or scraped posts, for a website/social comparison. */
+    documents: (id: string) => ['projects', id, 'documents'] as const,
     comparison: (id: string, competitorId?: string) =>
       ['projects', id, 'comparison', competitorId ?? 'first'] as const,
     parameter: (id: string, key: string, competitorId?: string) =>
