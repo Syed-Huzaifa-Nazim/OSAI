@@ -122,7 +122,7 @@ export function AppSidebar() {
                   </p>
                 ) : null}
                 <div className="space-y-1">
-                  {projectNav(projectId, project.data?.comparisonType).map((item) => (
+                  {projectNav(projectId, project.data?.comparisonType, project.data?.isDemo).map((item) => (
                     <SidebarLink
                       key={item.to}
                       to={item.to}
