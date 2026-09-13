@@ -1,5 +1,6 @@
 import {
   CreditCard,
+  FileSearch,
   FileText,
   LayoutDashboard,
   Lightbulb,
@@ -40,15 +41,33 @@ export const SETTINGS_NAV: NavItem[] = [
 /**
  * Per-project workspace nav, shown only while inside a project.
  *
- * An e-commerce comparison scrapes and displays only, so it gets its one page
- * and none of the pipeline's. Until the project has loaded, nothing is shown
- * rather than a list that might be wrong.
+ * Every real comparison scrapes and displays, and none of them runs the agent
+ * pipeline, so each gets its one page and none of the pipeline's: a product
+ * comparison its comparison page, a website or social one its scraped-data
+ * page. Only the seeded demo project still walks the nine stages, so only it
+ * gets their screens. Until the project has loaded, nothing is shown rather
+ * than a list that might be wrong.
  */
-export function projectNav(projectId: string, comparisonType?: ComparisonType): NavItem[] {
+export function projectNav(
+  projectId: string,
+  comparisonType?: ComparisonType,
+  isDemo = false,
+): NavItem[] {
   const base = `/app/projects/${projectId}`
   if (comparisonType === undefined) return []
-  if (comparisonType === 'ecommerce_product') {
-    return [{ label: 'Product comparison', to: `${base}/comparison`, icon: Scale }]
+  if (!isDemo) {
+    if (comparisonType === 'ecommerce_product') {
+      return [{ label: 'Product comparison', to: `${base}/comparison`, icon: Scale }]
+    }
+    // A website is scored against its competitor on the same page that lists
+    // what was scraped; a social comparison has no parameters yet.
+    return [
+      {
+        label: comparisonType === 'website' ? 'Website comparison' : 'Scraped data',
+        to: `${base}/sources`,
+        icon: FileSearch,
+      },
+    ]
   }
   return [
     { label: 'Pipeline', to: `${base}/pipeline`, icon: Workflow },
