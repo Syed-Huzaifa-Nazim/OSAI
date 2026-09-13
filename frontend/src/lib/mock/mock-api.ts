@@ -27,6 +27,7 @@ import type {
   ParameterComparison,
   ContentSuggestion,
   EcommerceProduct,
+  ScrapedDocuments,
   Gap,
   GapDecision,
   GapPriority,
@@ -748,6 +749,12 @@ export const mockApi = {
   async listEcommerceProducts(_projectId: string): Promise<EcommerceProduct[]> {
     await sleep(LATENCY_MS)
     return []
+  },
+
+  /** Demo mode never scrapes, so there are no pages or posts either. */
+  async listScrapedDocuments(_projectId: string): Promise<ScrapedDocuments> {
+    await sleep(LATENCY_MS)
+    return { kind: '', pages: [], posts: [] }
   },
 
   async getEcommerceComparison(_projectId: string): Promise<ComparisonGroup[]> {
