@@ -29,10 +29,9 @@ import type { ComparisonType, Industry, SocialComparisonPlatform } from '@/types
  * What the user is comparing. Each option describes the *input* the user
  * supplies, because that is what changes on this form.
  *
- * Only e-commerce is available for now: it is the one type with a real scraper,
- * and it scrapes and displays without running the agent pipeline. The other
- * two stay listed but disabled, with their field rules intact, so switching
- * them on later is a one-line change here.
+ * All three have a real scraper behind them now, and all three scrape and
+ * display rather than running the agent pipeline. The `available` flag stays
+ * so a type can be switched off again in one line.
  */
 const COMPARISON_TYPES: {
   value: ComparisonType
@@ -44,13 +43,13 @@ const COMPARISON_TYPES: {
     value: 'website',
     label: 'Website',
     description: 'Compare landing pages and site content.',
-    available: false,
+    available: true,
   },
   {
     value: 'social_media',
     label: 'Social media platform',
     description: 'Compare social presence and recent posts.',
-    available: false,
+    available: true,
   },
   {
     value: 'ecommerce_product',
@@ -64,10 +63,29 @@ const COMPARISON_TYPES: {
  * The social platforms a social-media comparison can run against. Static,
  * unlike the e-commerce list: there is no social scraper registry to serve it.
  * Keep in step with SocialComparisonPlatform in backend/app/models/project.py.
+ *
+ * Only Instagram can be read today. Facebook stays listed, and disabled, so the
+ * plan is visible without letting anyone start a comparison nothing can scrape.
+ * The backend refuses it too, so this is a courtesy, not the enforcement.
  */
-const SOCIAL_PLATFORMS: { value: SocialComparisonPlatform; label: string; example: string }[] = [
-  { value: 'facebook', label: 'Facebook', example: 'https://www.facebook.com/yourpage' },
-  { value: 'instagram', label: 'Instagram', example: 'https://www.instagram.com/yourpage' },
+const SOCIAL_PLATFORMS: {
+  value: SocialComparisonPlatform
+  label: string
+  example: string
+  available: boolean
+}[] = [
+  {
+    value: 'facebook',
+    label: 'Facebook',
+    example: 'https://www.facebook.com/yourpage',
+    available: false,
+  },
+  {
+    value: 'instagram',
+    label: 'Instagram',
+    example: 'https://www.instagram.com/yourpage',
+    available: true,
+  },
 ]
 
 /**
@@ -200,11 +218,10 @@ export default function NewProjectPage() {
       },
       {
         onSuccess: (project) => {
-          if (project.comparisonType === 'ecommerce_product') {
-            // Scraping starts straight away. The comparison page follows its
-            // progress, and offers a retry if this call itself fails.
-            startScrape.mutate(project.id)
-          }
+          // Scraping starts straight away, whatever is being compared. The page
+          // the project opens on follows its progress, and offers a retry if
+          // this call itself fails.
+          startScrape.mutate(project.id)
           navigate(projectHomePath(project))
         },
       },
@@ -335,8 +352,15 @@ export default function NewProjectPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {SOCIAL_PLATFORMS.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
+                        <SelectItem
+                          key={item.value}
+                          value={item.value}
+                          disabled={!item.available}
+                        >
                           {item.label}
+                          {item.available ? null : (
+                            <span className="ml-2 text-xs text-muted-foreground">Coming soon</span>
+                          )}
                         </SelectItem>
                       ))}
                     </SelectContent>
