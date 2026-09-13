@@ -122,12 +122,18 @@ This is enforced in the software itself, not left to good intentions.
 The complete product is built and running: the public website, the full
 application, the database, and all nine stages of the pipeline end to end.
 
-**The four AI agents are currently realistic stand-ins rather than live AI
-models.** They produce carefully written, plausible output so the whole system
-can be demonstrated without cost, but they are not yet calling a language
-model. Everything around them is genuinely built: the process that stops at your
-checkpoints, the evidence trail, the storage, the security model, the document
-generation. Connecting real agents is a contained, well-defined next step.
+**The collecting is real.** Whichever of the three comparisons you choose, the
+system genuinely goes and reads both sides: two marketplace listings (Daraz or
+Alibaba), two websites, or two public Instagram profiles. What it finds is
+stored, indexed and shown to you.
+
+**The four AI agents that reason over it are currently realistic stand-ins
+rather than live AI models.** They produce carefully written, plausible output
+so the whole system can be demonstrated without cost, but they are not yet
+calling a language model. Everything around them is genuinely built: the process
+that stops at your checkpoints, the evidence trail, the storage, the security
+model, the document generation. Connecting real agents is a contained,
+well-defined next step.
 
 A seeded example, a fictional coffee roaster called Verdant Roast, ships with
 the system so the full process can be walked through in a few minutes. Anything
