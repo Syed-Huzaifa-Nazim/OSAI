@@ -40,6 +40,11 @@ erDiagram
 | `ecommerce_product_images` | Stage 2 output for e-commerce comparisons | One product photo per row, in gallery order (position 1 is the main image). Stores the marketplace's own image URL; nothing is downloaded. Cascades from its listing |
 | `ecommerce_product_price_tiers` | Stage 2 output, Alibaba listings | One quantity price break per row ("100-499 pieces: US$0.77"), lowest quantity first; `max_quantity` null for the open-ended top tier. Cascades from its listing |
 | `ecommerce_product_suppliers` | Stage 2 output, Alibaba listings | The selling supplier's public trust credentials, one per listing: years on Alibaba, Gold / Verified / Trade Assurance, response rate, order history. No contact details. Cascades from its listing |
+| `website_pages` | Stage 2 output for website comparisons | One crawled page: title, meta description, headings and links (JSONB), readable text, renderer, and how many clicks from the submitted link. `signals` (JSONB) holds the checkable facts the A-F parameters are scored from. Cascades from its project |
+| `website_page_images` | Stage 2 output for website comparisons | One picture kept from a crawled page, most representative first (`og_image`, then `hero`, then `content`). The site's own URL; nothing is downloaded. Icons, logos, sprites and tracking pixels never reach it. Cascades from its page |
+| `instagram_posts` | Stage 2 output for social comparisons | One public post: caption, hashtags, likes, comment count, media and engagement total. Unique on `(project_id, role, post_url)`: a collaboration post appears on both collaborators' profiles, so it can belong to both sides. `profile_username` is the scraped profile's own handle and is what the screen labels a side with; `owner_username` is the post's author, which differs on exactly those collaboration posts. Cascades from its project |
+| `instagram_post_media` | Stage 2 output for social comparisons | A post's images and videos, carousels in slide order. Instagram's own CDN URLs; nothing is downloaded. Cascades from its post |
+| `instagram_post_comments` | Stage 2 output for social comparisons | The public comments collected for a post. Cascades from its post |
 | `gaps_opportunities` | Stage 4 output + stage 5 decisions | `evidence` JSONB, never empty |
 | `strategies` | Stage 6 output | `initiatives` and `critic_feedback` JSONB; versioned |
 | `critic_feedback` | Critic interventions, relational copy | Queryable across projects for the report's evaluation chapter |
@@ -77,6 +82,25 @@ Two columns exist that look redundant and are not:
 A partial unique index enforces one `role = 'own'` listing per project: that row
 is the baseline every comparison is measured against, and two of them would make
 the result ambiguous.
+
+### Why pages and posts are stored twice
+
+A crawled page and an Instagram post each produce **two** rows: a generic
+`scraped_sources` row, and a detail row in `website_pages` or `instagram_posts`.
+That is the same split e-commerce uses, for the same reason.
+
+`scraped_sources` is what the sources screen lists and what a gap's evidence
+cites, so every kind of collected material has to appear there in one shape. It
+cannot hold a page's headings and links or a post's hashtags, likes and
+comments, and widening it until it could would give it a column per platform.
+The detail tables hold that structure; `scraped_sources.kind` already
+distinguished `landing_page` from `social_post`, so it needed no change at all.
+
+`text_fields` on each detail row is the chunkable content (a page's body,
+headings and metadata; a post's caption, hashtags and comments), kept on the row
+as well as in Chroma so a re-embed never needs a re-crawl. There is no vector
+column here: embeddings live in the project's Chroma collection, the same as
+every other source.
 
 ### Design decisions worth stating
 
