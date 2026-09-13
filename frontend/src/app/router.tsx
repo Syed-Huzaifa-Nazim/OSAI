@@ -36,6 +36,7 @@ const ProjectsPage = lazy(() => import('@/pages/app/projects'))
 const NewProjectPage = lazy(() => import('@/pages/app/project-new'))
 const PipelinePage = lazy(() => import('@/pages/app/project-pipeline'))
 const ProjectComparisonPage = lazy(() => import('@/pages/app/project-comparison'))
+const ProjectSourcesPage = lazy(() => import('@/pages/app/project-sources'))
 const ProjectIndexRedirect = lazy(() => import('./project-index-redirect'))
 const InsightsPage = lazy(() => import('@/pages/app/project-insights'))
 const ReviewGapsPage = lazy(() => import('@/pages/app/project-review-gaps'))
@@ -105,6 +106,11 @@ export const routes: RouteObject[] = [
                     path: 'comparison',
                     element: <ProjectComparisonPage />,
                     handle: { crumb: 'Product comparison' },
+                  },
+                  {
+                    path: 'sources',
+                    element: <ProjectSourcesPage />,
+                    handle: { crumb: 'Scraped data' },
                   },
                   {
                     path: 'pipeline',
