@@ -248,6 +248,124 @@ export interface EcommerceProduct {
   supplier: SupplierProfile | null
 }
 
+/* ------------------------- stage 2: crawled pages and social posts --------- */
+
+/** One crawled page of a website. */
+/** One picture a crawled page shows. The URL is the site's own. */
+export interface ScrapedPageImage {
+  id: string
+  pageId: string
+  projectId: string
+  /** 1-based. Position 1 is the page's most representative image. */
+  position: number
+  imageUrl: string
+  altText: string | null
+  /** Where on the page it was found, most deliberate first. */
+  source: 'og_image' | 'hero' | 'content'
+  width: number | null
+  height: number | null
+  isPrimary: boolean
+}
+
+/** One image or video of a post. Carousels keep their slide order. */
+export interface ScrapedPostMedia {
+  id: string
+  postId: string
+  projectId: string
+  position: number
+  mediaType: string | null
+  /** Instagram's own CDN URL. Nothing is downloaded or re-hosted. */
+  mediaUrl: string
+}
+
+/** One public comment collected for a post. */
+export interface ScrapedPostComment {
+  id: string
+  postId: string
+  projectId: string
+  position: number
+  commenterUsername: string | null
+  commentText: string
+  likeCount: number | null
+  postedAt: string | null
+}
+
+export interface ScrapedPage {
+  id: string
+  projectId: string
+  /** The ScrapedSource this page produced, for citation lookups. */
+  sourceId: string | null
+  /** Null for the user's own site, set for a competitor's. */
+  competitorId: string | null
+  role: ProductRole
+  /** The link the user submitted; pageUrl is this particular page. */
+  submittedUrl: string
+  pageUrl: string
+  canonicalUrl: string | null
+  statusCode: number | null
+  title: string | null
+  metaDescription: string | null
+  headings: { level: string; text: string }[]
+  headingCount: number
+  linkCount: number
+  wordCount: number
+  /** The opening of the cleaned text; the full text stays in the database. */
+  textPreview: string
+  renderer: string
+  /** Clicks from the submitted link; 0 is the page the user gave us. */
+  depth: number
+  isRoot: boolean
+  scrapedAt: string
+  /** Attached from website_page_images when the page is read back. Optional
+   *  because an API that has not been restarted since these were added does
+   *  not send the field at all, and a missing field must not break the page. */
+  images?: ScrapedPageImage[]
+}
+
+/** One public post on a scraped Instagram profile. */
+export interface ScrapedPost {
+  id: string
+  projectId: string
+  sourceId: string | null
+  competitorId: string | null
+  role: ProductRole
+  submittedUrl: string
+  profileUrl: string | null
+  postUrl: string | null
+  /** The scraped profile's own handle: what the screen labels this side with. */
+  profileUsername: string | null
+  /** This post's author. A collaboration post carries the other account. */
+  ownerUsername: string | null
+  caption: string
+  captionWordCount: number
+  hashtags: string[]
+  hashtagCount: number
+  likeCount: number | null
+  commentCount: number | null
+  engagementCount: number
+  videoViewCount: number | null
+  mediaType: string | null
+  mediaUrl: string | null
+  mediaCount: number
+  locationName: string | null
+  isSponsored: boolean
+  postedAt: string | null
+  collectedCommentCount: number
+  scrapedAt: string
+  /** Both attached when the post is read back; neither is a column. Optional
+   *  for the same reason as `ScrapedPage.images`: an older API omits them. */
+  media?: ScrapedPostMedia[]
+  comments?: ScrapedPostComment[]
+}
+
+/** Everything a website or social comparison collected, both sides together. */
+export interface ScrapedDocuments {
+  /** "website" | "instagram", or empty for a comparison that has neither. */
+  kind: string
+  pages: ScrapedPage[]
+  posts: ScrapedPost[]
+}
+
 /** One directly comparable field, rendered as a row in the comparison table. */
 export interface MetricRow {
   field: string
