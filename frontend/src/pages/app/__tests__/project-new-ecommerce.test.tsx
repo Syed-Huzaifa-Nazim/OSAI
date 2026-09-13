@@ -61,15 +61,15 @@ describe('New analysis, comparison type', () => {
     expect(screen.getByLabelText(/^product link/i)).toBeInTheDocument()
   })
 
-  it('lists website and social media as not yet available', () => {
+  it('offers all three comparison types, now that each has a scraper', () => {
     const { container } = renderForm()
     // Radix mirrors each item into a hidden native <select> for forms; its
     // options carry the disabled state without opening the dropdown.
     const option = (value: string) =>
       container.querySelector<HTMLOptionElement>(`select option[value="${value}"]`)
 
-    expect(option('website')?.disabled).toBe(true)
-    expect(option('social_media')?.disabled).toBe(true)
+    expect(option('website')?.disabled).toBe(false)
+    expect(option('social_media')?.disabled).toBe(false)
     expect(option('ecommerce_product')?.disabled).toBe(false)
   })
 
