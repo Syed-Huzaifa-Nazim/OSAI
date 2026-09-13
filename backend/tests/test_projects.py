@@ -178,9 +178,8 @@ def test_social_comparison_requires_the_users_page_link(client: TestClient) -> N
 @pytest.mark.parametrize(
     ("platform", "own", "competitor"),
     [
-        ("facebook", "https://www.facebook.com/verdantroast", "https://m.facebook.com/northbrew"),
-        ("facebook", "https://fb.com/verdantroast", "https://web.facebook.com/northbrew"),
         ("instagram", "https://instagram.com/verdantroast", "https://www.instagram.com/northbrew/"),
+        ("instagram", "https://www.instagram.com/verdantroast/", "https://m.instagram.com/northbrew"),
     ],
 )
 def test_links_on_the_chosen_platform_are_accepted(
@@ -192,6 +191,19 @@ def test_links_on_the_chosen_platform_are_accepted(
         competitors=[{"name": "Northbrew", "landingPageUrl": competitor}],
     )
     assert _post(client, **payload).status_code == 201
+
+
+def test_facebook_is_refused_until_it_has_a_scraper(client: TestClient) -> None:
+    """The form disables it; the backend refuses it, so neither can be bypassed."""
+    payload = _social(
+        socialPlatform="facebook",
+        brandWebsite="https://www.facebook.com/verdantroast",
+        competitors=[{"name": "Northbrew", "landingPageUrl": "https://m.facebook.com/northbrew"}],
+    )
+    response = _post(client, **payload)
+    assert response.status_code == 422
+    assert "not available yet" in _error_text(response)
+    assert "instagram" in _error_text(response)
 
 
 @pytest.mark.parametrize(
