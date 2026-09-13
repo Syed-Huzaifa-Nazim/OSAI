@@ -249,6 +249,156 @@ create index if not exists ecommerce_product_suppliers_project_idx
 
 -- ------------------------------------------------- stage 4/5: gaps ---------
 
+-- ------------------------------- stage 2: crawled pages and social posts ---
+
+-- The structured copy of what the website and Instagram scrapers read.
+--
+-- Each page or post already has a generic `scraped_sources` row, which is what
+-- the sources screen lists and what a gap's evidence cites. These tables hold
+-- what that row cannot: a page's headings and links, a post's hashtags, likes
+-- and comments. Same split as `scraped_sources` and `ecommerce_products`.
+-- (Migration 0005.)
+create table if not exists public.website_pages (
+    id              text primary key,
+    project_id      text not null references public.projects (id) on delete cascade,
+    source_id       text references public.scraped_sources (id) on delete set null,
+    competitor_id   text references public.competitors (id) on delete set null,
+    role            text not null check (role in ('own', 'competitor')),
+    submitted_url   text not null,
+    page_url        text not null,
+    canonical_url   text,
+    status_code     integer,
+    title           text,
+    meta_description text,
+    headings        jsonb not null default '[]'::jsonb,
+    links           jsonb not null default '[]'::jsonb,
+    heading_count   integer not null default 0,
+    link_count      integer not null default 0,
+    -- Kept on the row as well as in Chroma, so a re-embed needs no re-crawl.
+    cleaned_text    text not null default '',
+    word_count      integer not null default 0,
+    content_hash    text,
+    renderer        text not null default 'http' check (renderer in ('http', 'playwright')),
+    -- Clicks from the submitted link; 0 is the page the user gave us.
+    depth           smallint not null default 0,
+    is_root         boolean not null default false,
+    text_fields     jsonb not null default '{}'::jsonb,
+    -- The checkable facts the A-F comparison parameters are derived from:
+    -- viewport, heading hierarchy, alt coverage, CTAs, forms, legal links,
+    -- third-party scripts, and (on the root page) robots.txt and sitemap.
+    -- Facts only; the scoring lives in app/scrapers/website/metrics.py.
+    -- (Migration 0007.)
+    signals         jsonb not null default '{}'::jsonb,
+    scraped_at      timestamptz not null default now(),
+    constraint website_pages_page_unique unique (project_id, page_url)
+);
+
+create index if not exists website_pages_project_idx
+    on public.website_pages (project_id, role, depth);
+
+-- A page's own marketing images, most representative first. Same shape and
+-- same rule as ecommerce_product_images: the site's URL is stored, nothing is
+-- downloaded or re-hosted. (Migration 0009.)
+create table if not exists public.website_page_images (
+    id          text primary key,
+    -- Re-crawling replaces the page, and the cascade takes its images.
+    page_id     text not null references public.website_pages (id) on delete cascade,
+    -- Denormalised so RLS checks ownership with the usual one join.
+    project_id  text not null references public.projects (id) on delete cascade,
+    -- 1-based. Position 1 is the page's most representative image.
+    position    smallint not null check (position >= 1),
+    image_url   text not null,
+    alt_text    text,
+    -- Where on the page it was found, most deliberate first.
+    source      text not null default 'content' check (source in (
+                    'og_image','hero','content')),
+    -- As declared in the markup, when it is declared at all.
+    width       integer,
+    height      integer,
+    is_primary  boolean not null default false,
+    created_at  timestamptz not null default now(),
+    constraint website_page_images_position_unique unique (page_id, position),
+    constraint website_page_images_primary_is_first check (is_primary = (position = 1))
+);
+
+create index if not exists website_page_images_project_idx
+    on public.website_page_images (project_id, page_id, position);
+
+create table if not exists public.instagram_posts (
+    id              text primary key,
+    project_id      text not null references public.projects (id) on delete cascade,
+    source_id       text references public.scraped_sources (id) on delete set null,
+    competitor_id   text references public.competitors (id) on delete set null,
+    role            text not null check (role in ('own', 'competitor')),
+    submitted_url   text not null,
+    profile_url     text,
+    post_url        text,
+    -- The scraped profile's own handle, from the profile item the actor
+    -- returned. What the screen labels this side with. (Migration 0008.)
+    profile_username text,
+    -- Who wrote this particular post: the profile owner, except on a
+    -- collaboration post, where it is the other collaborator.
+    owner_username  text,
+    caption         text not null default '',
+    caption_length  integer not null default 0,
+    caption_word_count integer not null default 0,
+    hashtags        jsonb not null default '[]'::jsonb,
+    hashtag_count   integer not null default 0,
+    like_count      integer,
+    comment_count   integer,
+    engagement_count integer not null default 0,
+    video_view_count integer,
+    media_type      text,
+    media_url       text,
+    media_count     integer not null default 0,
+    location_name   text,
+    is_sponsored    boolean not null default false,
+    posted_at       timestamptz,
+    collected_comment_count integer not null default 0,
+    text_fields     jsonb not null default '{}'::jsonb,
+    scraped_at      timestamptz not null default now(),
+    -- One copy per side: a collaboration post appears on every collaborator's
+    -- profile under the same URL, so the same post can legitimately belong to
+    -- both sides of a comparison. (Widened by migration 0006.)
+    constraint instagram_posts_post_unique unique (project_id, role, post_url)
+);
+
+create index if not exists instagram_posts_project_idx
+    on public.instagram_posts (project_id, role, posted_at desc);
+
+create table if not exists public.instagram_post_media (
+    id          text primary key,
+    post_id     text not null references public.instagram_posts (id) on delete cascade,
+    project_id  text not null references public.projects (id) on delete cascade,
+    position    smallint not null check (position >= 1),
+    media_type  text,
+    -- Instagram's own CDN URL. Nothing is downloaded or re-hosted.
+    media_url   text not null,
+    created_at  timestamptz not null default now(),
+    constraint instagram_post_media_position_unique unique (post_id, position)
+);
+
+create index if not exists instagram_post_media_project_idx
+    on public.instagram_post_media (project_id, post_id, position);
+
+create table if not exists public.instagram_post_comments (
+    id                 text primary key,
+    post_id            text not null references public.instagram_posts (id) on delete cascade,
+    project_id         text not null references public.projects (id) on delete cascade,
+    position           smallint not null check (position >= 1),
+    -- Public commenter handle only: no contact details, nothing that needed a
+    -- login to see.
+    commenter_username text,
+    comment_text       text not null default '',
+    like_count         integer,
+    posted_at          timestamptz,
+    created_at         timestamptz not null default now(),
+    constraint instagram_post_comments_position_unique unique (post_id, position)
+);
+
+create index if not exists instagram_post_comments_project_idx
+    on public.instagram_post_comments (project_id, post_id, position);
+
 create table if not exists public.gaps_opportunities (
     id            text primary key,
     project_id    text not null references public.projects (id) on delete cascade,
@@ -430,6 +580,11 @@ alter table public.ecommerce_products  enable row level security;
 alter table public.ecommerce_product_images enable row level security;
 alter table public.ecommerce_product_price_tiers enable row level security;
 alter table public.ecommerce_product_suppliers enable row level security;
+alter table public.website_pages enable row level security;
+alter table public.website_page_images enable row level security;
+alter table public.instagram_posts enable row level security;
+alter table public.instagram_post_media enable row level security;
+alter table public.instagram_post_comments enable row level security;
 alter table public.strategies          enable row level security;
 alter table public.critic_feedback     enable row level security;
 alter table public.hitl_reviews        enable row level security;
@@ -501,6 +656,51 @@ create policy ecommerce_product_suppliers_owner_all on public.ecommerce_product_
     with check (exists (
         select 1 from public.projects p
         where p.id = ecommerce_product_suppliers.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists website_page_images_owner_all on public.website_page_images;
+create policy website_page_images_owner_all on public.website_page_images
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = website_page_images.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = website_page_images.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists website_pages_owner_all on public.website_pages;
+create policy website_pages_owner_all on public.website_pages
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = website_pages.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = website_pages.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists instagram_posts_owner_all on public.instagram_posts;
+create policy instagram_posts_owner_all on public.instagram_posts
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = instagram_posts.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = instagram_posts.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists instagram_post_media_owner_all on public.instagram_post_media;
+create policy instagram_post_media_owner_all on public.instagram_post_media
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = instagram_post_media.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = instagram_post_media.project_id and p.owner_id = auth.uid()));
+
+drop policy if exists instagram_post_comments_owner_all on public.instagram_post_comments;
+create policy instagram_post_comments_owner_all on public.instagram_post_comments
+    for all using (exists (
+        select 1 from public.projects p
+        where p.id = instagram_post_comments.project_id and p.owner_id = auth.uid()))
+    with check (exists (
+        select 1 from public.projects p
+        where p.id = instagram_post_comments.project_id and p.owner_id = auth.uid()));
 
 drop policy if exists gaps_owner_all on public.gaps_opportunities;
 create policy gaps_owner_all on public.gaps_opportunities
