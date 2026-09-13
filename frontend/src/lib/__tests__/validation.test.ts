@@ -203,9 +203,8 @@ describe('newProjectSchema, social media comparisons', () => {
   })
 
   it.each([
-    ['facebook', 'https://www.facebook.com/verdantroast', 'https://m.facebook.com/northbrew'],
-    ['facebook', 'https://fb.com/verdantroast', 'https://web.facebook.com/northbrew'],
     ['instagram', 'https://instagram.com/verdantroast', 'https://www.instagram.com/northbrew/'],
+    ['instagram', 'https://www.instagram.com/verdantroast/', 'https://m.instagram.com/northbrew'],
   ] as const)('accepts %s links on that platform', (platform, own, competitor) => {
     const result = newProjectSchema.safeParse({
       ...VALID_SOCIAL_PROJECT,
@@ -214,6 +213,21 @@ describe('newProjectSchema, social media comparisons', () => {
       competitors: [{ ...VALID_SOCIAL_PROJECT.competitors[0], landingPageUrl: competitor }],
     })
     expect(result.success).toBe(true)
+  })
+
+  it('refuses Facebook until it has a scraper', () => {
+    // Listed and disabled on the form; refused here and by the backend too, so
+    // a client that skips validation cannot create one either.
+    const result = newProjectSchema.safeParse({
+      ...VALID_SOCIAL_PROJECT,
+      socialPlatform: 'facebook',
+      brandWebsite: 'https://www.facebook.com/verdantroast',
+      competitors: [
+        { ...VALID_SOCIAL_PROJECT.competitors[0], landingPageUrl: 'https://m.facebook.com/northbrew' },
+      ],
+    })
+    expect(issuePaths(result)).toEqual(['socialPlatform'])
+    expect(result.success ? '' : result.error.issues[0]?.message).toMatch(/not available yet/i)
   })
 
   it.each([
