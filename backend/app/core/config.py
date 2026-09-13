@@ -47,6 +47,33 @@ class Settings(BaseSettings):
     # many wordings of a product title are searched before giving up.
     alibaba_request_delay_seconds: float = 2.5
     alibaba_max_search_queries: int = 3
+    # Website (app/scrapers/website/): how far a crawl goes from the link the
+    # user submitted, and how politely. The standalone scraper's own defaults,
+    # with the page budget lowered so a two-site comparison finishes in minutes.
+    website_max_pages: int = 12
+    website_max_depth: int = 2
+    website_request_delay_seconds: float = 1.5
+    website_respect_robots_txt: bool = True
+    # Below this much text, a page is treated as a JavaScript shell and rendered
+    # in the browser instead.
+    website_min_http_text_length: int = 500
+    # Instagram (app/scrapers/instagram/): scraping runs on Apify's hosted
+    # Instagram actor, which does the fetching on their infrastructure and
+    # returns JSON. Without a token the platform reports itself unavailable
+    # rather than failing halfway through a run.
+    apify_api_token: str = ""
+    apify_instagram_actor_id: str = "apify/instagram-scraper"
+    # Every collected post can be opened on the results screen, and an opened
+    # post shows its comments, so the post budget is what bounds the scrape:
+    # 12 posts per profile with every post's comments read, rather than 20
+    # posts with most of them having nothing to show.
+    instagram_posts_limit: int = 12
+    instagram_comments_limit: int = 20
+    # Comments are a second actor run and by far the slowest part of a social
+    # scrape (~80s for one profile, measured). 0 means every collected post
+    # gets its comments; a positive value caps it at that many posts, busiest
+    # first. Every post keeps its like and comment counts either way.
+    instagram_comment_posts_limit: int = 0
     embedding_cache_dir: str = "./.models"
 
     # --- app ---
@@ -62,6 +89,11 @@ class Settings(BaseSettings):
     @property
     def has_openai(self) -> bool:
         return bool(self.openai_api_key)
+
+    @property
+    def has_apify(self) -> bool:
+        """Instagram scraping goes through Apify, so no token means no Instagram."""
+        return bool(self.apify_api_token)
 
     @property
     def is_demo(self) -> bool:
