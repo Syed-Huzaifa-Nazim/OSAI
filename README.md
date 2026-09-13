@@ -89,7 +89,9 @@ OptiStratixAI/
 │       │   └── agents/    Scout / Insight / Strategist / Critic
 │       ├── scrapers/      one folder per platform, behind a shared contract
 │       │   ├── daraz/     requests + BS4, Playwright fallback
-│       │   └── alibaba/   permitted wholesale listings, robots.txt enforced
+│       │   ├── alibaba/   permitted wholesale listings, robots.txt enforced
+│       │   ├── website/   crawls a site: pages, headings, links, text
+│       │   └── instagram/ public profile posts, via Apify's hosted actor
 │       ├── models/  services/  db/  vectorstore/
 └── docs/              architecture, database, security, status, prompts
 ```
@@ -120,19 +122,37 @@ persistence layer, the auth model and the document generation.
 
 The agents themselves are split:
 
-- **Website and social comparisons** still run the four **mock** agents, which
-  return hand-written, realistic data instead of calling an LLM. Swapping in a
-  live agent is a one-line change in
-  `backend/app/api/v1/agents/registry.py`.
-- **E-commerce product comparisons scrape and display**, on Daraz or Alibaba.
-  Creating one scrapes both listings for real (price, specs, reviews, seller
-  details and product images; on Alibaba also minimum order, quantity price
-  tiers, dispatch time and supplier credentials), embeds their text, and opens
+All three comparison types now **scrape and display**: creating one reads both
+sides for real, embeds their text, and stops. The agent pipeline does not run on
+them, and cannot be started on them. Each opens on its own results page (a
+product comparison on `/comparison`, a website or social one on `/sources`)
+rather than the nine-stage pipeline screen, which only the seeded demo project
+still uses.
+
+- **E-commerce product**, on Daraz or Alibaba. Scrapes both listings (price,
+  specs, reviews, seller details and product images; on Alibaba also minimum
+  order, quantity price tiers, dispatch time and supplier credentials) and opens
   a comparison page with side-by-side metrics and retrieved passages: eight
-  parameter groups for Daraz, ten for Alibaba. No agent runs on this path for
-  now, and the pipeline cannot be started on these projects. Website and social
-  comparisons are listed as coming soon. `backend/app/scrapers/` is built to
-  take more platforms.
+  parameter groups for Daraz, ten for Alibaba.
+- **Website.** Crawls both sites from the submitted link, same host only and
+  robots.txt respected, up to 12 pages and 2 clicks deep, keeping each page's
+  title, description, headings, links and readable text. Both sites are then
+  scored side by side on six parameter groups (content strategy, SEO signals,
+  UX and design, trust and credibility, conversion, technical signals), each
+  measured from what was actually scraped. Each page's own pictures -- its
+  social preview, its hero and its content images -- are kept alongside the
+  text, so the comparison shows what a site looks like as well as what it says.
+- **Social media**, on Instagram. Reads both public profiles through Apify's
+  hosted Instagram actor: recent posts with captions, hashtags, likes, comment
+  counts and media, plus the public comments on every post it collected. Each
+  profile is shown as a grid of its posts; opening one shows the full image,
+  caption, hashtags, engagement and the comments collected for it. Facebook is
+  listed but disabled until it has a scraper of its own.
+
+The **mock** agents (Insight, Strategist, Critic, and the document and
+automation stages) still run for the seeded demo project, which is what walks
+the full nine stages with no network. Swapping in a live agent is a one-line
+change in `backend/app/api/v1/agents/registry.py`.
 
 See [docs/project-status.md](docs/project-status.md) for the honest inventory.
 
