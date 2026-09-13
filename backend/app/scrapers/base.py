@@ -67,6 +67,43 @@ class ScrapedProductRecord:
         return (self.text_fields.get("title") or self.product_name)[:400]
 
 
+@dataclass
+class ScrapedDocument:
+    """One thing a source scraper collected: a crawled page, or a social post.
+
+    ``text_fields`` is what stage 3 chunks and embeds, one set of chunks per
+    field, exactly as a product listing's fields are handled. ``metadata`` is
+    the structured copy that becomes a row in the platform's detail table, and
+    ``children`` carries rows that hang off that one (a post's media and
+    comments), keyed by what they are.
+    """
+
+    url: str
+    title: str
+    text_fields: dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    excerpt: str = ""
+    children: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+
+
+@dataclass
+class ScrapedSourceRecord:
+    """Everything one submitted link yielded.
+
+    A website link yields one document per crawled page; an Instagram profile
+    link yields one per post. Either way the pipeline sees the same shape, so
+    stage 2 stores both without special-casing.
+    """
+
+    role: str                                   # OWN | COMPETITOR
+    kind: str                                   # "website" | "instagram"
+    url: str                                    # the link the user submitted
+    title: str
+    documents: list[ScrapedDocument] = field(default_factory=list)
+    method: str = "unknown"
+    warnings: list[str] = field(default_factory=list)
+
+
 @dataclass(frozen=True)
 class PlatformInfo:
     """What the frontend needs to render a platform in the picker."""
@@ -126,4 +163,76 @@ class ProductScraper(abc.ABC):
         self, own: dict[str, Any], competitor: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Side-by-side metric groups for two scraped products of this platform."""
+        return []
+
+
+class SourceScraper(abc.ABC):
+    """A scraper for a comparison whose input is a site or a social profile.
+
+    The sibling of :class:`ProductScraper`, for the two comparison types whose
+    unit is not a product listing. It is deliberately a separate contract: a
+    website has no price, no rating and no canonical listing identity, so
+    forcing both through one interface would mean half of it returning None.
+
+    The same rules hold: synchronous, self-contained in its own folder, and
+    unaware of how anything is stored.
+    """
+
+    #: Stable machine key: the comparison type or platform it serves.
+    kind: str = ""
+    label: str = ""
+    url_hint: str = ""
+    url_example: str = ""
+    #: What each collected document is recorded as in ``scraped_sources.kind``.
+    source_kind: str = "landing_page"
+    #: The text fields it produces, each embedded as its own set of chunks.
+    text_field_types: tuple[str, ...] = ()
+
+    @classmethod
+    def is_available(cls) -> bool:
+        """False when the scraper cannot run at all, e.g. a missing API token.
+
+        Checked at intake so the user is told on the form rather than by a
+        failed run.
+        """
+        return True
+
+    @classmethod
+    def unavailable_reason(cls) -> str:
+        return f"{cls.label} scraping is not configured on this server."
+
+    def canonical_url(self, url: str) -> str:
+        """Strip tracking noise so the same link always yields the same key."""
+        return (url or "").strip()
+
+    @abc.abstractmethod
+    def validate_url(self, url: str) -> None:
+        """Rejects a link this scraper cannot read. Raises :class:`ScraperError`."""
+
+    @abc.abstractmethod
+    def scrape(self, url: str, role: str) -> ScrapedSourceRecord:
+        """Collects everything behind one link. Raises :class:`ScraperError`."""
+
+    def aggregate(self, documents: list[dict[str, Any]]) -> dict[str, Any]:
+        """One side's stored documents, reduced to the figures a comparison reads.
+
+        A product comparison has one row per side already; a site has many
+        pages and a profile many posts, so they are summarised here. Reading it
+        back from storage rather than keeping it from the scrape is deliberate:
+        re-scoring never needs a re-crawl.
+        """
+        return {}
+
+    def comparison_parameters(self) -> list[dict[str, Any]]:
+        """The comparison groups this kind's figures support.
+
+        Empty means "no structured comparison", in which case the screen shows
+        what was collected and nothing is scored.
+        """
+        return []
+
+    def build_metrics(
+        self, own: dict[str, Any], competitor: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Side-by-side metric groups for two aggregated sides."""
         return []
