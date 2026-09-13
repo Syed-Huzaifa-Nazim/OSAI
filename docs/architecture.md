@@ -141,15 +141,35 @@ _MOCK_AGENTS: dict[int, type[BaseAgent]] = {
 }
 ```
 
-### E-commerce comparisons: scrape and display
+### Comparisons: scrape and display
 
-A project carries a `comparison_type`. For `ecommerce_product` the product
-currently scrapes and displays; it does not run the agent pipeline.
+A project carries a `comparison_type`, and all three of them scrape and display
+rather than running the agent pipeline. Which agents stage 2 and 3 get is the
+only thing that changes:
 
     POST /scrapers/projects/{id}/scrape   -> pipeline_service.start_scrape + run_scrape
-        stage 2  EcommerceScoutAgent        scrape both listings (data + product images)
-        stage 3  EcommercePreprocessAgent   chunk and embed each text field into Chroma
+
+    ecommerce_product   stage 2  EcommerceScoutAgent      both listings, plus product images
+                        stage 3  EcommercePreprocessAgent chunk and embed each text field
+    website             stage 2  WebsiteScoutAgent        crawl both sites, page by page
+                        stage 3  SourcePreprocessAgent    chunk and embed each text field
+    social_media        stage 2  SocialScoutAgent         both profiles, via Apify
+                        stage 3  SourcePreprocessAgent    chunk and embed each text field
         (stops -- stages 4-9 stay idle)
+
+The seeded demo project is the exception: its links do not resolve, it exists to
+walk the nine stages with no network, so it keeps the mock agents and is refused
+by `start_scrape`. Everything else is refused by `start`, so no route can run
+agents on a real comparison by accident.
+
+**Each comparison type opens on its own results page, never on the pipeline
+screen.** That screen lists all nine stages, so a run that legitimately stops at
+stage 3 reads there as a pipeline half-finished: "Scout Agent" and
+"Preprocessing & Storage" tick green while "Insight Agent" sits at *Not
+started*. `projectHomePath` therefore sends a product comparison to
+`/comparison` and a website or social one to `/sources`, and `projectNav` gives
+each of them that one page instead of the pipeline's seven. Only the demo
+project still opens on `/pipeline`.
 
 Progress is still recorded as pipeline stages 2 and 3, so polling, errors and
 retries reuse the pipeline state. `pipeline_service.start` refuses these
@@ -159,8 +179,10 @@ projects, so no route can start the agents on one. The frontend opens them on
 | Endpoint | What it returns |
 |---|---|
 | `GET /scrapers/projects/{id}/products` | Both listings, with their images in gallery order (and, on Alibaba, price tiers and supplier profile) |
-| `GET /scrapers/projects/{id}/comparison` | Every parameter (A-H for Daraz, A-J for Alibaba) with its metric rows and who leads |
+| `GET /scrapers/projects/{id}/documents` | The crawled pages or scraped posts behind a website or social comparison, each with what hangs off it: a page's images, a post's media and its comments. The counterpart of `/products` for the types whose unit is a page or a post |
+| `GET /scrapers/projects/{id}/comparison` | Every parameter with its metric rows and who leads: A-H for Daraz, A-J for Alibaba, A-F for a website. A social comparison has none yet, and answers with an empty list |
 | `GET /scrapers/projects/{id}/comparison/{parameter}` | One parameter: metrics, rule-based read-out, retrieved passages |
+| `GET /scrapers/media?url=` | Relays one Instagram image or video. Unauthenticated, because an `<img>` cannot carry a token and the bytes are public; bounded by a host allowlist, the SSRF guard on every redirect hop, an image/video content type and a size cap. A player's `Range` is passed through in both directions, so a video can be scrubbed rather than only played from the start |
 
 Everything shown is arithmetic over the two scraped rows plus stored chunks; no
 model is called. `EcommerceInsightAgent` (rule-based gaps) remains registered
@@ -171,7 +193,7 @@ switched off for these projects.
 
 ```
 backend/app/scrapers/
-    base.py        the ProductScraper contract and its result type
+    base.py        the two scraper contracts and their result types
     registry.py    platform key -> scraper; also what the UI's dropdown reads
     daraz/
         scraper.py     requests/BS4, with a Playwright fallback
@@ -188,7 +210,70 @@ backend/app/scrapers/
         robots.py      RFC 9309 robots.txt matching, checked before every request
         selectors.py   every host, JSON path and keyword
         metrics.py     the A-J comparison parameters for Alibaba metadata
+    website/
+        crawler.py     walks one site, breadth first, within a page/depth budget
+        fetcher.py     one page: HTTP first, headless browser for a JS shell
+        cleaner.py     HTML -> title, description, headings, links, readable text
+        signals.py     the checkable facts: viewport, alt text, CTAs, forms, scripts
+        images.py      the page's own pictures: social card, hero, content
+        metrics.py     the A-F comparison parameters, scored from those facts
+        safety.py      refuses to fetch anything that is not a public address
+        selectors.py   every tag, selector, extension and marker it uses
+    instagram/
+        client.py      the two Apify actor runs (posts, then their comments)
+        extract.py     one actor item -> caption, hashtags, media, engagement
+        selectors.py   the actor id, its output paths, and every limit
 ```
+
+There are two contracts, not one. `ProductScraper` (Daraz, Alibaba) returns a
+listing: a price, a rating, a canonical product identity. `SourceScraper`
+(website, Instagram) returns a *set of documents* -- one per crawled page or per
+post -- because a site has none of those things, and forcing both through one
+interface would mean half of it returning None. Both are synchronous, both live
+entirely in their own folder, and neither knows how anything is stored.
+
+**The website scraper** crawls from the submitted link: same host only,
+robots.txt respected, bounded by `WEBSITE_MAX_PAGES` and `WEBSITE_MAX_DEPTH`.
+Each page is fetched with `requests`; a page that comes back as a JavaScript
+shell is re-rendered once in Chromium. Cleaning strips scripts, styles, nav,
+footers and cookie banners, then keeps the title, meta description, h1-h3
+headings, links and readable text.
+
+**A website comparison is scored, not just listed.** `signals.py` reads the
+facts a page gives away -- viewport tag, heading order, alt-text coverage,
+internal and external links, calls to action, forms, pricing and legal links,
+social proof wording, and the analytics, chat and payment scripts it loads --
+and stores them in `website_pages.signals`. `metrics.py` turns two sites' worth
+of those facts into the six parameter groups (A Content Strategy, B SEO
+Signals, C UX / Design, D Trust & Credibility, E Conversion Optimization,
+F Technical Signals), with a winner per comparable row. Where a parameter needs
+judgement rather than a count -- "is the value proposition clear?" -- it is
+scored from named conditions and the conditions travel with the row, so a
+reader can disagree with the number and see exactly what produced it. No model
+is called. Scoring happens on read, so changing how a parameter is judged never
+needs a re-crawl.
+
+**The Instagram scraper never contacts Instagram.** Scraping runs on Apify's
+hosted Instagram actor, which fetches on their infrastructure and returns JSON:
+one run for a profile's recent posts, a second for their comments. That second
+run is by far the slowest part of a social scrape, and it scales with the number
+of posts, so the *post* budget is what bounds it: `INSTAGRAM_POSTS_LIMIT` posts
+per profile (12), each with its comments, because every collected post can be
+opened on the results screen and an opened post shows its comments.
+`INSTAGRAM_COMMENT_POSTS_LIMIT` caps the comment run again for anyone who needs
+it (0 = every post; a positive value keeps the busiest that many). Only publicly
+viewable content is read, no login is performed, and the actor's raw payload is
+never stored -- only the fields named in `selectors.py`. It needs
+`APIFY_API_TOKEN`; without one the platform reports itself unavailable at the
+start of a scrape rather than failing halfway through.
+
+**A profile is named by its own identity, never by a post.** The actor reports
+the profile's `username` on the profile item, and each post's author in
+`ownerUsername`. Those differ on an Instagram *collaboration* post, which is
+published jointly and appears on both collaborators' profiles, so taking the
+name from the newest post labelled a profile with a stranger's handle. The
+screen reads `instagram_posts.profile_username` (migration `0008`); the
+per-post author stays, and is what lets a post be shown as a collaboration.
 
 The Daraz `scraper.py`, `selectors.py` and `utils.py` came from a standalone
 Daraz scraper. Their extraction logic is unchanged; only the settings import
