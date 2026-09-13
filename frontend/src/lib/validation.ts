@@ -218,6 +218,17 @@ export const newProjectSchema = z
       return
     }
 
+    // Facebook is listed so the plan is visible, but nothing can read it yet.
+    // Mirrors the same refusal in ProjectCreate._check_social on the backend.
+    if (isSocial && platform === 'facebook') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['socialPlatform'],
+        message: 'Facebook comparisons are not available yet. Choose Instagram.',
+      })
+      return
+    }
+
     // An empty or malformed link already has its own field error; only judge
     // the host of a link that is otherwise valid.
     const ownUrl = values.brandWebsite
