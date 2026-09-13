@@ -62,6 +62,11 @@ class MemoryRepository:
     _ecommerce_product_images: list[dict[str, Any]] = []
     _ecommerce_product_price_tiers: list[dict[str, Any]] = []
     _ecommerce_product_suppliers: list[dict[str, Any]] = []
+    _website_pages: list[dict[str, Any]] = []
+    _website_page_images: list[dict[str, Any]] = []
+    _instagram_posts: list[dict[str, Any]] = []
+    _instagram_post_media: list[dict[str, Any]] = []
+    _instagram_post_comments: list[dict[str, Any]] = []
     _integrations: list[dict[str, Any]] = []
     _pipelines: dict[str, dict[str, Any]] = {}
     _contact: list[dict[str, Any]] = []
@@ -114,6 +119,11 @@ class MemoryRepository:
             cls._ecommerce_product_images = []
             cls._ecommerce_product_price_tiers = []
             cls._ecommerce_product_suppliers = []
+            cls._website_pages = []
+            cls._website_page_images = []
+            cls._instagram_posts = []
+            cls._instagram_post_media = []
+            cls._instagram_post_comments = []
         cls._seed()
 
     # ------------------------------------------------------------- projects
@@ -163,6 +173,21 @@ class MemoryRepository:
             MemoryRepository._ecommerce_product_suppliers = [
                 r for r in self._ecommerce_product_suppliers if r["project_id"] != project_id
             ]
+            MemoryRepository._website_pages = [
+                r for r in self._website_pages if r["project_id"] != project_id
+            ]
+            MemoryRepository._website_page_images = [
+                r for r in self._website_page_images if r["project_id"] != project_id
+            ]
+            MemoryRepository._instagram_posts = [
+                r for r in self._instagram_posts if r["project_id"] != project_id
+            ]
+            MemoryRepository._instagram_post_media = [
+                r for r in self._instagram_post_media if r["project_id"] != project_id
+            ]
+            MemoryRepository._instagram_post_comments = [
+                r for r in self._instagram_post_comments if r["project_id"] != project_id
+            ]
             self._pipelines.pop(project_id, None)
 
     # ---------------------------------------------------------- competitors
@@ -184,6 +209,16 @@ class MemoryRepository:
         with self._lock:
             MemoryRepository._sources = [r for r in self._sources if r["project_id"] != project_id]
             self._sources.extend(rows)
+
+    def update_source(
+        self, project_id: str, source_id: str, patch: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self._lock:
+            for row in self._sources:
+                if row["id"] == source_id and row["project_id"] == project_id:
+                    row.update(patch)
+                    return dict(row)
+        raise NotFoundError(f"Source {source_id} was not found")
 
     # --------------------------------------------- e-commerce products
 
@@ -245,6 +280,74 @@ class MemoryRepository:
                 r for r in self._ecommerce_product_suppliers if r["project_id"] != project_id
             ]
             self._ecommerce_product_suppliers.extend(rows)
+
+    # ------------------------------------------- website / social documents
+
+    def list_website_pages(self, project_id: str) -> list[dict[str, Any]]:
+        rows = [dict(r) for r in self._website_pages if r["project_id"] == project_id]
+        return sorted(rows, key=lambda row: (row.get("role", ""), row.get("depth", 0)))
+
+    def replace_website_pages(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        with self._lock:
+            MemoryRepository._website_pages = [
+                r for r in self._website_pages if r["project_id"] != project_id
+            ]
+            # Mirrors the ON DELETE CASCADE from images to pages.
+            MemoryRepository._website_page_images = [
+                r for r in self._website_page_images if r["project_id"] != project_id
+            ]
+            self._website_pages.extend(rows)
+
+    def list_website_page_images(self, project_id: str) -> list[dict[str, Any]]:
+        rows = [dict(r) for r in self._website_page_images if r["project_id"] == project_id]
+        return sorted(rows, key=lambda row: (row["page_id"], row["position"]))
+
+    def replace_website_page_images(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        with self._lock:
+            MemoryRepository._website_page_images = [
+                r for r in self._website_page_images if r["project_id"] != project_id
+            ]
+            self._website_page_images.extend(rows)
+
+    def list_instagram_posts(self, project_id: str) -> list[dict[str, Any]]:
+        rows = [dict(r) for r in self._instagram_posts if r["project_id"] == project_id]
+        return sorted(rows, key=lambda row: (row.get("role", ""), row.get("posted_at") or ""))
+
+    def replace_instagram_posts(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        with self._lock:
+            MemoryRepository._instagram_posts = [
+                r for r in self._instagram_posts if r["project_id"] != project_id
+            ]
+            # Mirrors the ON DELETE CASCADE from media and comments to posts.
+            MemoryRepository._instagram_post_media = [
+                r for r in self._instagram_post_media if r["project_id"] != project_id
+            ]
+            MemoryRepository._instagram_post_comments = [
+                r for r in self._instagram_post_comments if r["project_id"] != project_id
+            ]
+            self._instagram_posts.extend(rows)
+
+    def list_instagram_post_media(self, project_id: str) -> list[dict[str, Any]]:
+        rows = [dict(r) for r in self._instagram_post_media if r["project_id"] == project_id]
+        return sorted(rows, key=lambda row: (row["post_id"], row["position"]))
+
+    def replace_instagram_post_media(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        with self._lock:
+            MemoryRepository._instagram_post_media = [
+                r for r in self._instagram_post_media if r["project_id"] != project_id
+            ]
+            self._instagram_post_media.extend(rows)
+
+    def list_instagram_post_comments(self, project_id: str) -> list[dict[str, Any]]:
+        rows = [dict(r) for r in self._instagram_post_comments if r["project_id"] == project_id]
+        return sorted(rows, key=lambda row: (row["post_id"], row["position"]))
+
+    def replace_instagram_post_comments(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        with self._lock:
+            MemoryRepository._instagram_post_comments = [
+                r for r in self._instagram_post_comments if r["project_id"] != project_id
+            ]
+            self._instagram_post_comments.extend(rows)
 
     def update_ecommerce_product(
         self, project_id: str, product_id: str, patch: dict[str, Any]
@@ -441,6 +544,20 @@ class SupabaseRepository:
         if rows:
             self.client.table("scraped_sources").insert(rows).execute()
 
+    def update_source(
+        self, project_id: str, source_id: str, patch: dict[str, Any]
+    ) -> dict[str, Any]:
+        result = (
+            self.client.table("scraped_sources")
+            .update(patch)
+            .eq("id", source_id)
+            .eq("project_id", project_id)
+            .execute()
+        )
+        if not result.data:
+            raise NotFoundError(f"Source {source_id} was not found")
+        return result.data[0]
+
     # --------------------------------------------- e-commerce products
 
     def list_ecommerce_products(self, project_id: str) -> list[dict[str, Any]]:
@@ -516,6 +633,93 @@ class SupabaseRepository:
         self.client.table("ecommerce_product_suppliers").delete().eq("project_id", project_id).execute()
         if rows:
             self.client.table("ecommerce_product_suppliers").insert(rows).execute()
+
+    # ------------------------------------------- website / social documents
+
+    def list_website_pages(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("website_pages")
+            .select("*")
+            .eq("project_id", project_id)
+            .order("role")
+            .order("depth")
+            .execute()
+        )
+        return result.data or []
+
+    def replace_website_pages(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        """A re-crawl replaces the whole set: half-old, half-new pages would
+        compare two different moments in time."""
+        self.client.table("website_pages").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("website_pages").insert(rows).execute()
+
+    def list_website_page_images(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("website_page_images")
+            .select("*")
+            .eq("project_id", project_id)
+            .order("page_id")
+            .order("position")
+            .execute()
+        )
+        return result.data or []
+
+    def replace_website_page_images(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        """Usually a no-op delete: replacing the pages already cascaded these."""
+        self.client.table("website_page_images").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("website_page_images").insert(rows).execute()
+
+    def list_instagram_posts(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("instagram_posts")
+            .select("*")
+            .eq("project_id", project_id)
+            .order("role")
+            .order("posted_at", desc=True)
+            .execute()
+        )
+        return result.data or []
+
+    def replace_instagram_posts(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        self.client.table("instagram_posts").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("instagram_posts").insert(rows).execute()
+
+    def list_instagram_post_media(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("instagram_post_media")
+            .select("*")
+            .eq("project_id", project_id)
+            .order("post_id")
+            .order("position")
+            .execute()
+        )
+        return result.data or []
+
+    def replace_instagram_post_media(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        """Usually a no-op delete: replacing the posts already cascaded these."""
+        self.client.table("instagram_post_media").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("instagram_post_media").insert(rows).execute()
+
+    def list_instagram_post_comments(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("instagram_post_comments")
+            .select("*")
+            .eq("project_id", project_id)
+            .order("post_id")
+            .order("position")
+            .execute()
+        )
+        return result.data or []
+
+    def replace_instagram_post_comments(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        """Usually a no-op delete: replacing the posts already cascaded these."""
+        self.client.table("instagram_post_comments").delete().eq("project_id", project_id).execute()
+        if rows:
+            self.client.table("instagram_post_comments").insert(rows).execute()
 
     def update_ecommerce_product(
         self, project_id: str, product_id: str, patch: dict[str, Any]
