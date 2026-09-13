@@ -99,6 +99,7 @@ change near it deserves review.
 | `SUPABASE_SERVICE_ROLE_KEY` | `backend/.env` | **Server only. Full database access.** |
 | `SUPABASE_JWT_SECRET` | `backend/.env` | Server only. Forges tokens if leaked. |
 | `OPENAI_API_KEY` | `backend/.env` | Server only. Billable. |
+| `APIFY_API_TOKEN` | `backend/.env` | Server only. Billable: Instagram scraping runs on Apify's infrastructure, and the token can start actor runs |
 | `SUPABASE_ANON_KEY` | both `.env` files | Public by design; RLS is the protection |
 | `SUPABASE_URL` | both | Public |
 
@@ -183,7 +184,7 @@ Ordered by what would matter first if this were deployed.
 |---|---|---|---|
 | 1 | **No rate limiting anywhere** | Contact form and auth endpoints can be hammered; a pipeline run is expensive to trigger repeatedly | slowapi, or Supabase Edge rate limits |
 | 2 | **No CSRF protection on the contact form** | It is unauthenticated and writes a row | Low impact (no privileged action), but a captcha or token belongs here |
-| 3 | **Scraped URLs are not validated against SSRF** | A live Scout Agent given `http://169.254.169.254/` would fetch cloud metadata | **Must be fixed before the Scout Agent goes live.** Block private ranges, link-local and localhost |
+| 3 | **SSRF is blocked for the website scraper; DNS rebinding is not** | The website scraper fetches URLs a user typed, so this stopped being hypothetical when it went live. Each URL is resolved and refused if any address it answers with is private, loopback, link-local, reserved or multicast, before the request and again after a redirect (`app/scrapers/website/safety.py`). A host that resolves public at check time and private at connect time would still get through | Closing the rebinding case means pinning the connection to the address that was checked. Instagram is unaffected: the fetching happens on Apify, and only instagram.com profile links are accepted |
 | 4 | **No output encoding review for agent text** | Model output is rendered as text, not HTML, so React escapes it, but a future markdown renderer would need sanitising | React's default escaping is what protects this today |
 | 5 | **No audit log for non-HITL actions** | Deletes and integration toggles are unrecorded | `hitl_reviews` covers the decisions that matter most |
 | 6 | **`contact_submissions` has no read path** | Deliberate: no admin UI, so a read policy would let any user harvest addresses | Service role only |
@@ -196,7 +197,7 @@ Ordered by what would matter first if this were deployed.
 
 - [ ] `DEMO_MODE=false` on both halves; confirm via `/api/v1/health`
 - [ ] Fresh keys generated for the deployment; none reused from development
-- [ ] SSRF protection in place if the Scout Agent is live (gap 3)
+- [ ] SSRF guard confirmed to cover every scraper that fetches a user's URL (gap 3)
 - [ ] Rate limiting on auth and contact (gap 1)
 - [ ] RLS confirmed enabled on **every** table in the dashboard
 - [ ] `CORS_ORIGINS` restricted to the real frontend origin
