@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 from pydantic import Field, field_validator, model_validator
 
 from app.models.common import CamelModel
-from app.scrapers import get_scraper, is_supported, platform_keys
+from app.scrapers import get_scraper, is_supported, platform_keys, source_kind_for, source_kinds
 
 
 class ProjectStatus(str, Enum):
@@ -203,13 +203,19 @@ class ProjectCreate(CamelModel):
         return own
 
     def _check_social(self) -> None:
-        """Both pages must be on the platform the user picked.
-
-        Nothing scrapes social pages yet, which is exactly why this is checked
-        now: a wrong link would otherwise sit unnoticed until a scraper exists.
-        """
+        """Both pages must be on the platform the user picked, and that platform
+        must be one something can actually read."""
         if self.social_platform is None:
             raise ValueError("Choose a social media platform to compare on")
+
+        if source_kind_for("social_media", self.social_platform.value) not in source_kinds():
+            # Facebook today: the option is listed so the plan is visible, but
+            # there is no scraper behind it, and a project nothing can read
+            # would only fail later.
+            raise ValueError(
+                f"{SOCIAL_PLATFORM_LABELS[self.social_platform]} comparisons are not available "
+                "yet. Choose Instagram."
+            )
 
         label = SOCIAL_PLATFORM_LABELS[self.social_platform]
         hosts = SOCIAL_PLATFORM_HOSTS[self.social_platform]
