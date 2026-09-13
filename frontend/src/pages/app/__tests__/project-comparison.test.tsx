@@ -284,6 +284,7 @@ function renderPage() {
         <Routes>
           <Route path="/app/projects/:projectId/comparison" element={<ProjectComparisonPage />} />
           <Route path="/app/projects/:projectId/pipeline" element={<p>pipeline page</p>} />
+          <Route path="/app/projects/:projectId/sources" element={<p>scraped data page</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -526,8 +527,17 @@ describe('Product comparison page', () => {
     expect(screen.getAllByText('Order terms & price tiers').length).toBeGreaterThan(0)
   })
 
-  it('sends a non-e-commerce project to its pipeline instead', () => {
+  it('sends a website project to its own scraped-data page instead', () => {
+    // Every comparison type has its own results page now, and none of them
+    // opens on the pipeline screen.
     hooks.project = { ...PROJECT, comparisonType: 'website', ecommercePlatform: null }
+    hooks.pipeline = pipeline('idle', 'idle')
+    renderPage()
+    expect(screen.getByText('scraped data page')).toBeInTheDocument()
+  })
+
+  it('sends the seeded demo project to the pipeline, which it still runs', () => {
+    hooks.project = { ...PROJECT, comparisonType: 'website', ecommercePlatform: null, isDemo: true }
     hooks.pipeline = pipeline('idle', 'idle')
     renderPage()
     expect(screen.getByText('pipeline page')).toBeInTheDocument()
