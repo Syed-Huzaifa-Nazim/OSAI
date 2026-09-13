@@ -30,14 +30,21 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
         ? 50
         : 0
     : Math.round((project.currentStage / 9) * 100)
+  // What was compared, so the bar says which kind of scrape it is tracking.
+  const scrapeSubject =
+    project.comparisonType === 'ecommerce_product'
+      ? 'Product comparison'
+      : project.comparisonType === 'social_media'
+        ? 'Social comparison'
+        : 'Website comparison'
   const progressLabel = scrapeOnly
     ? project.status === 'complete'
-      ? 'Product comparison · scraped'
+      ? `${scrapeSubject} · scraped`
       : project.status === 'running'
-        ? 'Product comparison · scraping'
+        ? `${scrapeSubject} · scraping`
         : project.status === 'failed'
-          ? 'Product comparison · scrape failed'
-          : 'Product comparison · not scraped'
+          ? `${scrapeSubject} · scrape failed`
+          : `${scrapeSubject} · not scraped`
     : `Stage ${project.currentStage} · ${stage.title}`
 
   return (
