@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Loader2, RotateCcw, ScanSearch } from 'lucide-react'
+import { RotateCcw, ScanSearch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FormField } from '@/components/ui/form-field'
@@ -16,6 +16,7 @@ import {
 import { PageHeader } from '@/components/shared/page-header'
 import { ProjectStatusBadge } from '@/components/shared/project-status-badge'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
+import { ScrapeLoader } from '@/components/shared/scrape-loader'
 import { ParameterGrid } from '@/components/comparison/parameter-grid'
 import { ParameterResults } from '@/components/comparison/parameter-results'
 import { ProductSummaryCard } from '@/components/comparison/product-summary-card'
@@ -36,7 +37,7 @@ import { projectHomePath } from '@/lib/project-routes'
 import { queryKeys } from '@/lib/query-client'
 import { formatDate, titleCase } from '@/lib/utils'
 import { spring } from '@/lib/motion'
-import type { PipelineState } from '@/types/pipeline'
+import { phaseOf } from '@/lib/scrape-phase'
 
 /**
  * Rotating progress copy, so a scrape that takes a minute does not look frozen.
@@ -49,21 +50,6 @@ const SCRAPE_STEPS = [
   'Collecting reviews and policy text…',
 ]
 const EMBED_STEP = 'Embedding the listings’ text for retrieval…'
-
-type ScrapePhase = 'idle' | 'scraping' | 'embedding' | 'failed' | 'done'
-
-function phaseOf(state: PipelineState): { phase: ScrapePhase; error: string | null } {
-  const scrape = state.stages[2]
-  const embed = state.stages[3]
-  if (scrape.status === 'error') return { phase: 'failed', error: scrape.error }
-  if (embed.status === 'error') return { phase: 'failed', error: embed.error }
-  if (scrape.status === 'running') return { phase: 'scraping', error: null }
-  if (embed.status === 'running') return { phase: 'embedding', error: null }
-  if (embed.status === 'complete') return { phase: 'done', error: null }
-  // Stage 2 finished but stage 3 has not been picked up yet: still working.
-  if (scrape.status === 'complete') return { phase: 'embedding', error: null }
-  return { phase: 'idle', error: null }
-}
 
 /**
  * An e-commerce comparison: scrape both listings, then read them side by side.
@@ -190,7 +176,12 @@ export default function ProjectComparisonPage() {
       ) : null}
 
       {phase.phase === 'scraping' || phase.phase === 'embedding' ? (
-        <ScrapeProgress phase={phase.phase} />
+        <ScrapeLoader
+          phase={phase.phase}
+          steps={SCRAPE_STEPS}
+          embedStep={EMBED_STEP}
+          description="Both listings are read in parallel. If a page needs JavaScript to show its price, a headless browser pass runs automatically, which can take up to a minute. You can leave this page and come back."
+        />
       ) : null}
 
       {phase.phase === 'failed' ? (
@@ -304,32 +295,3 @@ export default function ProjectComparisonPage() {
   )
 }
 
-function ScrapeProgress({ phase }: { phase: 'scraping' | 'embedding' }) {
-  const [step, setStep] = useState(0)
-
-  useEffect(() => {
-    if (phase !== 'scraping') return
-    const timer = window.setInterval(() => {
-      setStep((current) => Math.min(current + 1, SCRAPE_STEPS.length - 1))
-    }, 8000)
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [phase])
-
-  return (
-    <Card className="flex items-start gap-4 p-6" role="status" aria-live="polite">
-      <Loader2 className="mt-0.5 size-5 shrink-0 animate-spin text-primary" />
-      <div>
-        <h2 className="font-display text-base font-semibold">
-          {phase === 'scraping' ? SCRAPE_STEPS[step] : EMBED_STEP}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Both listings are read in parallel. If a page needs JavaScript to show its price, a
-          headless browser pass runs automatically, which can take up to a minute. You can leave
-          this page and come back.
-        </p>
-      </div>
-    </Card>
-  )
-}
