@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ImageOff } from 'lucide-react'
+import { ImagePlaceholder, SafeImage } from '@/components/shared/safe-image'
 import { cn } from '@/lib/utils'
 import type { ProductImage } from '@/types/domain'
 
@@ -109,57 +109,3 @@ export function ImageStrip({ images, productName }: ImageStripProps) {
   )
 }
 
-interface SafeImageProps {
-  src: string
-  alt: string
-  className?: string
-  loading?: 'lazy' | 'eager'
-  /** Icon-only placeholder, for thumbnails too small for text. */
-  compact?: boolean
-}
-
-function SafeImage({ src, alt, className, loading = 'lazy', compact = false }: SafeImageProps) {
-  const [failed, setFailed] = useState(false)
-
-  if (failed) {
-    return (
-      <ImagePlaceholder
-        className={className}
-        label={compact ? undefined : 'Image unavailable'}
-      />
-    )
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading={loading}
-      decoding="async"
-      referrerPolicy="no-referrer"
-      onError={() => {
-        setFailed(true)
-      }}
-      className={cn(
-        'rounded-md border border-border/15 bg-muted/25 object-contain',
-        className,
-      )}
-    />
-  )
-}
-
-function ImagePlaceholder({ className, label }: { className?: string; label?: string }) {
-  return (
-    <div
-      role="img"
-      aria-label={label ?? 'Image unavailable'}
-      className={cn(
-        'flex flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-border/25 bg-muted/25 text-muted-foreground',
-        className,
-      )}
-    >
-      <ImageOff className="size-4" aria-hidden="true" />
-      {label ? <span className="px-3 text-center text-xs">{label}</span> : null}
-    </div>
-  )
-}
