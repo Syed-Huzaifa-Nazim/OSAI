@@ -29,6 +29,15 @@ export function useEcommerceProducts(projectId: string | undefined, enabled = tr
   })
 }
 
+/** The crawled pages or scraped posts behind a website or social project. */
+export function useSourceDocuments(projectId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.projects.documents(projectId ?? ''),
+    queryFn: () => scrapersApi.documents(projectId as string),
+    enabled: Boolean(projectId) && enabled,
+  })
+}
+
 /** Every parameter group, with who leads each, against one competitor. */
 export function useEcommerceComparison(
   projectId: string | undefined,
@@ -74,6 +83,8 @@ export function useStartScrape() {
       // A re-scrape replaces the listings, so anything derived from the old
       // ones is stale.
       await client.invalidateQueries({ queryKey: queryKeys.projects.products(projectId) })
+      await client.invalidateQueries({ queryKey: queryKeys.projects.documents(projectId) })
+      await client.invalidateQueries({ queryKey: queryKeys.projects.sources(projectId) })
       await client.invalidateQueries({ queryKey: ['projects', projectId, 'comparison'] })
       await client.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) })
     },
