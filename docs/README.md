@@ -75,6 +75,13 @@ cp frontend/.env.example frontend/.env.local
 | `OPENAI_MODEL` | no | Default `gpt-4o` |
 | `OPENAI_EMBEDDING_MODEL` | no | Default `text-embedding-3-small` |
 | `CHROMA_PERSIST_DIR` | no | Default `./.chroma` |
+| `APIFY_API_TOKEN` | for Instagram | **Secret.** Instagram scraping runs on Apify's hosted actor; without it that platform reports itself unavailable |
+| `APIFY_INSTAGRAM_ACTOR_ID` | no | Default `apify/instagram-scraper` |
+| `INSTAGRAM_POSTS_LIMIT` / `INSTAGRAM_COMMENTS_LIMIT` | no | Default 12 posts per profile, 20 comments per post. Every collected post can be opened on the results screen, so the post budget bounds the scrape |
+| `INSTAGRAM_COMMENT_POSTS_LIMIT` | no | Default 0, meaning every collected post has its comments read. A positive value caps it at that many posts, busiest first; every post keeps its counts either way |
+| `WEBSITE_MAX_PAGES` / `WEBSITE_MAX_DEPTH` | no | Default 12 and 2. How far a crawl goes from the submitted link |
+| `WEBSITE_REQUEST_DELAY_SECONDS` | no | Default 1.5. Pause between page fetches |
+| `WEBSITE_RESPECT_ROBOTS_TXT` | no | Default `true`. Leave it on |
 | `DEMO_MODE` | no | `true` serves the seed; forced on when Supabase is absent |
 | `CORS_ORIGINS` | no | Comma-separated; must include the frontend origin |
 | `LOG_LEVEL` | no | Default `INFO` |
