@@ -49,6 +49,11 @@ def _run_actor(client: Any, run_input: dict[str, Any]) -> list[dict[str, Any]]:
             ) from exc
         raise ScraperError(f"Apify could not run the Instagram scraper ({message}).") from exc
 
+    # apify-client 3.x returns a typed Run object instead of a dict.
+    # Turn it back into the dict shape the rest of this function reads.
+    if run is not None and not isinstance(run, dict) and hasattr(run, "model_dump"):
+        run = run.model_dump(by_alias=True, mode="json")
+
     if not run or not run.get("defaultDatasetId"):
         raise ScraperError("Apify returned no dataset for the Instagram run.")
 

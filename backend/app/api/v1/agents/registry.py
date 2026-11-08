@@ -16,6 +16,7 @@ from app.api.v1.agents.ecommerce_scout import EcommerceScoutAgent
 from app.api.v1.agents.insight import MockInsightAgent
 from app.api.v1.agents.preprocess import MockPreprocessAgent
 from app.api.v1.agents.scout import MockScoutAgent
+from app.api.v1.agents.social_insight import SocialInsightAgent
 from app.api.v1.agents.source_preprocess import SourcePreprocessAgent
 from app.api.v1.agents.source_scout import SocialScoutAgent, WebsiteScoutAgent
 from app.api.v1.agents.strategist import MockStrategistAgent
@@ -51,6 +52,7 @@ _WEBSITE_AGENTS: dict[int, type[BaseAgent]] = {
 _SOCIAL_AGENTS: dict[int, type[BaseAgent]] = {
     2: SocialScoutAgent,
     3: SourcePreprocessAgent,
+    4: SocialInsightAgent,
 }
 
 #: comparison type -> the agents that replace the defaults for it.

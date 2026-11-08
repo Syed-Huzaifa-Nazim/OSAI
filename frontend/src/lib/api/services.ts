@@ -89,6 +89,12 @@ export const pipelineApi = {
       ? mockApi.resetPipeline(projectId)
       : api.post<PipelineState>(`/projects/${projectId}/pipeline/reset`),
 
+  /** Runs the gap analysis (stage 4) on a scraped Instagram comparison. */
+  analyse: (projectId: string): Promise<PipelineState> =>
+    isDemoMode
+      ? mockApi.getPipeline(projectId)
+      : api.post<PipelineState>(`/projects/${projectId}/analysis/run`),
+
   sources: (projectId: string): Promise<ScrapedSource[]> =>
     isDemoMode
       ? mockApi.listSources(projectId)
@@ -120,6 +126,30 @@ export const gapsApi = {
     isDemoMode
       ? mockApi.submitGapReview(projectId, input)
       : api.post<HitlReview>(`/projects/${projectId}/gaps/review`, input),
+
+  /** Grounded explanation of one gap (Instagram): pgvector retrieval + LLM. */
+  explain: (projectId: string, gapId: string): Promise<GapExplanation> =>
+    api.post<GapExplanation>(`/projects/${projectId}/gaps/${gapId}/explain`),
+}
+
+/** A grounded explanation of one gap: retrieved from pgvector, written by the LLM. */
+export interface GapExplanation {
+  gapId: string
+  explanation: string
+  /** True when every citation points at evidence that was really retrieved. */
+  grounded: boolean
+  evidenceUsed: string[]
+  unknownCitations: string[]
+  evidence: {
+    id: string
+    side: 'competitor' | 'you'
+    fieldType: string
+    text: string
+    postUrl: string
+    similarity: number
+    /** photo, video / reel or carousel. */
+    format?: string
+  }[]
 }
 
 /* ---------------------------------------------- strategy + critic (6,7) --- */

@@ -164,8 +164,17 @@ class InstagramSourceScraper(SourceScraper):
         # collaboration post that is the other account, which is exactly how a
         # profile came to be displayed under a stranger's handle.
         username = extract.profile_username(items) or self.username(url) or profile_url
+        # Followers, bio, highlights...: what the engagement model grades a
+        # profile on. Stored on every post row, the same way as the username.
+        stats = extract.profile_stats(items)
+        if not stats:
+            warnings.append(
+                "Profile details (followers, bio) were not returned, so this side "
+                "cannot be graded by the engagement model."
+            )
         for record in records:
             record["profile_username"] = username
+            record["profile_stats"] = stats
 
         documents = [
             self._document(record, comments_by_post.get(record.get("post_url") or "", []))

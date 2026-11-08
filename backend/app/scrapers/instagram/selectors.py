@@ -67,6 +67,11 @@ PROFILE_PATHS = {
     "posts_count": ["postsCount"],
     "profile_picture": ["profilePicUrlHD", "profilePicUrl"],
     "is_verified": ["verified", "isVerified"],
+    # Read for the engagement model (app/analysis/instagram/).
+    "following_count": ["followsCount", "followingCount"],
+    "external_url": ["externalUrl"],
+    "highlights_count": ["highlightReelCount"],
+    "category": ["businessCategoryName", "categoryName"],
 }
 
 #: Dotted paths inside one post object. First non-empty wins.

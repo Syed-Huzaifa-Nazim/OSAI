@@ -21,6 +21,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from typing import Any
+
 from fastapi import APIRouter, BackgroundTasks, Depends
 
 from app.core.errors import ConflictError, NotFoundError
@@ -69,6 +71,27 @@ async def run_scout(
     repo.get_project(project_id)
     state = pipeline_service.start(repo, project_id)
     _schedule(tasks, project_id, user.id, 2)
+    return PipelineState.model_validate(state)
+
+
+@router.post("/analysis/run", response_model=PipelineState)
+async def run_instagram_analysis(
+    project_id: str,
+    tasks: BackgroundTasks,
+    user: CurrentUser = Depends(get_current_user),
+) -> PipelineState:
+    """Analyses a scraped Instagram comparison (stage 4) and parks at the first
+    checkpoint, so the gaps can be reviewed. Real projects only."""
+    repo = get_repository(user.id, user.token)
+    state = pipeline_service.start_analysis(repo, project_id)
+
+    def runner() -> None:
+        try:
+            asyncio.run(pipeline_service.run_analysis(project_id, user.id))
+        except Exception:  # noqa: BLE001 - a crashed task must not be silent
+            logger.exception("Background analysis failed for %s", project_id)
+
+    tasks.add_task(runner)
     return PipelineState.model_validate(state)
 
 
@@ -153,12 +176,69 @@ async def submit_gap_review(
     Rejected if any gap is still untriaged. See gap_service.submit_review.
     """
     repo = get_repository(user.id, user.token)
-    repo.get_project(project_id)
+    project = repo.get_project(project_id)
     review = gap_service.submit_review(
         repo, project_id, user.id, user.email or "Reviewer", payload
     )
-    _schedule(tasks, project_id, user.id, 6)
+    if project.get("is_demo"):
+        # The seeded sample walks the whole pipeline with sample content.
+        _schedule(tasks, project_id, user.id, 6)
+    else:
+        # Real projects stop here. Stages 6-9 (Strategist, Critic, document,
+        # automation) are not built yet, and nothing placeholder is run on
+        # real data.
+        repo.update_project(project_id, {"status": "complete", "current_stage": 5})
     return HitlReview.model_validate(review)
+
+
+@router.post("/gaps/{gap_id}/explain")
+async def explain_gap(
+    project_id: str,
+    gap_id: str,
+    user: CurrentUser = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Grounded explanation of one gap (Instagram).
+
+    Retrieves the closest post chunks for each side from pgvector
+    (instagram_post_chunks) and asks the LLM to explain the gap using only
+    those, citing them. Citations to anything not retrieved are rejected.
+    """
+    from app.analysis.instagram import explain
+    from app.analysis.instagram.llm import get_llm
+
+    repo = get_repository(user.id, user.token)
+    project = repo.get_project(project_id)
+    if project.get("social_platform") != "instagram":
+        raise ConflictError("Explanations are available for Instagram comparisons.")
+
+    try:
+        result = await asyncio.to_thread(
+            explain.explain_gap, repo, project_id, gap_id, get_llm()
+        )
+    except (ConflictError, NotFoundError):
+        raise
+    except Exception as exc:  # noqa: BLE001 - show the real reason, not a bare 500
+        logger.exception("Explain failed for gap %s", gap_id)
+        raise ConflictError(f"Explain failed: {type(exc).__name__}: {exc}") from exc
+    return {
+        "gapId": result["gap_id"],
+        "explanation": result["explanation"],
+        "grounded": result["grounded"],
+        "evidenceUsed": result["evidence_used"],
+        "unknownCitations": result["unknown_citations"],
+        "evidence": [
+            {
+                "id": e["id"],
+                "side": e["side"],
+                "fieldType": e["field_type"],
+                "text": e["text"],
+                "postUrl": e["post_url"],
+                "similarity": e["similarity"],
+                "format": e.get("format", ""),
+            }
+            for e in result["evidence"]
+        ],
+    }
 
 
 # ---------------------------------------- stage 6 and stage 7: HITL #2 ------

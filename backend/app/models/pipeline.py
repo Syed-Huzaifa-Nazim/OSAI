@@ -48,6 +48,11 @@ class StageMetrics(CamelModel):
     #: None for stages that make no LLM calls (1, 3, 5, 7).
     tokens_used: int | None = None
     cost_usd: float | None = None
+    #: Why parts of the stage produced nothing (e.g. too few comments), shown
+    #: to the reviewer so an empty result is never a mystery.
+    notes: list[str] = []
+    #: Stage 4 (Instagram): what each part of the analysis found.
+    analysis: list[dict] | None = None
 
 
 class StageState(CamelModel):

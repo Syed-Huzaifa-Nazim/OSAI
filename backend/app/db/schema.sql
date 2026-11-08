@@ -336,6 +336,7 @@ create table if not exists public.instagram_posts (
     -- The scraped profile's own handle, from the profile item the actor
     -- returned. What the screen labels this side with. (Migration 0008.)
     profile_username text,
+    profile_stats   jsonb not null default '{}'::jsonb,
     -- Who wrote this particular post: the profile owner, except on a
     -- collaboration post, where it is the other collaborator.
     owner_username  text,

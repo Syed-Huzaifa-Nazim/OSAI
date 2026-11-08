@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, ChevronDown, X } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { Check, ChevronDown, ExternalLink, Sparkles, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -15,6 +16,8 @@ import {
 import { ConfidenceMeter } from './confidence-meter'
 import { EvidenceList } from './evidence-list'
 import type { Gap, GapPriority } from '@/types/domain'
+import { gapsApi, type GapExplanation } from '@/lib/api/services'
+import { errorMessage } from '@/lib/api-client'
 import { cn, titleCase } from '@/lib/utils'
 import { spring, staggerItem } from '@/lib/motion'
 
@@ -34,6 +37,8 @@ interface GapCardProps {
   onDecision?: (decision: 'accepted' | 'rejected') => void
   onPriorityChange?: (priority: GapPriority) => void
   onNoteChange?: (note: string) => void
+  /** When set, shows the Explain button (grounded LLM + pgvector explanation). */
+  explainProjectId?: string
 }
 
 export function GapCard({
@@ -42,8 +47,12 @@ export function GapCard({
   onDecision,
   onPriorityChange,
   onNoteChange,
+  explainProjectId,
 }: GapCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const explain = useMutation<GapExplanation, Error>({
+    mutationFn: () => gapsApi.explain(explainProjectId as string, gap.id),
+  })
   const [note, setNote] = useState(gap.reviewerNote ?? '')
   const priority = gap.userPriority ?? gap.priority
   const overridden = gap.userPriority !== null && gap.userPriority !== gap.priority
@@ -101,6 +110,80 @@ export function GapCard({
               <EvidenceList evidence={gap.evidence} />
             </motion.div>
           ) : null}
+
+          {explainProjectId ? (
+            <div className="mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                loading={explain.isPending}
+                onClick={() => {
+                  explain.mutate()
+                }}
+              >
+                <Sparkles />
+                {explain.data ? 'Explain again' : 'Explain'}
+              </Button>
+
+              {explain.isError ? (
+                <p className="mt-2 text-sm text-destructive">{errorMessage(explain.error)}</p>
+              ) : null}
+
+              {explain.data ? (
+                <div className="mt-3 space-y-3 rounded-md border border-border/30 bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                      Why this was flagged
+                    </p>
+                    {explain.data.grounded ? (
+                      <Badge variant="success">Grounded in scraped posts</Badge>
+                    ) : (
+                      <Badge variant="destructive">Not grounded: treat with care</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm leading-relaxed">{explain.data.explanation}</p>
+                  {explain.data.unknownCitations.length > 0 ? (
+                    <p className="text-xs text-destructive">
+                      Removed citations to evidence that was never retrieved:{' '}
+                      {explain.data.unknownCitations.join(', ')}
+                    </p>
+                  ) : null}
+                  <ul className="space-y-2">
+                    {explain.data.evidence.map((item) => (
+                      <li
+                        key={item.id}
+                        className={cn(
+                          'rounded border border-border/20 p-2 text-xs',
+                          explain.data.evidenceUsed.includes(item.id) && 'border-primary/40',
+                        )}
+                      >
+                        <div className="mb-1 flex flex-wrap items-center gap-2 text-muted-foreground">
+                          <span className="font-mono">[{item.id}]</span>
+                          <span>
+                            {item.side === 'you' ? 'Your' : 'Competitor'}
+                            {item.format && item.format !== 'other' ? ` ${item.format}` : ''} post
+                          </span>
+                          <span>· {item.fieldType}</span>
+                          <span>· match {Math.round(item.similarity * 100)}%</span>
+                          {item.postUrl ? (
+                            <a
+                              href={item.postUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 underline"
+                            >
+                              Open post <ExternalLink className="size-3" />
+                            </a>
+                          ) : null}
+                        </div>
+                        <p>{item.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {reviewable ? (
@@ -154,7 +237,7 @@ export function GapCard({
 
             <div className="space-y-1.5">
               <label htmlFor={`note-${gap.id}`} className="text-xs text-muted-foreground">
-                Note for the Strategist
+                Note for the record
               </label>
               <Textarea
                 id={`note-${gap.id}`}

@@ -52,7 +52,7 @@ export function useSubmitGapReview(projectId: string) {
         client.invalidateQueries({ queryKey: queryKeys.projects.reviews(projectId) }),
       ])
       toast.success('Gaps prioritised', {
-        description: `${input.acceptedGapIds.length} gaps sent to the Strategist.`,
+        description: `${input.acceptedGapIds.length} gaps kept.`,
       })
     },
     onError: (error) => {

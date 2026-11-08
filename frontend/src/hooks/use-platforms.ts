@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { scrapersApi } from '@/lib/api/services'
+import { pipelineApi, scrapersApi } from '@/lib/api/services'
 import { errorMessage } from '@/lib/api-client'
 import { queryKeys } from '@/lib/query-client'
 
@@ -90,6 +90,25 @@ export function useStartScrape() {
     },
     onError: (error) => {
       toast.error('Could not start scraping', { description: errorMessage(error) })
+    },
+  })
+}
+
+/**
+ * Starts the gap analysis on a scraped Instagram comparison: the engagement
+ * model, content gaps and comment mood (stage 4). The run is a background
+ * task; the pipeline query polls while stage 4 is running.
+ */
+export function useStartAnalysis() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId: string) => pipelineApi.analyse(projectId),
+    onSuccess: async (state, projectId) => {
+      client.setQueryData(queryKeys.projects.pipeline(projectId), state)
+      await client.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) })
+    },
+    onError: (error) => {
+      toast.error('Could not start the analysis', { description: errorMessage(error) })
     },
   })
 }

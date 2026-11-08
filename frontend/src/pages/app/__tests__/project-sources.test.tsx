@@ -31,6 +31,7 @@ vi.mock('@/hooks/use-pipeline', () => ({
 vi.mock('@/hooks/use-platforms', () => ({
   START_SCRAPE_KEY: ['scrapers', 'start'],
   useStartScrape: () => ({ mutate: hooks.startScrape, isPending: false }),
+  useStartAnalysis: () => ({ mutate: vi.fn(), isPending: false }),
   useSourceDocuments: (_id: string, enabled: boolean) => ({
     data: enabled ? hooks.documents : undefined,
     isError: false,

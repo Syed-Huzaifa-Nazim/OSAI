@@ -67,6 +67,7 @@ class MemoryRepository:
     _instagram_posts: list[dict[str, Any]] = []
     _instagram_post_media: list[dict[str, Any]] = []
     _instagram_post_comments: list[dict[str, Any]] = []
+    _instagram_chunks: list[dict[str, Any]] = []
     _integrations: list[dict[str, Any]] = []
     _pipelines: dict[str, dict[str, Any]] = {}
     _contact: list[dict[str, Any]] = []
@@ -124,6 +125,7 @@ class MemoryRepository:
             cls._instagram_posts = []
             cls._instagram_post_media = []
             cls._instagram_post_comments = []
+            cls._instagram_chunks = []
         cls._seed()
 
     # ------------------------------------------------------------- projects
@@ -187,6 +189,9 @@ class MemoryRepository:
             ]
             MemoryRepository._instagram_post_comments = [
                 r for r in self._instagram_post_comments if r["project_id"] != project_id
+            ]
+            MemoryRepository._instagram_chunks = [
+                r for r in self._instagram_chunks if r["project_id"] != project_id
             ]
             self._pipelines.pop(project_id, None)
 
@@ -325,6 +330,9 @@ class MemoryRepository:
             MemoryRepository._instagram_post_comments = [
                 r for r in self._instagram_post_comments if r["project_id"] != project_id
             ]
+            MemoryRepository._instagram_chunks = [
+                r for r in self._instagram_chunks if r["project_id"] != project_id
+            ]
             self._instagram_posts.extend(rows)
 
     def list_instagram_post_media(self, project_id: str) -> list[dict[str, Any]]:
@@ -348,6 +356,44 @@ class MemoryRepository:
                 r for r in self._instagram_post_comments if r["project_id"] != project_id
             ]
             self._instagram_post_comments.extend(rows)
+
+    # ---- pgvector chunks (instagram_post_chunks) ----
+
+    def replace_instagram_chunks(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        with self._lock:
+            MemoryRepository._instagram_chunks = [
+                r for r in self._instagram_chunks if r["project_id"] != project_id
+            ]
+            self._instagram_chunks.extend(dict(r) for r in rows)
+
+    def count_instagram_chunks(self, project_id: str) -> int:
+        return sum(1 for r in self._instagram_chunks if r["project_id"] == project_id)
+
+    def list_instagram_chunks(self, project_id: str) -> list[dict[str, Any]]:
+        return [dict(r) for r in self._instagram_chunks if r["project_id"] == project_id]
+
+    def match_instagram_chunks(
+        self,
+        project_id: str,
+        embedding: list[float],
+        role: str | None = None,
+        competitor_id: str | None = None,
+        count: int = 4,
+    ) -> list[dict[str, Any]]:
+        """Cosine similarity, the same ranking the match_instagram_chunks SQL function uses."""
+        hits = []
+        for r in self._instagram_chunks:
+            if r["project_id"] != project_id:
+                continue
+            if role and r.get("role") != role:
+                continue
+            if competitor_id and r.get("competitor_id") != competitor_id:
+                continue
+            vec = r.get("embedding") or []
+            sim = sum(a * b for a, b in zip(vec, embedding))
+            hits.append({**{k: v for k, v in r.items() if k != "embedding"}, "similarity": sim})
+        hits.sort(key=lambda h: h["similarity"], reverse=True)
+        return hits[: max(count, 1)]
 
     def update_ecommerce_product(
         self, project_id: str, product_id: str, patch: dict[str, Any]
@@ -720,6 +766,53 @@ class SupabaseRepository:
         self.client.table("instagram_post_comments").delete().eq("project_id", project_id).execute()
         if rows:
             self.client.table("instagram_post_comments").insert(rows).execute()
+
+    # ---- pgvector chunks (instagram_post_chunks) ----
+
+    def replace_instagram_chunks(self, project_id: str, rows: list[dict[str, Any]]) -> None:
+        self.client.table("instagram_post_chunks").delete().eq("project_id", project_id).execute()
+        for start in range(0, len(rows), 100):
+            self.client.table("instagram_post_chunks").insert(rows[start : start + 100]).execute()
+
+    def count_instagram_chunks(self, project_id: str) -> int:
+        result = (
+            self.client.table("instagram_post_chunks")
+            .select("id", count="exact")
+            .eq("project_id", project_id)
+            .limit(1)
+            .execute()
+        )
+        return result.count or 0
+
+    def list_instagram_chunks(self, project_id: str) -> list[dict[str, Any]]:
+        result = (
+            self.client.table("instagram_post_chunks")
+            .select("id,post_id,source_id,role,competitor_id,field_type,chunk_index,chunk_text,post_url")
+            .eq("project_id", project_id)
+            .execute()
+        )
+        return result.data or []
+
+    def match_instagram_chunks(
+        self,
+        project_id: str,
+        embedding: list[float],
+        role: str | None = None,
+        competitor_id: str | None = None,
+        count: int = 4,
+    ) -> list[dict[str, Any]]:
+        """Semantic search in Postgres: the match_instagram_chunks SQL function (pgvector)."""
+        result = self.client.rpc(
+            "match_instagram_chunks",
+            {
+                "p_project_id": project_id,
+                "p_query": embedding,
+                "p_role": role,
+                "p_competitor_id": competitor_id,
+                "p_count": count,
+            },
+        ).execute()
+        return result.data or []
 
     def update_ecommerce_product(
         self, project_id: str, product_id: str, patch: dict[str, Any]

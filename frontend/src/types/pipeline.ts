@@ -67,6 +67,41 @@ export interface StageMetrics {
   /** Null when the stage makes no LLM calls (stages 1, 3, 5, 7). */
   tokensUsed: number | null
   costUsd: number | null
+  /** Why parts of the stage produced nothing (e.g. too few comments). */
+  notes?: string[]
+  /** Stage 4 (Instagram): what each part of the analysis found, per competitor. */
+  analysis?: AnalysisPart[] | null
+}
+
+/** Kept in snake_case: it is passed through from the analysis as-is. */
+export interface AnalysisPart {
+  competitor: string
+  model: {
+    status: 'ran' | 'skipped'
+    reason: string
+    user_grade?: string
+    user_good_chance?: number
+    competitor_grade?: string
+    competitor_good_chance?: number
+    difference?: number
+    clear_difference?: boolean
+    low_confidence?: boolean
+    habit_gaps: number
+  }
+  media_mix: {
+    user?: Record<string, number>
+    competitor?: Record<string, number>
+    gaps?: number
+  }
+  trend: { user?: number | null; competitor?: number | null; gaps?: number }
+  comments: {
+    status: 'ran' | 'skipped'
+    reason: string
+    user?: { comments: number; scored: number; positive: number | null; negative: number | null }
+    competitor?: { comments: number; scored: number; positive: number | null; negative: number | null }
+    gaps: number
+  }
+  media_quality: { status: string; reason: string }
 }
 
 export interface PipelineState {

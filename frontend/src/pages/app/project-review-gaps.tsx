@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCheck, ListChecks, ShieldCheck, UserRoundCheck } from 'lucide-react'
+import { CheckCheck, Info, ListChecks, ShieldCheck, UserRoundCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/shared/page-header'
 import { GapCard } from '@/components/shared/gap-card'
+import { AnalysisSummary } from '@/components/shared/analysis-summary'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
 import { useGaps, useSubmitGapReview, useUpdateGap } from '@/hooks/use-insights'
 import { usePipeline } from '@/hooks/use-pipeline'
@@ -60,6 +61,12 @@ export default function ReviewGapsPage() {
     ? pipeline.data.stages[5].status === 'complete'
     : false
   const canSubmit = pending.length === 0 && accepted.length > 0 && !alreadyReviewed
+  // Real projects stop at this checkpoint: stages 6-9 are not built yet.
+  const isRealProject = project.data ? !project.data.isDemo : false
+  const explainProjectId =
+    isRealProject && project.data?.socialPlatform === 'instagram' ? projectId : undefined
+  const analysisNotes = pipeline.data?.stages[4]?.metrics?.notes ?? []
+  const analysisParts = pipeline.data?.stages[4]?.metrics?.analysis ?? []
 
   if (isError) {
     return (
@@ -77,8 +84,28 @@ export default function ReviewGapsPage() {
       <PageHeader
         eyebrow="Stage 5 · Human checkpoint"
         title="Refine the gaps"
-        description="Keep what is real for this business and drop what is not. Only the gaps you keep reach the Strategist."
+        description={
+          isRealProject
+            ? 'Keep what is real for this business and drop what is not. Use Explain to see the posts behind a gap.'
+            : 'Keep what is real for this business and drop what is not. Only the gaps you keep reach the Strategist.'
+        }
       />
+
+      {analysisParts.length > 0 ? <AnalysisSummary parts={analysisParts} /> : null}
+
+      {analysisNotes.length > 0 ? (
+        <Card className="flex gap-3 border-border/30 p-4">
+          <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-medium">Notes from the analysis</p>
+            <ul className="list-disc space-y-0.5 pl-4 text-sm text-muted-foreground">
+              {analysisNotes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          </div>
+        </Card>
+      ) : null}
 
       {alreadyReviewed ? (
         <Card className="flex flex-wrap items-center gap-4 border-success/30 bg-success/5 p-5">
@@ -88,13 +115,16 @@ export default function ReviewGapsPage() {
           <div className="min-w-0 flex-1">
             <p className="font-display text-sm font-semibold">This checkpoint is closed</p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              You have already prioritised these gaps and the Strategist has taken over. The list
-              below is kept as a record.
+              {isRealProject
+                ? 'You have reviewed these gaps. The strategy stages are not built yet, so the project stops here. The list below is kept as a record.'
+                : 'You have already prioritised these gaps and the Strategist has taken over. The list below is kept as a record.'}
             </p>
           </div>
-          <Button asChild variant="outline">
-            <Link to={`/app/projects/${projectId}/strategy`}>View the strategy</Link>
-          </Button>
+          {isRealProject ? null : (
+            <Button asChild variant="outline">
+              <Link to={`/app/projects/${projectId}/strategy`}>View the strategy</Link>
+            </Button>
+          )}
         </Card>
       ) : null}
 
@@ -159,6 +189,7 @@ export default function ReviewGapsPage() {
                 key={gap.id}
                 gap={gap}
                 reviewable={!alreadyReviewed}
+                explainProjectId={explainProjectId}
                 onDecision={(decision) => {
                   updateGap.mutate({ gapId: gap.id, patch: { decision } })
                 }}
@@ -177,10 +208,15 @@ export default function ReviewGapsPage() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Send {accepted.length} gaps to the Strategist?</DialogTitle>
+            <DialogTitle>
+              {isRealProject
+                ? `Save your review of ${accepted.length} gaps?`
+                : `Send ${accepted.length} gaps to the Strategist?`}
+            </DialogTitle>
             <DialogDescription>
-              The {rejected.length} gap{rejected.length === 1 ? '' : 's'} you dropped will not
-              influence the strategy. This closes the checkpoint and starts stage 6.
+              {isRealProject
+                ? 'This closes the checkpoint and stores your decisions. The project stops here: the strategy stages are not built yet.'
+                : `The ${rejected.length} gap${rejected.length === 1 ? '' : 's'} you dropped will not influence the strategy. This closes the checkpoint and starts stage 6.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -216,13 +252,13 @@ export default function ReviewGapsPage() {
                   {
                     onSuccess: () => {
                       setConfirmOpen(false)
-                      navigate(`/app/projects/${projectId}/pipeline`)
+                      if (!isRealProject) navigate(`/app/projects/${projectId}/pipeline`)
                     },
                   },
                 )
               }}
             >
-              Approve and continue
+              {isRealProject ? 'Save review' : 'Approve and continue'}
             </Button>
           </DialogFooter>
         </DialogContent>

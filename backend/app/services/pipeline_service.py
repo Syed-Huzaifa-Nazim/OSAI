@@ -249,6 +249,14 @@ async def _run_stage(
         context["ecommerce_products"] = repo.list_ecommerce_products(project_id)
         context["source_documents"] = _source_documents(repo, project)
         result = await get_agent(3, project).run(context)
+        instagram_chunks = result.artifacts.pop("instagram_chunks", None)
+        if instagram_chunks is not None:
+            # Instagram posts: vectors go to Supabase (pgvector), not Chroma.
+            try:
+                repo.replace_instagram_chunks(project_id, instagram_chunks)
+            except Exception as exc:  # noqa: BLE001 - search can be rebuilt later
+                logger.warning("Could not store pgvector chunks for %s: %s", project_id, exc)
+                result.warnings.append(f"Chunks could not be stored in pgvector ({exc}).")
         counts = result.artifacts.get("product_chunk_counts") or {}
         for product_id, chunk_count in counts.items():
             repo.update_ecommerce_product(project_id, product_id, {"chunk_count": chunk_count})
@@ -261,11 +269,18 @@ async def _run_stage(
                 )
             except Exception as exc:  # noqa: BLE001 - a count is not worth failing a run
                 logger.warning("Could not update source %s: %s", source_id, exc)
-        message = f"{result.items_processed} chunks embedded into the project collection"
+        message = (
+            f"{result.items_processed} chunks embedded into Supabase (pgvector)"
+            if instagram_chunks is not None
+            else f"{result.items_processed} chunks embedded into the project collection"
+        )
 
     elif stage_id == 4:
         context["sources"] = repo.list_sources(project_id)
         context["ecommerce_products"] = repo.list_ecommerce_products(project_id)
+        if project.get("social_platform") == "instagram":
+            context["instagram_posts"] = repo.list_instagram_posts(project_id)
+            context["instagram_post_comments"] = repo.list_instagram_post_comments(project_id)
         result = await get_agent(4, project).run(context)
         repo.replace_gaps(project_id, result.payload)
         repo.update_project(project_id, {"gap_count": len(result.payload)})
@@ -298,6 +313,10 @@ async def _run_stage(
             "duration_ms": result.duration_ms,
             "tokens_used": result.tokens_used,
             "cost_usd": result.cost_usd,
+            "notes": list(result.warnings),
+            "analysis": (result.artifacts.get("instagram_analysis") or {}).get("competitors")
+            if isinstance(result.artifacts.get("instagram_analysis"), dict)
+            else None,
         },
     )
     repo.save_pipeline(project_id, state)
@@ -570,6 +589,71 @@ async def run_scrape(project_id: str, user_id: str) -> None:
     repo.save_pipeline(project_id, state)
     repo.update_project(project_id, {"status": "complete", "current_stage": SCRAPE_STAGES[-1]})
     logger.info("Project %s scraped and embedded", project_id)
+
+
+# ----------------------------------------------- Instagram analysis (stage 4) ---
+
+
+def start_analysis(repo: Repository, project_id: str) -> dict[str, Any]:
+    """Opens an analysis run on an Instagram comparison that is already scraped.
+
+    Runs stage 4 only (the engagement model, content and comment gaps) and then
+    parks at checkpoint 5, so the gaps can be reviewed on the Review gaps page.
+    The caller schedules ``run_analysis`` as a background task.
+    """
+    project = repo.get_project(project_id)
+    if project.get("is_demo"):
+        raise ConflictError(
+            "The demo project already has its gaps. Create an analysis of your own."
+        )
+    if project.get("social_platform") != "instagram":
+        raise ConflictError("Analysis is available for Instagram comparisons only, for now.")
+    if not repo.list_instagram_posts(project_id):
+        raise ConflictError("Nothing has been scraped yet. Scrape both profiles first.")
+
+    state = load_state(repo, project_id)
+    if state["stages"]["4"]["status"] == StageStatus.RUNNING.value:
+        raise ConflictError("The analysis is already running.")
+
+    _set_stage(
+        state,
+        4,
+        status=StageStatus.RUNNING.value,
+        progress=0,
+        started_at=demo_data.iso(),
+        error=None,
+        message="Queued",
+    )
+    state["current_stage"] = 4
+    repo.save_pipeline(project_id, state)
+    repo.update_project(project_id, {"status": "running", "current_stage": 4})
+    return state
+
+
+async def run_analysis(project_id: str, user_id: str) -> None:
+    """Runs stage 4 and parks at checkpoint 5. Never starts the Strategist."""
+    repo = get_worker_repository(user_id)
+    state = load_state(repo, project_id)
+    try:
+        await _run_stage(repo, project_id, state, 4)
+    except Exception as exc:  # noqa: BLE001 - surface it on the stage, then stop
+        logger.exception("Analysis failed for project %s", project_id)
+        _set_stage(
+            state,
+            4,
+            status=StageStatus.ERROR.value,
+            error=str(exc) or type(exc).__name__,
+            message=None,
+        )
+        state["blocked_on"] = None
+        repo.save_pipeline(project_id, state)
+        repo.update_project(project_id, {"status": "failed"})
+        return
+
+    _park_at_checkpoint(state, 5)
+    repo.save_pipeline(project_id, state)
+    repo.update_project(project_id, {"status": "awaiting_review", "current_stage": 5})
+    logger.info("Project %s analysed; gaps await review", project_id)
 
 
 def reset(repo: Repository, project_id: str) -> dict[str, Any]:

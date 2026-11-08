@@ -142,6 +142,35 @@ def profile_username(items: list[dict[str, Any]]) -> str | None:
     return None
 
 
+def profile_stats(items: list[dict[str, Any]]) -> dict[str, Any]:
+    """The profile-level numbers the engagement model needs.
+
+    Read from the same profile item as the username (the posts run already
+    returns it), so no extra Apify run is spent. Returns {} when the actor sent
+    no profile item; the analysis then reports that it could not grade the side.
+    """
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if not any(key in item for key in S.PROFILE_MARKER_KEYS):
+            continue
+        stats: dict[str, Any] = {}
+        for key in ("followers_count", "following_count", "posts_count", "highlights_count"):
+            value = _get(item, key, S.PROFILE_PATHS)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                stats[key] = int(value)
+        for key in ("biography", "external_url", "category", "full_name"):
+            value = _get(item, key, S.PROFILE_PATHS)
+            if isinstance(value, str) and value.strip():
+                stats[key] = value.strip()
+        verified = _get(item, "is_verified", S.PROFILE_PATHS)
+        if isinstance(verified, bool):
+            stats["is_verified"] = verified
+        if stats:
+            return stats
+    return {}
+
+
 def extract_post(profile_url: str, post: dict[str, Any]) -> dict[str, Any]:
     """One post's structured fields. Returns {} for an item that is not a post."""
     post_url = _get(post, "post_url", S.POST_PATHS)

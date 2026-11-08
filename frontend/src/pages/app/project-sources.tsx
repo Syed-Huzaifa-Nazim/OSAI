@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ArrowUpRight, Heart, MessageCircle, Play, RotateCcw, ScanSearch } from 'lucide-react'
+import { ArrowUpRight, Heart, MessageCircle, Play, RotateCcw, ScanSearch, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -20,6 +20,7 @@ import {
   useEcommerceComparison,
   useParameterComparison,
   useSourceDocuments,
+  useStartAnalysis,
   useStartScrape,
 } from '@/hooks/use-platforms'
 import { useProject } from '@/hooks/use-projects'
@@ -65,6 +66,7 @@ export default function ProjectSourcesPage() {
   // polling through that gap, when neither stage is marked running.
   const pipeline = usePipeline(projectId, (state) => phaseOf(state).phase === 'embedding')
   const startScrape = useStartScrape()
+  const startAnalysis = useStartAnalysis()
   const client = useQueryClient()
   // The intake form starts the scrape and navigates here in the same tick, so
   // the first pipeline read can land before the start has registered.
@@ -128,6 +130,12 @@ export default function ProjectSourcesPage() {
   }
 
   const isSocial = project.data.comparisonType === 'social_media'
+  // Gap analysis (stage 4): Instagram only, once both profiles are scraped.
+  const canAnalyse = isSocial && project.data.socialPlatform === 'instagram' && phase.phase === 'done'
+  const analysis = pipeline.data.stages[4] ?? null
+  const analysing = analysis?.status === 'running' || startAnalysis.isPending
+  const analysed = analysis?.status === 'complete'
+  const reviewGapsPath = `/app/projects/${projectId}/review-gaps`
   const subject = isSocial ? 'Instagram' : 'Website'
   const rescrape = () => {
     startScrape.mutate(projectId)
@@ -143,7 +151,7 @@ export default function ProjectSourcesPage() {
       <PageHeader
         eyebrow={`Scraped data · ${subject}`}
         title={project.data.brandName}
-        description={`Created ${formatDate(project.data.createdAt)}. Both links are read and stored; nothing is analysed yet.`}
+        description={`Created ${formatDate(project.data.createdAt)}. ${analysed ? 'Both links are read, stored and analysed; the gaps are ready to review.' : 'Both links are read and stored; nothing is analysed yet.'}`}
         actions={
           <div className="flex items-center gap-2">
             <ProjectStatusBadge status={project.data.status} />
@@ -151,6 +159,26 @@ export default function ProjectSourcesPage() {
               <Button variant="outline" size="sm" onClick={rescrape} loading={startScrape.isPending}>
                 <RotateCcw />
                 Scrape again
+              </Button>
+            ) : null}
+            {canAnalyse && analysed && !analysing ? (
+              <Button asChild size="sm">
+                <Link to={reviewGapsPath}>
+                  <Sparkles />
+                  Review gaps
+                </Link>
+              </Button>
+            ) : null}
+            {canAnalyse ? (
+              <Button
+                size="sm"
+                variant={analysed ? 'outline' : 'default'}
+                onClick={() => startAnalysis.mutate(projectId)}
+                loading={analysing}
+                disabled={analysing}
+              >
+                <Sparkles />
+                {analysing ? 'Finding gaps…' : analysed ? 'Analyse again' : 'Find gaps'}
               </Button>
             ) : null}
           </div>
@@ -192,6 +220,14 @@ export default function ProjectSourcesPage() {
           title="Scraping did not finish"
           message={phase.error ?? 'The scraper stopped without saying why.'}
           onRetry={rescrape}
+        />
+      ) : null}
+
+      {canAnalyse && analysis?.status === 'error' ? (
+        <ErrorState
+          title="The gap analysis did not finish"
+          message={analysis?.error ?? 'The analysis stopped without saying why.'}
+          onRetry={() => startAnalysis.mutate(projectId)}
         />
       ) : null}
 

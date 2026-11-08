@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
     openai_embedding_model: str = "text-embedding-3-small"
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
 
     # --- vector store ---
     chroma_persist_dir: str = "./.chroma"

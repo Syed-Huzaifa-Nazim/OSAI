@@ -78,6 +78,12 @@ class SourcePreprocessAgent(BaseAgent):
             if source_id:
                 per_source[source_id] = per_source.get(source_id, 0) + (len(ids) - before)
 
+        # Instagram posts are stored in Supabase (pgvector, table
+        # instagram_post_chunks), not in Chroma: the Explain step searches them
+        # there. The pipeline writes the rows returned in the artifacts.
+        if all(document.get("kind") == "instagram" for document in documents):
+            return await self._instagram_to_pgvector(started, ids, texts, metadatas, per_source)
+
         # Embedding is CPU-bound; keep the event loop free for other requests.
         embeddings = await asyncio.to_thread(embed_texts, texts)
 
@@ -108,6 +114,55 @@ class SourcePreprocessAgent(BaseAgent):
             payload={"chunk_count": len(ids), "stored": stored},
             artifacts={"source_chunk_counts": per_source},
             items_processed=len(ids),
+            duration_ms=self._elapsed_ms(started),
+            tokens_used=None,
+            cost_usd=None,
+            warnings=warnings,
+        )
+
+
+    async def _instagram_to_pgvector(
+        self,
+        started: float,
+        ids: list[str],
+        texts: list[str],
+        metadatas: list[dict[str, Any]],
+        per_source: dict[str, int],
+    ) -> AgentResult:
+        from app.analysis.instagram import embeddings as pg_embeddings
+
+        warnings: list[str] = []
+        try:
+            vectors = await asyncio.to_thread(pg_embeddings.embed, texts)
+        except Exception as exc:  # noqa: BLE001 - scraping must not fail on this
+            logger.warning("Could not embed Instagram chunks: %s", exc)
+            vectors = []
+            warnings.append(
+                f"Posts were stored, but could not be embedded for search ({exc}). "
+                "The Explain step will try again."
+            )
+        rows = [
+            {
+                "id": chunk_id,
+                "project_id": meta["project_id"],
+                "post_id": meta["document_id"],
+                "source_id": meta.get("source_id") or None,
+                "role": meta.get("role") or None,
+                "competitor_id": meta.get("competitor_id") or None,
+                "field_type": meta.get("field_type") or "",
+                "chunk_index": meta.get("chunk_index", 0),
+                "chunk_text": text,
+                "post_url": meta.get("source_url") or "",
+                "embedding": vector,
+            }
+            for chunk_id, text, meta, vector in zip(ids, texts, metadatas, vectors)
+        ]
+        if not rows:
+            per_source = {source_id: 0 for source_id in per_source}
+        return AgentResult(
+            payload={"chunk_count": len(ids), "stored": len(rows)},
+            artifacts={"instagram_chunks": rows, "source_chunk_counts": per_source},
+            items_processed=len(rows),
             duration_ms=self._elapsed_ms(started),
             tokens_used=None,
             cost_usd=None,
