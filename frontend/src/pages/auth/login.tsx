@@ -81,6 +81,17 @@ export default function LoginPage() {
           </p>
         ) : null}
 
+        <Button type="button" variant="outline" className="w-full justify-center gap-2">
+          <span className="font-display text-base font-semibold text-primary">G</span>
+          Continue with Google
+        </Button>
+
+        <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          <span className="h-px flex-1 bg-border/40" />
+          or continue with email
+          <span className="h-px flex-1 bg-border/40" />
+        </div>
+
         <FormField label="Email" htmlFor="email" error={errors.email?.message} required>
           <Input
             id="email"
