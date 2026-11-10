@@ -17,6 +17,7 @@ import { Section } from '@/components/marketing/section'
 import { PipelineTeaser } from '@/components/marketing/pipeline-teaser'
 import { ComparisonTable } from '@/components/marketing/comparison-table'
 import { AgentCard } from '@/components/marketing/agent-card'
+import { HeroOrb } from '@/components/marketing/hero-orb'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { spring, staggerContainer, staggerItem, revealOnScroll, viewportOnce } from '@/lib/motion'
 
@@ -45,12 +46,12 @@ export default function LandingPage() {
     <>
       {/* ------------------------------------------------------------ hero */}
       <section className="relative overflow-hidden pb-16 pt-16 sm:pb-24 sm:pt-24">
-        <div className="container">
+        <div className="container grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] lg:gap-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={spring}
-            className="max-w-3xl"
+            className="relative z-10 max-w-3xl"
           >
             <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
               Competitor analysis that{' '}
@@ -78,6 +79,15 @@ export default function LandingPage() {
             <p className="mt-5 text-xs text-muted-foreground">
               Two mandatory human checkpoints per run. Every claim carries its source.
             </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ ...spring, delay: 0.2 }}
+            className="relative mx-auto w-full max-w-[520px] lg:mx-0"
+          >
+            <HeroOrb />
           </motion.div>
         </div>
 
