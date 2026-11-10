@@ -33,25 +33,25 @@ export interface ChartTheme {
 }
 
 const DARK: ChartTheme = {
-  categorical: ['#c17d2a', '#4b8ad2', '#36a05c', '#b17acd'],
-  sequential: ['#604524', '#8e6129', '#be7d2d', '#db9643', '#e8af68'],
-  status: { good: '#36a05c', warning: '#e8af68', critical: '#cf5341' },
-  surface: '#121212',
-  grid: 'rgba(168, 159, 148, 0.14)',
-  axis: 'rgba(168, 159, 148, 0.28)',
-  text: '#f4e9d2',
-  textMuted: '#a89f94',
+  categorical: ['#FBB02D', '#038666', '#70C9A7', '#EBF2FA'],
+  sequential: ['#123d2c', '#1a6247', '#038666', '#47b997', '#a1e2ca'],
+  status: { good: '#70C9A7', warning: '#FBB02D', critical: '#f07167' },
+  surface: '#10271d',
+  grid: 'rgba(235, 242, 250, 0.14)',
+  axis: 'rgba(235, 242, 250, 0.28)',
+  text: '#EBF2FA',
+  textMuted: '#a1c0b2',
 }
 
 const LIGHT: ChartTheme = {
-  categorical: ['#af6d1d', '#2967ae', '#257e46', '#914ab5'],
-  sequential: ['#ebd8c2', '#dfbc90', '#d69f5c', '#cb822a', '#9e621a'],
-  status: { good: '#257e46', warning: '#9e621a', critical: '#b23c2b'},
-  surface: '#fff9eb',
-  grid: 'rgba(120, 108, 94, 0.16)',
-  axis: 'rgba(120, 108, 94, 0.34)',
-  text: '#171717',
-  textMuted: '#5f584f',
+  categorical: ['#FBB02D', '#038666', '#184322', '#5c8f7a'],
+  sequential: ['#d8f0e7', '#a2d6c3', '#55b998', '#038666', '#184322'],
+  status: { good: '#184322', warning: '#c17e00', critical: '#b23c2b' },
+  surface: '#ffffff',
+  grid: 'rgba(8, 28, 21, 0.12)',
+  axis: 'rgba(8, 28, 21, 0.28)',
+  text: '#081C15',
+  textMuted: '#4e6d60',
 }
 
 export function useChartTheme(): ChartTheme {
