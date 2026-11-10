@@ -4,7 +4,10 @@ import { MARKETING_NAV } from './nav-config'
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-border/15 bg-card/30">
+    <footer className="relative overflow-hidden border-t border-primary/20 bg-card/60">
+      <div className="pointer-events-none absolute inset-x-0 bottom-[-3.5rem] text-center font-display text-[clamp(4rem,14vw,12rem)] font-bold leading-none tracking-[-0.08em] text-primary/[0.07] blur-[1px]">
+        OptiStratixAI
+      </div>
       <div className="container grid gap-10 py-14 md:grid-cols-[1.6fr_1fr_1fr]">
         <div className="space-y-4">
           <Logo />
@@ -45,7 +48,7 @@ export function MarketingFooter() {
         </div>
       </div>
 
-      <div className="border-t border-border/10">
+      <div className="relative z-10 border-t border-border/10">
         <div className="container flex flex-wrap items-center justify-between gap-3 py-5 text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} OptiStratixAI. Released under the MIT License.</p>
           <p>Dawood University of Engineering &amp; Technology · Department of AI</p>
