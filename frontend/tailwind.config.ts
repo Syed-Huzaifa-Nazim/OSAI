@@ -5,9 +5,9 @@ import animate from 'tailwindcss-animate'
  * Every colour resolves to a CSS variable declared in src/styles/theme.css.
  * Components must never hardcode a hex value, add a token here instead.
  *
- * Brand source of truth (OptiStratixAI palette):
- *   butter-cream #F6DFA6 | soft-vanilla #FFF4D8 | ink-black  #171717
- *   warm-gray    #A89F94 | burnt-honey  #C9822B
+ * Brand source of truth (Emerald Prestige palette):
+ *   forest #081C15 | emerald #184322 | jade #038666
+ *   marigold #FBB02D | ice #EBF2FA
  */
 const config: Config = {
   darkMode: ['class', '[data-theme="dark"]'],
