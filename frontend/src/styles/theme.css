@@ -4,22 +4,29 @@
  * The five brand hexes, converted to HSL channel triplets so Tailwind can apply
  * opacity modifiers (`bg-primary/20`). Do not add raw hex values to components.
  *
- *   butter-cream  #F6DFA6  ->  43  82%  81%
- *   soft-vanilla  #FFF4D8  ->  43 100%  92%
- *   ink-black     #171717  ->   0   0%   9%
- *   warm-gray     #A89F94  ->  33  10%  62%
- *   burnt-honey   #C9822B  ->  33  65%  48%
+ *   forest        #081C15  ->  152  56%   7%
+ *   emerald       #184322  ->  131  47%  18%
+ *   jade          #038666  ->  166  96%  27%
+ *   marigold      #FBB02D  ->   39  96%  58%
+ *   ice           #EBF2FA  ->  213  56%  95%
  *
- * Dark is the default editorial theme; light inverts the same five tokens.
+ * Emerald light is the default editorial theme; dark keeps the same identity
+ * for users who prefer a lower-light workspace.
  */
 
 :root {
   /* --- raw brand palette (identical in both themes) --- */
-  --butter-cream: 43 82% 81%;
-  --soft-vanilla: 43 100% 92%;
-  --ink-black: 0 0% 9%;
-  --warm-gray: 33 10% 62%;
-  --burnt-honey: 33 65% 48%;
+  --forest: 152 56% 7%;
+  --emerald: 131 47% 18%;
+  --jade: 166 96% 27%;
+  --marigold: 39 96% 58%;
+  --ice: 213 56% 95%;
+  /* Legacy aliases keep existing components on-brand without a rewrite. */
+  --butter-cream: 39 96% 58%;
+  --soft-vanilla: 213 56% 95%;
+  --ink-black: 152 56% 7%;
+  --warm-gray: 160 10% 48%;
+  --burnt-honey: 166 96% 27%;
 
   /* --- typography (swap these, not the Tailwind config) --- */
   --font-display: 'Space Grotesk';
@@ -36,105 +43,98 @@
    * than fighting it. The two human checkpoints (5 and 7) deliberately take
    * burnt-honey and butter-cream: the brand accents mark the human moments.
    */
-  --stage-1: 188 42% 52%;
-  --stage-2: 232 38% 60%;
-  --stage-3: 168 40% 45%;
-  --stage-4: 276 34% 60%;
-  --stage-5: 33 65% 48%;
-  --stage-6: 258 40% 62%;
-  --stage-7: 43 82% 68%;
-  --stage-8: 208 45% 55%;
-  --stage-9: 142 38% 46%;
+  --stage-1: 166 96% 27%;
+  --stage-2: 151 52% 35%;
+  --stage-3: 131 47% 28%;
+  --stage-4: 39 96% 58%;
+  --stage-5: 39 96% 58%;
+  --stage-6: 166 65% 38%;
+  --stage-7: 39 96% 48%;
+  --stage-8: 152 56% 15%;
+  --stage-9: 131 47% 38%;
 }
 
 /* ===========================================================================
  * DARK (default): ink-black canvas, vanilla type, honey accent
  * ======================================================================== */
 :root,
-[data-theme='dark'] {
-  --background: 0 0% 7%;
-  --foreground: 43 44% 94%;
+[data-theme='light'] {
+  --background: 213 56% 95%;
+  --foreground: 152 56% 7%;
 
-  --card: 0 0% 11%;
-  --card-foreground: 43 44% 94%;
+  --card: 0 0% 100%;
+  --card-foreground: 152 56% 7%;
 
-  --popover: 0 0% 10%;
-  --popover-foreground: 43 44% 94%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 152 56% 7%;
 
-  --primary: 33 65% 48%;
-  --primary-foreground: 0 0% 9%;
+  --primary: 166 96% 27%;
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 43 82% 81%;
-  --secondary-foreground: 0 0% 9%;
+  --secondary: 131 47% 18%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 0 0% 15%;
-  --muted-foreground: 33 10% 62%;
+  --muted: 213 36% 90%;
+  --muted-foreground: 160 10% 38%;
 
-  --accent: 0 0% 16%;
-  --accent-foreground: 43 100% 92%;
+  --accent: 39 96% 92%;
+  --accent-foreground: 152 56% 7%;
 
-  --destructive: 4 62% 52%;
-  --destructive-foreground: 43 100% 96%;
+  --destructive: 4 62% 44%;
+  --destructive-foreground: 0 0% 100%;
 
-  --success: 142 38% 46%;
-  --success-foreground: 0 0% 9%;
+  --success: 131 47% 28%;
+  --success-foreground: 0 0% 100%;
 
-  --warning: 43 82% 68%;
-  --warning-foreground: 0 0% 9%;
+  --warning: 39 96% 48%;
+  --warning-foreground: 152 56% 7%;
 
-  --border: 33 10% 62%;
-  --input: 0 0% 18%;
-  --ring: 33 65% 48%;
+  --border: 160 18% 72%;
+  --input: 213 30% 87%;
+  --ring: 166 96% 27%;
 
-  --shadow-color: 0 0% 0%;
+  --shadow-color: 152 56% 7%;
 
   /* Glass recipe. See docs/architecture.md for where glass is permitted. */
-  --glass-fill: 0 0% 11%;
-  --glass-fill-opacity: 0.58;
-  --glass-border-opacity: 0.12;
+  --glass-fill: 0 0% 100%;
+  --glass-fill-opacity: 0.72;
+  --glass-border-opacity: 0.32;
 }
 
 /* ===========================================================================
  * LIGHT: soft-vanilla canvas, ink type, same honey accent
  * ======================================================================== */
 [data-theme='light'] {
-  --background: 43 100% 96%;
-  --foreground: 0 0% 9%;
+  /* Light is defined above as the bright Emerald Prestige mode. */
+}
 
-  --card: 43 100% 92%;
-  --card-foreground: 0 0% 9%;
-
-  --popover: 43 100% 97%;
-  --popover-foreground: 0 0% 9%;
-
-  --primary: 33 65% 42%;
-  --primary-foreground: 43 100% 96%;
-
-  --secondary: 43 82% 81%;
-  --secondary-foreground: 0 0% 9%;
-
-  --muted: 43 44% 88%;
-  --muted-foreground: 33 12% 40%;
-
-  --accent: 43 82% 88%;
-  --accent-foreground: 0 0% 9%;
-
-  --destructive: 4 62% 46%;
-  --destructive-foreground: 43 100% 96%;
-
-  --success: 142 38% 34%;
-  --success-foreground: 43 100% 96%;
-
-  --warning: 33 65% 42%;
-  --warning-foreground: 43 100% 96%;
-
-  --border: 33 14% 52%;
-  --input: 43 40% 84%;
-  --ring: 33 65% 42%;
-
-  --shadow-color: 33 20% 40%;
-
-  --glass-fill: 43 100% 96%;
-  --glass-fill-opacity: 0.66;
-  --glass-border-opacity: 0.24;
+/* Dark mode: forest canvas with jade and marigold signal colours. */
+[data-theme='dark'] {
+  --background: 152 56% 7%;
+  --foreground: 213 56% 95%;
+  --card: 152 40% 11%;
+  --card-foreground: 213 56% 95%;
+  --popover: 152 40% 10%;
+  --popover-foreground: 213 56% 95%;
+  --primary: 166 96% 37%;
+  --primary-foreground: 152 56% 7%;
+  --secondary: 131 47% 25%;
+  --secondary-foreground: 213 56% 95%;
+  --muted: 152 30% 16%;
+  --muted-foreground: 160 16% 68%;
+  --accent: 131 30% 20%;
+  --accent-foreground: 213 56% 95%;
+  --destructive: 4 62% 52%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 131 47% 42%;
+  --success-foreground: 152 56% 7%;
+  --warning: 39 96% 58%;
+  --warning-foreground: 152 56% 7%;
+  --border: 152 18% 35%;
+  --input: 152 28% 19%;
+  --ring: 166 96% 37%;
+  --shadow-color: 0 0% 0%;
+  --glass-fill: 152 40% 11%;
+  --glass-fill-opacity: 0.72;
+  --glass-border-opacity: 0.22;
 }
