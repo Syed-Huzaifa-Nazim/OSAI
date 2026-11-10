@@ -24,8 +24,8 @@ interface AuthShellProps {
  */
 export function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
   return (
-    <div className="canvas-grain grid min-h-screen bg-background lg:grid-cols-[1fr_0.85fr]">
-      <div className="relative z-10 flex flex-col px-5 py-6 sm:px-10">
+    <div className="canvas-grain grid min-h-screen bg-background lg:h-screen lg:overflow-hidden lg:grid-cols-[1fr_0.85fr]">
+      <div className="relative z-10 flex min-h-screen flex-col px-5 py-5 sm:px-10 lg:min-h-0 lg:overflow-hidden">
         <div className="flex items-center justify-between">
           <Link to="/">
             <Logo />
@@ -33,7 +33,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
           <ThemeToggle />
         </div>
 
-        <div className="flex flex-1 items-center justify-center py-10">
+        <div className="flex flex-1 items-center justify-center py-6 sm:py-8 lg:min-h-0 lg:py-4">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
