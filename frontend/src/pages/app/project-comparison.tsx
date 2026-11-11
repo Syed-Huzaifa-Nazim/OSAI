@@ -20,6 +20,7 @@ import { ScrapeLoader } from '@/components/shared/scrape-loader'
 import { ParameterGrid } from '@/components/comparison/parameter-grid'
 import { ParameterResults } from '@/components/comparison/parameter-results'
 import { ProductSummaryCard } from '@/components/comparison/product-summary-card'
+import { ComparisonBalanceChart } from '@/components/charts/comparison-balance-chart'
 import { usePipeline } from '@/hooks/use-pipeline'
 import {
   useEcommerceComparison,
@@ -266,6 +267,8 @@ export default function ProjectComparisonPage() {
                 onSelect={setSelected}
               />
             </motion.section>
+
+            <ComparisonBalanceChart groups={comparison.data} />
 
             <div ref={resultsRef} className="scroll-mt-20">
               {selected === null ? (
