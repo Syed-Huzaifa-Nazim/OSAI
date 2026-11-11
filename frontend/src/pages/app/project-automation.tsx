@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
+import { AssetWorkloadChart } from '@/components/charts/asset-workload-chart'
 import {
   useDraftSuggestion,
   useGenerateSuggestions,
@@ -167,6 +168,8 @@ export default function AutomationPage() {
               {totalHours}h estimated across {active.length} assets
             </p>
           </div>
+
+          <AssetWorkloadChart suggestions={suggestions ?? []} />
 
           <motion.div
             variants={staggerContainer}
