@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { PageHeader } from '@/components/shared/page-header'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
+import { DocumentStructureChart } from '@/components/charts/document-structure-chart'
 import { useDocument } from '@/hooks/use-automation'
 import { usePipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
@@ -147,6 +148,8 @@ export default function DocumentPage() {
           </div>
         }
       />
+
+      <DocumentStructureChart sections={document.sections} />
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <nav aria-label="Document sections" className="lg:sticky lg:top-24 lg:self-start">
