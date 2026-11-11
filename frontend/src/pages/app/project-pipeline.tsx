@@ -20,6 +20,7 @@ import { StageDetail } from '@/components/pipeline/stage-detail'
 import { HitlCallout } from '@/components/pipeline/hitl-callout'
 import { SourceMixChart } from '@/components/charts/source-mix-chart'
 import { CostByStageChart } from '@/components/charts/cost-by-stage-chart'
+import { PipelineProgressChart } from '@/components/charts/pipeline-progress-chart'
 import { usePipeline, useResetPipeline, useSources, useStartPipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
 import { useRunCost } from '@/hooks/use-automation'
@@ -138,7 +139,8 @@ export default function PipelinePage() {
         state={state.stages[activeStage]}
       />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 xl:grid-cols-3">
+        <PipelineProgressChart pipeline={state} />
         {sources.data && sources.data.length > 0 ? (
           <SourceMixChart sources={sources.data} />
         ) : (
