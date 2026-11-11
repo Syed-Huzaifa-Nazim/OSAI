@@ -14,6 +14,7 @@ import { SafeImage } from '@/components/shared/safe-image'
 import { PostDetailDialog, isVideo } from '@/components/sources/post-detail-dialog'
 import { ParameterGrid } from '@/components/comparison/parameter-grid'
 import { ParameterResults } from '@/components/comparison/parameter-results'
+import { CollectionCoverageChart } from '@/components/charts/collection-coverage-chart'
 import { usePipeline } from '@/hooks/use-pipeline'
 import {
   START_SCRAPE_KEY,
@@ -284,6 +285,7 @@ export default function ProjectSourcesPage() {
                 ),
               )}
             </div>
+            <CollectionCoverageChart documents={documents.data} />
           </motion.section>
         )
       ) : null}
