@@ -10,6 +10,7 @@ import { InitiativeCard } from '@/components/shared/initiative-card'
 import { CriticPanel } from '@/components/shared/critic-panel'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
 import { CriticImpactChart } from '@/components/charts/critic-impact-chart'
+import { InitiativeTimelineChart } from '@/components/charts/initiative-timeline-chart'
 import { useStrategy } from '@/hooks/use-insights'
 import { usePipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
@@ -110,6 +111,8 @@ export default function StrategyPage() {
         <p className="eyebrow">Executive summary</p>
         <p className="mt-3 text-base leading-relaxed">{strategy.executiveSummary}</p>
       </Card>
+
+      <InitiativeTimelineChart initiatives={strategy.initiatives} />
 
       <Tabs defaultValue="initiatives">
         <TabsList>
