@@ -16,6 +16,7 @@ import { GapCard } from '@/components/shared/gap-card'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
 import { GapCategoryChart } from '@/components/charts/gap-category-chart'
 import { GapPriorityChart } from '@/components/charts/gap-priority-chart'
+import { GapConfidenceChart } from '@/components/charts/gap-confidence-chart'
 import { useGaps } from '@/hooks/use-insights'
 import { usePipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
@@ -117,9 +118,10 @@ export default function InsightsPage() {
         />
       ) : (
         <>
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5 xl:grid-cols-3">
             <GapCategoryChart gaps={gaps ?? []} />
             <GapPriorityChart gaps={gaps ?? []} />
+            <GapConfidenceChart gaps={gaps ?? []} />
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
