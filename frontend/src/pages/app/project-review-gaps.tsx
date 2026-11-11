@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { GapCard } from '@/components/shared/gap-card'
 import { AnalysisSummary } from '@/components/shared/analysis-summary'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
+import { ReviewDecisionChart } from '@/components/charts/review-decision-chart'
 import { useGaps, useSubmitGapReview, useUpdateGap } from '@/hooks/use-insights'
 import { usePipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
@@ -170,6 +171,8 @@ export default function ReviewGapsPage() {
               </div>
             </Card>
           </motion.div>
+
+          <ReviewDecisionChart gaps={gaps ?? []} />
 
           {pending.length > 0 && !alreadyReviewed ? (
             <p className="text-sm text-muted-foreground">
