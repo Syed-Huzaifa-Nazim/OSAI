@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/shared/page-header'
 import { InitiativeCard } from '@/components/shared/initiative-card'
 import { CriticPanel } from '@/components/shared/critic-panel'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
+import { InitiativeTimelineChart } from '@/components/charts/initiative-timeline-chart'
 import { useStrategy, useSubmitStrategyReview, useReviews } from '@/hooks/use-insights'
 import { usePipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
@@ -192,6 +193,8 @@ export default function ReviewStrategyPage() {
         </div>
         <p className="mt-3 text-base leading-relaxed">{strategy.executiveSummary}</p>
       </Card>
+
+      <InitiativeTimelineChart initiatives={strategy.initiatives} />
 
       <section className="space-y-4">
         <h2 className="font-display text-lg font-semibold">Initiatives</h2>
