@@ -19,12 +19,17 @@ import { GapCard } from '@/components/shared/gap-card'
 import { AnalysisSummary } from '@/components/shared/analysis-summary'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
 import { ReviewDecisionChart } from '@/components/charts/review-decision-chart'
+import { GapCategoryChart } from '@/components/charts/gap-category-chart'
+import { GapPriorityChart } from '@/components/charts/gap-priority-chart'
+import { GapConfidenceChart } from '@/components/charts/gap-confidence-chart'
 import { useGaps, useSubmitGapReview, useUpdateGap } from '@/hooks/use-insights'
 import { usePipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
 import { useProjectId } from '@/hooks/use-project-id'
+import { useEcommerceProducts, useSourceDocuments } from '@/hooks/use-platforms'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { errorMessage } from '@/lib/api-client'
+import { mediaSrc } from '@/lib/media'
 import { staggerContainer, spring } from '@/lib/motion'
 import type { GapPriority } from '@/types/domain'
 
@@ -42,6 +47,9 @@ export default function ReviewGapsPage() {
   const project = useProject(projectId)
   const pipeline = usePipeline(projectId)
   const { data: gaps, isLoading, isError, error, refetch } = useGaps(projectId)
+  const isEcommerce = project.data?.comparisonType === 'ecommerce_product'
+  const sourceDocuments = useSourceDocuments(projectId, Boolean(project.data) && !isEcommerce)
+  const products = useEcommerceProducts(projectId, isEcommerce)
   const updateGap = useUpdateGap(projectId)
   const submitReview = useSubmitGapReview(projectId)
   const [notes, setNotes] = useState('')
@@ -68,6 +76,22 @@ export default function ReviewGapsPage() {
     isRealProject && project.data?.socialPlatform === 'instagram' ? projectId : undefined
   const analysisNotes = pipeline.data?.stages[4]?.metrics?.notes ?? []
   const analysisParts = pipeline.data?.stages[4]?.metrics?.analysis ?? []
+  const sourceThumbnails = useMemo(() => {
+    const thumbnails: Record<string, string> = {}
+    for (const page of sourceDocuments.data?.pages ?? []) {
+      const image = page.images?.[0]?.imageUrl
+      if (page.sourceId && image) thumbnails[page.sourceId] = image
+    }
+    for (const post of sourceDocuments.data?.posts ?? []) {
+      const image = post.media?.[0]?.mediaUrl ?? post.mediaUrl
+      if (post.sourceId && image) thumbnails[post.sourceId] = mediaSrc(image)
+    }
+    for (const product of products.data ?? []) {
+      const image = product.images[0]?.url
+      if (product.sourceId && image) thumbnails[product.sourceId] = image
+    }
+    return thumbnails
+  }, [sourceDocuments.data, products.data])
 
   if (isError) {
     return (
@@ -84,11 +108,11 @@ export default function ReviewGapsPage() {
     <div className="space-y-7">
       <PageHeader
         eyebrow="Stage 5 · Human checkpoint"
-        title="Refine the gaps"
+        title="Review your findings"
         description={
           isRealProject
-            ? 'Keep what is real for this business and drop what is not. Use Explain to see the posts behind a gap.'
-            : 'Keep what is real for this business and drop what is not. Only the gaps you keep reach the Strategist.'
+            ? 'Review what the analysis found. Keep useful findings, set aside the rest, and open each source to see the evidence.'
+            : 'Review each finding and its source. Keep the points that matter and set aside anything that does not fit.'
         }
       />
 
@@ -172,7 +196,12 @@ export default function ReviewGapsPage() {
             </Card>
           </motion.div>
 
-          <ReviewDecisionChart gaps={gaps ?? []} />
+          <section aria-label="Gap analysis charts" className="grid gap-5 xl:grid-cols-2">
+            <GapCategoryChart gaps={gaps ?? []} />
+            <GapPriorityChart gaps={gaps ?? []} />
+            <GapConfidenceChart gaps={gaps ?? []} />
+            <ReviewDecisionChart gaps={gaps ?? []} />
+          </section>
 
           {pending.length > 0 && !alreadyReviewed ? (
             <p className="text-sm text-muted-foreground">
@@ -193,6 +222,8 @@ export default function ReviewGapsPage() {
                 gap={gap}
                 reviewable={!alreadyReviewed}
                 explainProjectId={explainProjectId}
+                showEvidenceByDefault
+                sourceThumbnails={sourceThumbnails}
                 onDecision={(decision) => {
                   updateGap.mutate({ gapId: gap.id, patch: { decision } })
                 }}

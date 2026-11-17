@@ -39,6 +39,10 @@ interface GapCardProps {
   onNoteChange?: (note: string) => void
   /** When set, shows the Explain button (grounded LLM + pgvector explanation). */
   explainProjectId?: string
+  /** Opens the attached source evidence immediately on pages where review context matters. */
+  showEvidenceByDefault?: boolean
+  /** Source images keyed by the evidence record's source id. */
+  sourceThumbnails?: Record<string, string>
 }
 
 export function GapCard({
@@ -48,8 +52,10 @@ export function GapCard({
   onPriorityChange,
   onNoteChange,
   explainProjectId,
+  showEvidenceByDefault = false,
+  sourceThumbnails,
 }: GapCardProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(showEvidenceByDefault)
   const explain = useMutation<GapExplanation, Error>({
     mutationFn: () => gapsApi.explain(explainProjectId as string, gap.id),
   })
@@ -107,7 +113,7 @@ export function GapCard({
               animate={{ opacity: 1, height: 'auto' }}
               className="mt-3 overflow-hidden"
             >
-              <EvidenceList evidence={gap.evidence} />
+              <EvidenceList evidence={gap.evidence} sourceThumbnails={sourceThumbnails} />
             </motion.div>
           ) : null}
 

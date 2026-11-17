@@ -82,6 +82,25 @@
     @apply bg-gradient-to-br from-brand-butter-cream via-primary to-primary/70 bg-clip-text text-transparent;
   }
 
+  /* A bright editorial opening, with the emerald palette held to the edges. */
+  .marketing-hero {
+    background:
+      radial-gradient(ellipse at 78% 42%, hsl(var(--primary) / 0.09), transparent 33rem),
+      linear-gradient(180deg, hsl(var(--ice) / 0.68), hsl(var(--background)) 88%);
+  }
+
+  .marketing-hero__glow {
+    position: absolute;
+    top: -20rem;
+    right: -18rem;
+    width: 52rem;
+    height: 52rem;
+    border: 1px solid hsl(var(--primary) / 0.08);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4rem hsl(var(--primary) / 0.025), 0 0 0 9rem hsl(var(--primary) / 0.02);
+    pointer-events: none;
+  }
+
   /* Faint grain/vignette that gives the dark canvas its editorial depth. */
   .canvas-grain::before {
     content: '';

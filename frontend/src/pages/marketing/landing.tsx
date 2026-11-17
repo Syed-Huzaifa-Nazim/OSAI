@@ -1,12 +1,16 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion'
 import {
   ArrowRight,
+  ArrowDown,
+  Check,
   Database,
   FileSearch,
   Lightbulb,
   PlayCircle,
   Quote,
+  Sparkles,
   ShieldCheck,
   Swords,
   UserRoundCheck,
@@ -17,7 +21,6 @@ import { Section } from '@/components/marketing/section'
 import { PipelineTeaser } from '@/components/marketing/pipeline-teaser'
 import { ComparisonTable } from '@/components/marketing/comparison-table'
 import { AgentCard } from '@/components/marketing/agent-card'
-import { HeroOrb } from '@/components/marketing/hero-orb'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { spring, staggerContainer, staggerItem, revealOnScroll, viewportOnce } from '@/lib/motion'
 
@@ -41,63 +44,118 @@ const PROBLEMS = [
 
 export default function LandingPage() {
   useDocumentTitle('OptiStratixAI')
+  const heroRef = useRef<HTMLElement>(null)
+  const reducedMotion = useReducedMotion()
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  })
+  const artY = useSpring(useTransform(scrollYProgress, [0, 1], [0, 130]), {
+    stiffness: 90,
+    damping: 24,
+  })
+  const artRotate = useSpring(useTransform(scrollYProgress, [0, 1], [0, 9]), {
+    stiffness: 80,
+    damping: 25,
+  })
+  const artScale = useTransform(scrollYProgress, [0, 0.85], [1, 0.84])
 
   return (
     <>
       {/* ------------------------------------------------------------ hero */}
-      <section className="relative overflow-hidden pb-16 pt-16 sm:pb-24 sm:pt-24">
-        <div className="container grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] lg:gap-8">
+      <section ref={heroRef} className="marketing-hero relative isolate overflow-hidden pb-14 pt-10 sm:pb-20 sm:pt-16">
+        <div aria-hidden="true" className="marketing-hero__glow" />
+        <div className="container relative grid min-h-[560px] items-center gap-8 lg:grid-cols-[minmax(0,1.03fr)_minmax(360px,0.97fr)] lg:gap-3">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={spring}
-            className="relative z-10 max-w-3xl"
+            className="relative z-10 max-w-3xl py-8 lg:py-12"
           >
-            <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-              Competitor analysis that{' '}
-              <span className="text-gradient-honey">shows its working</span>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white/70 px-3.5 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur">
+              <Sparkles className="size-3.5 text-primary" />
+              Competitor research, turned into a clear next step
+            </div>
+            <h1 className="max-w-[720px] font-display text-[2.7rem] font-semibold leading-[1.02] tracking-[-0.055em] sm:text-6xl lg:text-[4.65rem]">
+              Know what your competitors are doing.
+              <span className="mt-2 block text-primary">Know what to do next.</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              OptiStratixAI reads your competitors&rsquo; landing pages and social media, finds the
-              strategic gaps you are losing ground to, and turns them into a marketing strategy you
-              can actually execute, with a human validating every major step.
+            <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
+              See the evidence behind every insight, choose the gaps that matter, and leave with a
+              practical strategy your team can act on. You stay in control at every important step.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="rounded-full px-6 shadow-lg shadow-primary/20">
                 <Link to="/signup">
                   Start an analysis
                   <ArrowRight />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="outline" className="rounded-full border-foreground/15 bg-white/70 px-6">
                 <Link to="/how-it-works">
                   <PlayCircle />
                   See how it works
                 </Link>
               </Button>
             </div>
-            <p className="mt-5 text-xs text-muted-foreground">
-              Two mandatory human checkpoints per run. Every claim carries its source.
-            </p>
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-primary" /> Sources attached to findings</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="size-3.5 text-primary" /> You approve the strategy</span>
+            </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 18 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ ...spring, delay: 0.2 }}
-            className="relative mx-auto w-full max-w-[520px] lg:mx-0"
-          >
-            <HeroOrb />
-          </motion.div>
+          <div className="relative mx-auto flex min-h-[360px] w-full max-w-[560px] items-center justify-center sm:min-h-[470px] lg:mx-0">
+            <div aria-hidden="true" className="absolute inset-[9%] rounded-full bg-primary/10 blur-3xl" />
+            <motion.div
+              initial={{ opacity: 0, y: 46, scale: 0.88, rotate: -8 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{ ...spring, delay: 0.12 }}
+              style={reducedMotion ? undefined : { y: artY, rotate: artRotate, scale: artScale }}
+              className="relative z-10 w-full"
+            >
+              <img
+                src="/images/emerald-strategy-3d.png"
+                alt="Sculptural emerald ribbons and a warm amber crystal, representing evidence becoming a strategy"
+                className="relative z-10 mx-auto w-full max-w-[520px] drop-shadow-[0_28px_45px_rgba(8,28,21,0.16)]"
+                fetchPriority="high"
+              />
+              <div className="pointer-events-none absolute inset-x-[12%] bottom-[6%] h-[12%] rounded-[50%] bg-primary/20 blur-2xl" />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20, y: 12 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ ...spring, delay: 0.42 }}
+              className="absolute bottom-[8%] right-0 z-20 w-[min(235px,55%)] rounded-2xl border border-white/70 bg-white/85 p-4 shadow-xl shadow-emerald-950/10 backdrop-blur-xl sm:bottom-[10%] sm:right-[2%]"
+            >
+              <div className="flex items-center justify-between gap-2 text-xs font-semibold">
+                <span>From evidence to action</span><span className="size-2 rounded-full bg-primary" />
+              </div>
+              <div className="mt-3 flex items-end gap-1.5" aria-hidden="true">
+                {[34, 52, 44, 70, 58, 88, 76, 100].map((height, index) => (
+                  <span key={index} className="flex-1 rounded-t-sm bg-gradient-to-t from-primary/35 to-primary" style={{ height: `${height * 0.28}px` }} />
+                ))}
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground">A clearer view of your next move</p>
+            </motion.div>
+
+            <span className="absolute left-[3%] top-[20%] hidden rounded-full border border-primary/15 bg-white/70 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-primary shadow-sm sm:block">Evidence → insight</span>
+            <span className="absolute right-[4%] top-[12%] hidden rounded-full border border-amber-500/20 bg-amber-50/90 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-800 shadow-sm sm:block">Insight → strategy</span>
+          </div>
         </div>
 
         <motion.div
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.15 }}
-          className="container mt-16"
+          className="container relative mt-8 sm:mt-12"
         >
-          <p className="eyebrow mb-4">The pipeline, running</p>
+          <div className="mb-4 flex items-center gap-3">
+            <p className="eyebrow">A clear path from research to a decision</p>
+            <ArrowDown className="size-3.5 text-primary" />
+          </div>
           <PipelineTeaser />
         </motion.div>
       </section>
@@ -107,7 +165,7 @@ export default function LandingPage() {
         tinted
         eyebrow="The problem"
         title="Nobody is short of competitor data"
-        description="What is missing is the step between having it and knowing what to do about it."
+        description="OptiStratixAI makes that step easier to see: real competitor evidence, useful comparisons, and a plan shaped around your business."
       >
         <motion.div
           variants={staggerContainer}

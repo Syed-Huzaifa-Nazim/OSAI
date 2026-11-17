@@ -21,8 +21,10 @@ import { useGaps } from '@/hooks/use-insights'
 import { usePipeline } from '@/hooks/use-pipeline'
 import { useProject } from '@/hooks/use-projects'
 import { useProjectId } from '@/hooks/use-project-id'
+import { useEcommerceProducts, useSourceDocuments } from '@/hooks/use-platforms'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { errorMessage } from '@/lib/api-client'
+import { mediaSrc } from '@/lib/media'
 import { titleCase } from '@/lib/utils'
 import { staggerContainer } from '@/lib/motion'
 import type { GapCategory, GapPriority } from '@/types/domain'
@@ -42,6 +44,9 @@ export default function InsightsPage() {
   const project = useProject(projectId)
   const pipeline = usePipeline(projectId)
   const { data: gaps, isLoading, isError, error, refetch } = useGaps(projectId)
+  const isEcommerce = project.data?.comparisonType === 'ecommerce_product'
+  const sourceDocuments = useSourceDocuments(projectId, Boolean(project.data) && !isEcommerce)
+  const products = useEcommerceProducts(projectId, isEcommerce)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<GapCategory | 'all'>('all')
   const [sort, setSort] = useState<SortKey>('priority')
@@ -73,13 +78,29 @@ export default function InsightsPage() {
   }, [gaps, query, category, sort])
 
   const stageComplete = pipeline.data?.stages[4].status === 'complete'
+  const sourceThumbnails = useMemo(() => {
+    const thumbnails: Record<string, string> = {}
+    for (const page of sourceDocuments.data?.pages ?? []) {
+      const image = page.images?.[0]?.imageUrl
+      if (page.sourceId && image) thumbnails[page.sourceId] = image
+    }
+    for (const post of sourceDocuments.data?.posts ?? []) {
+      const image = post.media?.[0]?.mediaUrl ?? post.mediaUrl
+      if (post.sourceId && image) thumbnails[post.sourceId] = mediaSrc(image)
+    }
+    for (const product of products.data ?? []) {
+      const image = product.images[0]?.url
+      if (product.sourceId && image) thumbnails[product.sourceId] = image
+    }
+    return thumbnails
+  }, [sourceDocuments.data, products.data])
 
   return (
     <div className="space-y-7">
       <PageHeader
         eyebrow="Stage 4 · Insight Agent"
         title="Gaps and opportunities"
-        description="What the analysis found between your brand and the competitors you named. Every claim carries the passage it came from."
+        description="See what competitors are doing, why it matters, and the source behind every finding."
         actions={
           pipeline.data?.blockedOn === 5 ? (
             <Button asChild>
@@ -205,7 +226,12 @@ export default function InsightsPage() {
               className="space-y-4"
             >
               {visible.map((gap) => (
-                <GapCard key={gap.id} gap={gap} />
+                <GapCard
+                  key={gap.id}
+                  gap={gap}
+                  showEvidenceByDefault
+                  sourceThumbnails={sourceThumbnails}
+                />
               ))}
             </motion.div>
           )}
