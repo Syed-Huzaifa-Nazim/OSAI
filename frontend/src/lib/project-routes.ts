@@ -14,7 +14,7 @@ export function projectHomePath(
   project: Pick<Project, 'id' | 'comparisonType' | 'isDemo'>,
 ): string {
   const base = `/app/projects/${project.id}`
-  if (project.isDemo) return `${base}/pipeline`
+  if (project.isDemo) return `${base}/overview`
   return project.comparisonType === 'ecommerce_product' ? `${base}/comparison` : `${base}/sources`
 }
 
