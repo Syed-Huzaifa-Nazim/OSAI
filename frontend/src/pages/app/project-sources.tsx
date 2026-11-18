@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ArrowUpRight, Heart, MessageCircle, Play, RotateCcw, ScanSearch, Sparkles } from 'lucide-react'
+import { ArrowUpRight, Database, Heart, MessageCircle, Play, RotateCcw, ScanSearch, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { PageHeader } from '@/components/shared/page-header'
+import { AnalysisJourney } from '@/components/shared/analysis-journey'
+import { EvidenceVisuals } from '@/components/shared/visual-intelligence'
 import { ProjectStatusBadge } from '@/components/shared/project-status-badge'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
 import { ScrapeLoader } from '@/components/shared/scrape-loader'
@@ -46,16 +48,16 @@ import type { ScrapedPage, ScrapedPost } from '@/types/domain'
 
 /** Rotating progress copy, so a scrape that takes a minute does not look frozen. */
 const WEBSITE_STEPS = [
-  'Fetching both sites…',
-  'Following links within each site…',
-  'Cleaning page text, headings and links…',
+  'Opening both sites…',
+  'Reading the important pages…',
+  'Organising what we found…',
 ]
 const SOCIAL_STEPS = [
-  'Asking Apify for both profiles…',
-  'Reading captions, hashtags and engagement…',
-  'Collecting the public comments on each post…',
+  'Opening both profiles…',
+  'Reading posts and reactions…',
+  'Collecting public comments…',
 ]
-const EMBED_STEP = 'Embedding what was collected for retrieval…'
+const EMBED_STEP = 'Preparing your side-by-side comparison…'
 
 /** How many of a site's images the card shows before the rest are left out. */
 const SITE_IMAGE_COUNT = 6
@@ -102,7 +104,7 @@ export default function ProjectSourcesPage() {
     }
   }, [detail.data, selected])
 
-  useDocumentTitle(project.data ? `${project.data.brandName} · Scraped data` : 'Scraped data')
+  useDocumentTitle(project.data ? `${project.data.brandName} · Evidence` : 'Evidence')
 
   if (project.isError || pipeline.isError) {
     return (
@@ -146,27 +148,26 @@ export default function ProjectSourcesPage() {
   const posts = documents.data?.posts ?? []
   const collected = isSocial ? posts.length : pages.length
   const groups = comparison.data ?? []
-
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow={`Scraped data · ${subject}`}
-        title={project.data.brandName}
-        description={`Created ${formatDate(project.data.createdAt)}. ${analysed ? 'Both links are read, stored and analysed; the gaps are ready to review.' : 'Both links are read and stored; nothing is analysed yet.'}`}
+        eyebrow={`Evidence · ${subject}`}
+        title="Evidence"
+        description={`${project.data.brandName} · Created ${formatDate(project.data.createdAt)}. ${analysed ? 'Your evidence is ready to support findings.' : 'Review what we collected, then find the opportunities worth acting on.'}`}
         actions={
           <div className="flex items-center gap-2">
             <ProjectStatusBadge status={project.data.status} />
             {phase.phase === 'done' || phase.phase === 'failed' ? (
               <Button variant="outline" size="sm" onClick={rescrape} loading={startScrape.isPending}>
                 <RotateCcw />
-                Scrape again
+                Refresh evidence
               </Button>
             ) : null}
             {canAnalyse && analysed && !analysing ? (
               <Button asChild size="sm">
                 <Link to={reviewGapsPath}>
                   <Sparkles />
-                  Review gaps
+                  Review opportunities
                 </Link>
               </Button>
             ) : null}
@@ -179,7 +180,7 @@ export default function ProjectSourcesPage() {
                 disabled={analysing}
               >
                 <Sparkles />
-                {analysing ? 'Finding gaps…' : analysed ? 'Analyse again' : 'Find gaps'}
+                {analysing ? 'Finding opportunities…' : analysed ? 'Look again' : 'Find opportunities'}
               </Button>
             ) : null}
           </div>
@@ -189,15 +190,15 @@ export default function ProjectSourcesPage() {
       {phase.phase === 'idle' ? (
         <EmptyState
           icon={<ScanSearch className="size-5" />}
-          title="Not scraped yet"
+          title="Ready to read both sides"
           description={
             isSocial
-              ? 'Scraping reads the recent public posts on both profiles. It usually takes a minute or two.'
-              : 'Scraping reads both sites, following links within each. It usually takes a minute or two.'
+              ? 'We will read the recent public posts on both profiles. It usually takes a minute or two.'
+              : 'We will read both sites and the important pages inside them. It usually takes a minute or two.'
           }
           action={
             <Button onClick={rescrape} loading={startScrape.isPending}>
-              Start scraping
+              Start reading
             </Button>
           }
         />
@@ -208,25 +209,25 @@ export default function ProjectSourcesPage() {
           phase={phase.phase}
           steps={isSocial ? SOCIAL_STEPS : WEBSITE_STEPS}
           embedStep={EMBED_STEP}
-          description={
-            isSocial
-              ? 'Both profiles are read through Apify, one run for the posts and one for the comments on the busiest of them. You can leave this page and come back.'
-              : 'Both sites are read in parallel. A page that needs JavaScript is opened in a headless browser, which can take longer. You can leave this page and come back.'
-          }
+              description={
+                isSocial
+                  ? 'We are reading both profiles and their public posts. You can leave this page and come back when it is ready.'
+                  : 'We are reading both sites and their important pages. You can leave this page and come back when it is ready.'
+              }
         />
       ) : null}
 
       {phase.phase === 'failed' ? (
         <ErrorState
-          title="Scraping did not finish"
-          message={phase.error ?? 'The scraper stopped without saying why.'}
+          title="Reading stopped before it finished"
+          message={phase.error ?? 'We could not finish reading the pages. Please try again.'}
           onRetry={rescrape}
         />
       ) : null}
 
       {canAnalyse && analysis?.status === 'error' ? (
         <ErrorState
-          title="The gap analysis did not finish"
+          title="Finding opportunities did not finish"
           message={analysis?.error ?? 'The analysis stopped without saying why.'}
           onRetry={() => startAnalysis.mutate(projectId)}
         />
@@ -246,10 +247,10 @@ export default function ProjectSourcesPage() {
           <EmptyState
             icon={<ScanSearch className="size-5" />}
             title="Nothing was collected"
-            description="The scrape finished without storing anything. Try scraping again, or check that both links are public."
+            description="We could not find anything to compare. Try reading again, or check that both links are public."
             action={
               <Button onClick={rescrape} loading={startScrape.isPending}>
-                Scrape again
+                Try again
               </Button>
             }
           />
@@ -260,12 +261,34 @@ export default function ProjectSourcesPage() {
             transition={spring}
             className="space-y-4"
           >
+            <AnalysisJourney active={2} compact />
+            <EvidenceSummary
+              isSocial={isSocial}
+              ownCount={isSocial ? posts.filter((post) => post.role === 'own').length : pages.filter((page) => page.role === 'own').length}
+              competitorCount={isSocial ? posts.filter((post) => post.role === 'competitor').length : pages.filter((page) => page.role === 'competitor').length}
+              visualCount={isSocial ? posts.filter((post) => Boolean(post.mediaUrl || post.media?.length)).length : pages.flatMap((page) => page.images ?? []).length}
+            />
+            <EvidenceVisuals documents={documents.data} />
+            {canAnalyse && !analysed ? (
+              <Card className="flex flex-wrap items-center justify-between gap-4 border-primary/25 bg-primary/5 p-5">
+                <div>
+                  <p className="text-sm font-semibold">Ready for the useful part?</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    We have read both profiles. Now let OptiStratixAI point out the biggest opportunities.
+                  </p>
+                </div>
+                <Button onClick={() => startAnalysis.mutate(projectId)} loading={analysing}>
+                  <Sparkles />
+                  Find opportunities
+                </Button>
+              </Card>
+            ) : null}
             <div>
-              <h2 className="font-display text-base font-semibold">What was collected</h2>
+              <h2 className="font-display text-base font-semibold">Source library</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {isSocial
-                  ? 'Every public post the scraper read, with its engagement and the comments collected for it.'
-                  : 'Every page the crawler read, with its headings, links and text.'}
+                  ? 'Every public post we read, with its reactions and comments.'
+                  : 'Every page we read, with its headings, links and useful text.'}
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
@@ -299,10 +322,9 @@ export default function ProjectSourcesPage() {
             className="space-y-4"
           >
             <div>
-              <h2 className="font-display text-base font-semibold">Comparison parameters</h2>
+                <h2 className="font-display text-base font-semibold">Compare the details</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Pick a lens. Every figure is measured from what was scraped; where a parameter
-                needs a judgement, the checks behind it are listed in its row.
+                Choose a detail to see how your side compares with the competitor.
               </p>
             </div>
             <ParameterGrid
@@ -316,7 +338,7 @@ export default function ProjectSourcesPage() {
           <div ref={resultsRef} className="scroll-mt-20">
             {selected === null ? (
               <Card className="p-6 text-center text-sm text-muted-foreground">
-                Select a parameter above to see the side-by-side read-out.
+                Choose a detail above to see the side-by-side comparison.
               </Card>
             ) : detail.isError ? (
               <ErrorState
@@ -334,6 +356,40 @@ export default function ProjectSourcesPage() {
         </>
       ) : null}
     </div>
+  )
+}
+
+function EvidenceSummary({
+  isSocial,
+  ownCount,
+  competitorCount,
+  visualCount,
+}: {
+  isSocial: boolean
+  ownCount: number
+  competitorCount: number
+  visualCount: number
+}) {
+  return (
+    <Card className="border-primary/20 bg-primary/5 p-5">
+      <div className="flex items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Database className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-base font-semibold">Evidence coverage</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This is the material behind the comparison. Check both sides before deciding what matters.
+          </p>
+          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Stat label={isSocial ? 'Your posts' : 'Your pages'} value={ownCount.toLocaleString()} />
+            <Stat label={isSocial ? 'Competitor posts' : 'Competitor pages'} value={competitorCount.toLocaleString()} />
+            <Stat label={isSocial ? 'Posts with media' : 'Images found'} value={visualCount.toLocaleString()} />
+            <Stat label="Source status" value="Collected" />
+          </dl>
+        </div>
+      </div>
+    </Card>
   )
 }
 
