@@ -103,6 +103,11 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, element: <ProjectIndexRedirect /> },
                   {
+                    path: 'overview',
+                    element: <PipelinePage />,
+                    handle: { crumb: 'Overview' },
+                  },
+                  {
                     path: 'comparison',
                     element: <ProjectComparisonPage />,
                     handle: { crumb: 'Product comparison' },
@@ -128,6 +133,11 @@ export const routes: RouteObject[] = [
                     handle: { crumb: 'Review gaps' },
                   },
                   {
+                    path: 'findings',
+                    element: <ReviewGapsPage />,
+                    handle: { crumb: 'Findings' },
+                  },
+                  {
                     path: 'strategy',
                     element: <StrategyPage />,
                     handle: { crumb: 'Strategy' },
@@ -141,6 +151,11 @@ export const routes: RouteObject[] = [
                     path: 'document',
                     element: <DocumentPage />,
                     handle: { crumb: 'Document' },
+                  },
+                  {
+                    path: 'deliverables',
+                    element: <DocumentPage />,
+                    handle: { crumb: 'Deliverables' },
                   },
                   {
                     path: 'automation',
