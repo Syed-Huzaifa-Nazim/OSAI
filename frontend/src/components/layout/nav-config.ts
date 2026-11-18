@@ -4,16 +4,11 @@ import {
   FileText,
   LayoutDashboard,
   Lightbulb,
-  ListChecks,
   Plug,
   Radar,
-  Scale,
   Settings,
-  ShieldCheck,
-  Sparkles,
   Swords,
   User,
-  Workflow,
   type LucideIcon,
 } from 'lucide-react'
 import type { ComparisonType } from '@/types/domain'
@@ -51,32 +46,21 @@ export const SETTINGS_NAV: NavItem[] = [
 export function projectNav(
   projectId: string,
   comparisonType?: ComparisonType,
-  isDemo = false,
 ): NavItem[] {
   const base = `/app/projects/${projectId}`
   if (comparisonType === undefined) return []
-  if (!isDemo) {
-    if (comparisonType === 'ecommerce_product') {
-      return [{ label: 'Product comparison', to: `${base}/comparison`, icon: Scale }]
-    }
-    // A website is scored against its competitor on the same page that lists
-    // what was scraped; a social comparison has no parameters yet.
-    return [
-      {
-        label: comparisonType === 'website' ? 'Website comparison' : 'Scraped data',
-        to: `${base}/sources`,
-        icon: FileSearch,
-      },
-    ]
-  }
+  const evidenceRoute = comparisonType === 'ecommerce_product' ? 'comparison' : 'sources'
+  const evidenceLabel = comparisonType === 'ecommerce_product' ? 'Product comparison' : 'Evidence'
+
+  // Keep the nine technical stages inside the pages. The project sidebar is
+  // organised around the user's decisions: understand, inspect, decide,
+  // approve, and export.
   return [
-    { label: 'Pipeline', to: `${base}/pipeline`, icon: Workflow },
-    { label: 'Insights', to: `${base}/insights`, icon: Lightbulb },
-    { label: 'Review gaps', to: `${base}/review-gaps`, icon: ListChecks },
+    { label: 'Overview', to: `${base}/overview`, icon: LayoutDashboard },
+    { label: evidenceLabel, to: `${base}/${evidenceRoute}`, icon: FileSearch },
+    { label: 'Findings', to: `${base}/findings`, icon: Lightbulb },
     { label: 'Strategy', to: `${base}/strategy`, icon: Swords },
-    { label: 'Final approval', to: `${base}/review-strategy`, icon: ShieldCheck },
-    { label: 'Document', to: `${base}/document`, icon: FileText },
-    { label: 'Automation', to: `${base}/automation`, icon: Sparkles },
+    { label: 'Deliverables', to: `${base}/deliverables`, icon: FileText },
   ]
 }
 
