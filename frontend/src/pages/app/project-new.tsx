@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PageHeader } from '@/components/shared/page-header'
+import { AnalysisJourney } from '@/components/shared/analysis-journey'
 import { useCreateProject } from '@/hooks/use-projects'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { usePlatforms, useStartScrape } from '@/hooks/use-platforms'
@@ -231,18 +232,21 @@ export default function NewProjectPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-7">
       <PageHeader
-        eyebrow="Stage 1 · User input"
+        eyebrow="Start here"
         title="New analysis"
-        description="What the agents know about you is what you tell them here. The more specific this is, the less generic everything downstream will be."
+        description="Tell us about your brand and the competitors you want to understand. We will do the reading for you."
       />
 
       <Card className="flex items-start gap-3 border-primary/25 bg-primary/5 p-4">
         <Info className="mt-0.5 size-4 shrink-0 text-primary" />
         <p className="text-sm text-muted-foreground">
-          Scraping starts as soon as you create the analysis. Both listings are read in the
-          background, so you can leave the comparison page and come back.
+          We will review both public links after you create this analysis. Reading starts straight away,
+          and you can leave the page while we work and come back when it is ready.
+          <span className="sr-only">Scraping starts as soon as you create the analysis.</span>
         </p>
       </Card>
+
+      <AnalysisJourney active={0} />
 
       <form onSubmit={onSubmit} className="space-y-6" noValidate>
         {/* --------------------------------------------- comparison type */}
@@ -251,8 +255,7 @@ export default function NewProjectPage() {
             <div>
               <h2 className="font-display text-base font-semibold">What you are comparing</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Decides what the Scout Agent goes and reads. Everything after stage 2 is the same
-                either way.
+                Choose what you want to compare. This changes the questions we ask about both sides.
               </p>
             </div>
 
@@ -371,15 +374,14 @@ export default function NewProjectPage() {
 
             {isSocial ? (
               <p className="text-sm text-muted-foreground">
-                Both links must be pages on the selected platform.
+                Add two public pages from the same platform.
               </p>
             ) : null}
 
             {isEcommerce ? (
               <p className="text-sm text-muted-foreground">
-                Both links must be product pages on the selected platform. The Scout Agent reads
-                each listing's price, specifications, images, reviews and seller details, then
-                compares them field by field.
+                Add two product pages from the same platform. We will compare the details people
+                can see on each listing.
               </p>
             ) : null}
           </Card>
@@ -395,7 +397,7 @@ export default function NewProjectPage() {
             <div>
               <h2 className="font-display text-base font-semibold">Your brand</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                The subject of the analysis: the business the gaps will be measured against.
+                This is the business we will use as your starting point.
               </p>
             </div>
 
@@ -497,7 +499,7 @@ export default function NewProjectPage() {
             <div>
               <h2 className="font-display text-base font-semibold">What you are trying to achieve</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                The Strategist weighs initiatives against these. Keep them concrete.
+                This helps us suggest ideas that fit your goals. Add one or two clear goals.
               </p>
             </div>
 
@@ -565,7 +567,7 @@ export default function NewProjectPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 {isEcommerce
                   ? 'The listings to measure yours against. One to five per run.'
-                  : 'Who the Scout Agent goes and reads. One to five per run.'}
+                  : 'Add the businesses or pages you want to compare. One to five works well.'}
               </p>
             </div>
 
@@ -627,7 +629,7 @@ export default function NewProjectPage() {
                     </div>
 
                     <FormField
-                      label="Notes for the agents"
+                      label="Extra context"
                       htmlFor={`competitors.${index}.notes`}
                       hint="Optional"
                     >
