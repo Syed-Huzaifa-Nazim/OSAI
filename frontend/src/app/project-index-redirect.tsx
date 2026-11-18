@@ -15,6 +15,6 @@ export default function ProjectIndexRedirect() {
 
   if (project.data) return <Navigate to={projectHomePath(project.data)} replace />
   // On an error, fall back to the pipeline page, which reports it properly.
-  if (project.isError) return <Navigate to={`/app/projects/${projectId}/pipeline`} replace />
+  if (project.isError) return <Navigate to={`/app/projects/${projectId}/overview`} replace />
   return <RouteFallback />
 }
