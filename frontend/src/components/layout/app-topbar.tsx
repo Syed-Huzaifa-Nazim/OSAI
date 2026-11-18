@@ -1,4 +1,4 @@
-import { Link, useMatches } from 'react-router-dom'
+import { Link, useMatches, useMatch } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
@@ -6,6 +6,8 @@ import { DemoBadge } from '@/components/shared/demo-badge'
 import { useUiStore } from '@/stores/ui-store'
 import { isDemoMode } from '@/lib/config'
 import { UserMenu } from './user-menu'
+import { useProject } from '@/hooks/use-projects'
+import { ProjectStatusBadge } from '@/components/shared/project-status-badge'
 
 interface RouteHandle {
   crumb?: string
@@ -15,6 +17,8 @@ interface RouteHandle {
 export function AppTopbar() {
   const setMobileOpen = useUiStore((state) => state.setMobileNavOpen)
   const matches = useMatches()
+  const projectMatch = useMatch('/app/projects/:projectId/*')
+  const project = useProject(projectMatch?.params.projectId)
 
   const crumbs = matches
     .map((match) => (match.handle as RouteHandle | undefined)?.crumb)
@@ -56,6 +60,15 @@ export function AppTopbar() {
           ))}
         </ol>
       </nav>
+
+      {project.data ? (
+        <div className="hidden items-center gap-2 border-l border-border/50 pl-3 sm:flex">
+          <span className="max-w-44 truncate text-xs font-medium" title={project.data.brandName}>
+            {project.data.brandName}
+          </span>
+          <ProjectStatusBadge status={project.data.status} />
+        </div>
+      ) : null}
 
       {isDemoMode ? <DemoBadge compact /> : null}
       <ThemeToggle />
