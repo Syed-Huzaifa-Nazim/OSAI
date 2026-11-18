@@ -1,19 +1,14 @@
 import { Suspense } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { Outlet } from 'react-router-dom'
 import { useUiStore } from '@/stores/ui-store'
 import { ErrorBoundary } from '@/components/shared/error-boundary'
 import { RouteFallback } from '@/components/shared/route-fallback'
-import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
-import { pageVariants, reduceVariants } from '@/lib/motion'
 import { AppSidebar, SIDEBAR_WIDTHS } from './app-sidebar'
 import { AppTopbar } from './app-topbar'
 
-/** Authenticated shell: fixed left rail, sticky topbar, animated page slot. */
+/** Authenticated shell: fixed left rail and sticky topbar. */
 export function AppShell() {
   const expanded = useUiStore((state) => state.sidebarExpanded)
-  const location = useLocation()
-  const reduced = usePrefersReducedMotion()
 
   return (
     <div className="canvas-grain min-h-screen bg-background">
@@ -29,19 +24,11 @@ export function AppShell() {
         <AppTopbar />
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
           <ErrorBoundary>
-            {/* Suspense above AnimatePresence. See marketing-shell.tsx for why. */}
+            {/* Keep the shell visible while lazy pages load. Page-level motion
+             * belongs inside each page; the route wrapper must never be able
+             * to leave the entire content area at opacity: 0. */}
             <Suspense fallback={<RouteFallback />}>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={location.pathname}
-                  variants={reduceVariants(pageVariants, reduced)}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  <Outlet />
-                </motion.div>
-              </AnimatePresence>
+              <Outlet />
             </Suspense>
           </ErrorBoundary>
         </main>
