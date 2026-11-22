@@ -86,9 +86,18 @@ def apify(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     state: dict[str, Any] = {
         "posts": list(PROFILE_ITEMS),
         "comments": list(COMMENT_ITEMS),
+        "more": [],
         "post_runs": [],
+        "more_runs": [],
         "comment_runs": [],
     }
+
+    def fake_more(profile_url: str, limit: int) -> list[dict[str, Any]]:
+        state["more_runs"].append((profile_url, limit))
+        result = state["more"]
+        if isinstance(result, BaseException):
+            raise result
+        return result
 
     def fake_posts(profile_url: str, limit: int) -> list[dict[str, Any]]:
         state["post_runs"].append((profile_url, limit))
@@ -105,6 +114,7 @@ def apify(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
         return result
 
     monkeypatch.setattr(client_module, "fetch_profile_posts", fake_posts)
+    monkeypatch.setattr(client_module, "fetch_more_posts", fake_more)
     monkeypatch.setattr(client_module, "fetch_post_comments", fake_comments)
     monkeypatch.setattr(settings, "apify_api_token", "test-token")
     return state
@@ -393,3 +403,91 @@ def test_the_post_and_comment_limits_are_capped(monkeypatch: pytest.MonkeyPatch,
 
     assert apify["post_runs"][0][1] == 50
     assert apify["comment_runs"][0][1] == 50
+
+
+def test_a_video_keeps_its_cover_picture_for_the_grid() -> None:
+    reel = {**POST_TWO, "displayUrl": "https://scontent.test/two-cover.jpg"}
+    [item] = extract.media_items(reel)
+    assert item["media_url"].endswith("two.mp4") and item["thumbnail_url"].endswith("two-cover.jpg")
+    carousel = {**POST_ONE, "childPosts": [{"type": "Video", "videoUrl": "https://scontent.test/c.mp4",
+                                             "displayUrl": "https://scontent.test/c.jpg"}]}
+    assert extract.media_items(carousel)[0]["thumbnail_url"].endswith("c.jpg")
+    assert extract.media_items(POST_TWO)[0]["thumbnail_url"] is None          # the actor sent no cover: nothing made up
+
+
+def test_media_is_stored_without_covers_if_migration_0013_is_missing() -> None:
+    from app.services.repository import SupabaseRepository
+
+    inserted: list[list[dict]] = []
+
+    class Table:
+        def delete(self):
+            return self
+        def eq(self, *_):
+            return self
+        def insert(self, rows):
+            self.rows = rows
+            return self
+        def execute(self):
+            if getattr(self, "rows", None) is not None:
+                rows, self.rows = self.rows, None
+                if any("thumbnail_url" in r for r in rows):
+                    raise RuntimeError("Could not find the 'thumbnail_url' column of 'instagram_post_media'")
+                inserted.append(rows)
+            return self
+
+    repo = SupabaseRepository.__new__(SupabaseRepository)
+    repo.client = type("C", (), {"table": lambda self, name: Table()})()
+    repo.replace_instagram_post_media("p1", [{"id": "m1", "media_url": "u", "thumbnail_url": "t"}])
+    assert inserted == [[{"id": "m1", "media_url": "u"}]]
+
+
+def test_more_than_twelve_posts_are_read_with_a_posts_run(monkeypatch: pytest.MonkeyPatch, apify: dict[str, Any]) -> None:
+    """A profile run only nests Instagram's newest 12 posts; a posts run reads up to the limit."""
+    monkeypatch.setattr(settings, "instagram_posts_limit", 30)
+    apify["more"] = [{**POST_TWO, "url": f"https://www.instagram.com/p/X{i}/", "inputUrl": PROFILE_URL} for i in range(30)]
+    record = get_source_scraper("instagram").scrape(PROFILE_URL, "own")
+    assert apify["more_runs"] == [(PROFILE_URL, 30)]
+    assert len(record.documents) == 30
+    assert record.title == "@verdantroast"                                   # the name still comes from the profile run
+    assert record.documents[0].metadata["profile_stats"] == extract.profile_stats(apify["posts"])   # and followers, bio
+
+
+def test_if_the_posts_run_fails_the_newest_twelve_are_kept(monkeypatch: pytest.MonkeyPatch, apify: dict[str, Any]) -> None:
+    monkeypatch.setattr(settings, "instagram_posts_limit", 30)
+    apify["more"] = ScraperError("actor timed out")
+    record = get_source_scraper("instagram").scrape(PROFILE_URL, "own")
+    assert len(record.documents) == 2 and any("newest 12" in w for w in record.warnings)
+
+
+def test_an_empty_posts_run_is_reported_not_silent(monkeypatch: pytest.MonkeyPatch, apify: dict[str, Any]) -> None:
+    """The posts run can "succeed" with nothing (credit ran out, blocked): fewer posts than the profile has must be said."""
+    monkeypatch.setattr(settings, "instagram_posts_limit", 30)
+    apify["posts"] = [{**PROFILE_ITEMS[0], "postsCount": 500}]
+    apify["more"] = []
+    record = get_source_scraper("instagram").scrape(PROFILE_URL, "own")
+    assert any("returned nothing" in w and "(it has 500)" in w for w in record.warnings)
+
+
+def test_a_small_profile_with_few_posts_gets_no_warning(monkeypatch: pytest.MonkeyPatch, apify: dict[str, Any]) -> None:
+    monkeypatch.setattr(settings, "instagram_posts_limit", 30)
+    apify["posts"] = [{**PROFILE_ITEMS[0], "postsCount": 2}]
+    apify["more"] = []
+    record = get_source_scraper("instagram").scrape(PROFILE_URL, "own")
+    assert not any("returned nothing" in w for w in record.warnings)
+
+
+def test_no_extra_run_when_twelve_or_fewer_posts_are_wanted(monkeypatch: pytest.MonkeyPatch, apify: dict[str, Any]) -> None:
+    monkeypatch.setattr(settings, "instagram_posts_limit", 12)
+    get_source_scraper("instagram").scrape(PROFILE_URL, "own")
+    assert apify["more_runs"] == []
+
+
+def test_the_profile_picture_is_kept_with_the_profile_details() -> None:
+    stats = extract.profile_stats([{"username": "shop", "followersCount": 10, "profilePicUrlHD": "https://scontent.test/hd.jpg",
+                                    "profilePicUrl": "https://scontent.test/small.jpg"}])
+    assert stats["profile_picture"] == "https://scontent.test/hd.jpg"          # the sharper one first
+    from app.models.sources import ScrapedPost
+    post = ScrapedPost.model_validate({"id": "1", "project_id": "p", "role": "own", "submitted_url": "u",
+                                       "scraped_at": "x", "profile_stats": stats})
+    assert post.profile_picture == "https://scontent.test/hd.jpg" and post.followers_count == 10

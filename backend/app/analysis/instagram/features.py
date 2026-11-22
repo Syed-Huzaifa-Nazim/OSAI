@@ -65,18 +65,16 @@ def account_features(account, posts, ref_date=None):
         ref_date = account.get("last_scraped_at") or pd.Timestamp.now(tz="UTC")
     ref_date = pd.to_datetime(ref_date, utc=True)
 
-    # missing counts become NaN instead of crashing
-    followers = pd.to_numeric(account.get("followers_count"), errors="coerce")
-    following = pd.to_numeric(account.get("follows_count"), errors="coerce")
-    total_posts = pd.to_numeric(account.get("posts_count"), errors="coerce")
+    followers = account["followers_count"]
+    following = account["follows_count"]
     bio = account.get("biography")
     bio = "" if bio is None or (isinstance(bio, float) and np.isnan(bio)) else str(bio)
 
     row = {
         "feat_followers": followers,
         "feat_following": following,
-        "feat_total_posts": total_posts,
-        "feat_follow_ratio": followers / max(following, 1) if pd.notna(following) else np.nan,
+        "feat_total_posts": account["posts_count"],
+        "feat_follow_ratio": followers / max(following, 1),
         "feat_is_verified": int(account.get("is_verified") is True or str(account.get("is_verified")).lower() == "true"),
         "feat_has_website": int(_is_filled(account.get("website"))),
         "feat_bio_length": len(bio),

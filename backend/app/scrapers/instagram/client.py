@@ -81,6 +81,23 @@ def fetch_profile_posts(profile_url: str, limit: int) -> list[dict[str, Any]]:
     return items
 
 
+def fetch_more_posts(profile_url: str, limit: int) -> list[dict[str, Any]]:
+    """Up to `limit` posts of one profile, newest first, as top-level items.
+
+    Needed because a "details" run only nests the newest 12 posts. A second actor run, so only made when more than
+    those 12 are wanted.
+    """
+    client = _client()
+    return _run_actor(
+        client,
+        {
+            "directUrls": [profile_url],
+            "resultsType": S.RESULTS_TYPE_MORE_POSTS,
+            "resultsLimit": limit,
+        },
+    )
+
+
 def fetch_post_comments(post_urls: list[str], limit: int) -> list[dict[str, Any]]:
     """Comments on the given posts. A second actor run, so it is optional."""
     if not post_urls:

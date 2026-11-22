@@ -1,4 +1,4 @@
-"""Stage 2: Scout Agent for e-commerce comparisons.
+"""Stage 2: Scout Engine for e-commerce comparisons.
 
 LIVE IMPLEMENTATION. Unlike the website/social Scout this one really does go
 out and fetch pages, through the scrapers in ``app/scrapers/``.
@@ -38,7 +38,7 @@ logger = logging.getLogger("optistratix.agents.scout.ecommerce")
 
 
 class EcommerceScoutAgent(BaseAgent):
-    name = "Scout Agent (e-commerce)"
+    name = "Scout Engine (e-commerce)"
     stage = 2
     is_live = True
 

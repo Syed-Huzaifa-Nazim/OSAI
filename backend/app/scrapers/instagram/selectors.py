@@ -23,8 +23,13 @@ from __future__ import annotations
 DEFAULT_ACTOR_ID = "apify/instagram-scraper"
 
 #: What each run asks the actor for.
+#: "details" returns the profile (followers, bio, name) with its latest posts nested in it -- but Instagram only ever
+#: nests the newest 12 there, whatever limit is asked for. "posts" returns the posts themselves, up to the limit.
 RESULTS_TYPE_POSTS = "details"
+RESULTS_TYPE_MORE_POSTS = "posts"
 RESULTS_TYPE_COMMENTS = "comments"
+#: How many posts a "details" run nests at most (Instagram's own page size).
+DETAILS_POSTS_CAP = 12
 
 # ---------------------------------------------------------------------------
 # 2. Links
@@ -85,6 +90,8 @@ POST_PATHS = {
     "posted_at": ["timestamp"],
     "media_type": ["type"],
     "media_url": ["videoUrl", "displayUrl"],
+    # The still picture Instagram shows for a post; for a video, its cover frame.
+    "thumbnail_url": ["displayUrl"],
     "location": ["locationName"],
     "is_sponsored": ["isSponsored"],
     "video_views": ["videoViewCount", "videoPlayCount"],

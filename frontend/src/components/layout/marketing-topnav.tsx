@@ -75,7 +75,7 @@ export function MarketingTopNav() {
         <motion.div
           aria-hidden="true"
           style={{ scaleX: progress }}
-          className="fixed inset-x-0 top-0 z-50 h-[2px] origin-left bg-gradient-to-r from-primary via-brand-butter-cream to-primary"
+          className="fixed inset-x-0 top-0 z-50 h-[2px] origin-left bg-gradient-to-r from-primary via-primary/60 to-primary"
         />
 
         <div

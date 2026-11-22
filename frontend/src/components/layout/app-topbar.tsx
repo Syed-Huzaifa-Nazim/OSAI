@@ -21,7 +21,7 @@ export function AppTopbar() {
     .filter((crumb): crumb is string => Boolean(crumb))
 
   return (
-    <header className="glass sticky top-0 z-30 flex h-16 items-center gap-3 rounded-none border-x-0 border-t-0 px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/15 bg-background/80 px-4 backdrop-blur-xl sm:px-6">
       <Button
         variant="ghost"
         size="icon-sm"
@@ -36,14 +36,21 @@ export function AppTopbar() {
 
       <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
         <ol className="flex items-center gap-2 text-sm">
-          <li>
+          <li className="hidden sm:block">
             <Link to="/app/dashboard" className="text-muted-foreground hover:text-foreground">
               App
             </Link>
           </li>
           {crumbs.map((crumb, index) => (
-            <li key={`${crumb}-${index}`} className="flex min-w-0 items-center gap-2">
-              <span className="text-muted-foreground/50" aria-hidden="true">
+            <li
+              key={`${crumb}-${index}`}
+              className={
+                index === crumbs.length - 1
+                  ? 'flex min-w-0 items-center gap-2 font-semibold sm:font-normal'
+                  : 'hidden min-w-0 items-center gap-2 sm:flex'
+              }
+            >
+              <span className="hidden text-muted-foreground/50 sm:inline" aria-hidden="true">
                 /
               </span>
               <span

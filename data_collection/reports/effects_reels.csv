@@ -1,0 +1,10 @@
+trait,posts_with_trait,shops_using_it,shops_tested,effect_x,shops_where_better,p,p_corrected,proven,verdict
+text on screen in the first 3 s,731,65,28,0.95,13,0.9375,0.9375,False,not proven
+a face in the first 3 s,190,44,22,1.74,20,0.0002,0.0016,True,helps (proven)
+a scene cut in the first 3 s,347,61,43,1.09,23,0.2567,0.5928,False,not proven
+someone speaking (voice),643,66,54,1.03,28,0.4308,0.7754,False,not proven
+has sound,951,67,10,1.12,6,0.9219,0.9375,False,not proven
+jewellery worn in the first frame,164,46,21,1.04,13,0.5392,0.8088,False,not proven
+shorter than the shop's usual reel,510,68,68,0.88,28,0.0498,0.2242,False,not proven
+more cuts than the shop's usual reel,487,66,66,0.97,32,0.671,0.8627,False,not proven
+sharper / better-looking than the shop's usual reel,513,68,68,1.06,36,0.2635,0.5928,False,not proven

@@ -99,7 +99,7 @@ export default function AutomationPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Stage 9 · Scalability & automation"
+        eyebrow="Step 6 · Create content"
         title="Content assets"
         description="Each approved initiative, turned into the concrete pieces that would execute it."
         actions={

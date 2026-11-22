@@ -62,7 +62,7 @@ export function MarketingShell() {
         <MarketingFooter />
       </div>
 
-      <NavVariantSwitcher />
+      {import.meta.env.VITE_SHOW_NAV_SWITCH === 'true' ? <NavVariantSwitcher /> : null}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 """Chunking (stage 3).
 
 Overlap matters: a claim that straddles a chunk boundary has to stay
-retrievable, because every gap the Insight Agent reports must cite a passage.
+retrievable, because every gap the Gap Engine reports must cite a passage.
 """
 
 from __future__ import annotations

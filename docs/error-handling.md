@@ -153,7 +153,7 @@ insights page, no gaps because the agent has not run says something different
 from no gaps because the filters exclude them, and only one of them offers
 "clear filters".
 
-The insights empty state also handles a third case honestly: the Insight Agent
+The insights empty state also handles a third case honestly: the Gap Engine
 ran and found nothing it could support with evidence. That is a real result, and
 the copy says so rather than implying a failure.
 

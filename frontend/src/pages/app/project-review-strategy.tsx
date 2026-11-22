@@ -65,7 +65,7 @@ export default function ReviewStrategyPage() {
     return (
       <div className="space-y-7">
         <PageHeader
-          eyebrow="Stage 7 · Human checkpoint"
+          eyebrow="Step 5 · Your approval"
           title="Final approval"
           description="The last gate before a strategy becomes a document."
         />
@@ -108,7 +108,7 @@ export default function ReviewStrategyPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Stage 7 · Human checkpoint"
+        eyebrow="Step 5 · Your approval"
         title="Final approval"
         description="Read it with the Critic's objections in view, then decide whether it ships."
       />

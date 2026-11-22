@@ -26,13 +26,13 @@ export function HitlCallout({ projectId, stage, className }: HitlCalloutProps) {
   const copy =
     stage === 5
       ? {
-          title: 'Your review is needed: gap refinement',
-          body: 'The Insight Agent has finished. Review the gaps it found, keep the ones that matter to your business, and drop the rest before any strategy is written.',
+          title: 'Your gaps are ready to review',
+          body: 'We have compared both pages. Keep the gaps that matter to your shop and drop the rest. Nothing moves on without you.',
           cta: 'Review gaps',
         }
       : {
-          title: 'Your approval is needed: final strategy',
-          body: 'The Strategist has drafted a strategy and the Critic has challenged it. Read both, then approve it for execution or send it back for revision.',
+          title: 'Your plan is ready to approve',
+          body: 'A plan has been written from your gaps and checked by a second reviewer. Approve it, or ask for changes.',
           cta: 'Review strategy',
         }
 
@@ -61,7 +61,7 @@ export function HitlCallout({ projectId, stage, className }: HitlCalloutProps) {
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="eyebrow text-brand-butter-cream/80">
-            Human checkpoint · Stage {definition.id}
+            Your decision · Step {definition.id === 5 ? 3 : 5} of 6
           </p>
           <h3 className="font-display text-base font-semibold">{copy.title}</h3>
           <p className="max-w-2xl text-sm text-muted-foreground">{copy.body}</p>

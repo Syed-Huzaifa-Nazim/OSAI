@@ -1,0 +1,35 @@
+{
+  "test_sentiment_macroF1": 0.7658468932528454,
+  "test_sentiment_per_class_F1": {
+    "negative": 0.8138,
+    "neutral": 0.6015,
+    "positive": 0.8822
+  },
+  "confusion_matrix_rows_true_cols_pred_[neg,neu,pos]": [
+    [
+      824,
+      158,
+      42
+    ],
+    [
+      123,
+      674,
+      169
+    ],
+    [
+      54,
+      443,
+      2651
+    ]
+  ],
+  "true_share_percent": {
+    "negative": 19.9,
+    "neutral": 18.8,
+    "positive": 61.3
+  },
+  "predicted_share_percent": {
+    "negative": 19.5,
+    "neutral": 24.8,
+    "positive": 55.7
+  }
+}

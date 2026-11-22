@@ -1,3 +1,4 @@
+import { ProjectLayout } from '@/components/layout/project-layout'
 import { lazy } from 'react'
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 import { MarketingShell } from '@/components/layout/marketing-shell'
@@ -28,11 +29,11 @@ import NotFoundPage from '@/pages/not-found'
 const HowItWorksPage = lazy(() => import('@/pages/marketing/how-it-works'))
 const FeaturesPage = lazy(() => import('@/pages/marketing/features'))
 const AboutPage = lazy(() => import('@/pages/marketing/about'))
-const PricingPage = lazy(() => import('@/pages/marketing/pricing'))
 const ContactPage = lazy(() => import('@/pages/marketing/contact'))
 
 const DashboardPage = lazy(() => import('@/pages/app/dashboard'))
 const ProjectsPage = lazy(() => import('@/pages/app/projects'))
+const ReportsPage = lazy(() => import('@/pages/app/reports'))
 const NewProjectPage = lazy(() => import('@/pages/app/project-new'))
 const PipelinePage = lazy(() => import('@/pages/app/project-pipeline'))
 const ProjectComparisonPage = lazy(() => import('@/pages/app/project-comparison'))
@@ -46,7 +47,6 @@ const DocumentPage = lazy(() => import('@/pages/app/project-document'))
 const AutomationPage = lazy(() => import('@/pages/app/project-automation'))
 const ProfileSettingsPage = lazy(() => import('@/pages/app/settings-profile'))
 const AccountSettingsPage = lazy(() => import('@/pages/app/settings-account'))
-const IntegrationsSettingsPage = lazy(() => import('@/pages/app/settings-integrations'))
 const BillingSettingsPage = lazy(() => import('@/pages/app/settings-billing'))
 
 /**
@@ -65,7 +65,7 @@ export const routes: RouteObject[] = [
       { path: '/how-it-works', element: <HowItWorksPage /> },
       { path: '/features', element: <FeaturesPage /> },
       { path: '/about', element: <AboutPage /> },
-      { path: '/pricing', element: <PricingPage /> },
+      { path: '/pricing', element: <Navigate to="/" replace /> },
       { path: '/contact', element: <ContactPage /> },
     ],
   },
@@ -100,6 +100,7 @@ export const routes: RouteObject[] = [
               { path: 'new', element: <NewProjectPage />, handle: { crumb: 'New analysis' } },
               {
                 path: ':projectId',
+                element: <ProjectLayout />,
                 children: [
                   { index: true, element: <ProjectIndexRedirect /> },
                   {
@@ -152,6 +153,11 @@ export const routes: RouteObject[] = [
             ],
           },
           {
+            path: 'reports',
+            element: <ReportsPage />,
+            handle: { crumb: 'My reports' },
+          },
+          {
             path: 'settings',
             handle: { crumb: 'Settings' },
             children: [
@@ -165,11 +171,6 @@ export const routes: RouteObject[] = [
                 path: 'account',
                 element: <AccountSettingsPage />,
                 handle: { crumb: 'Account' },
-              },
-              {
-                path: 'integrations',
-                element: <IntegrationsSettingsPage />,
-                handle: { crumb: 'Integrations' },
               },
               {
                 path: 'billing',

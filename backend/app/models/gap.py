@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 
 from pydantic import Field
 
@@ -54,6 +55,9 @@ class Gap(CamelModel):
     confidence: float = Field(ge=0.0, le=1.0)
     evidence: list[Evidence] = Field(default_factory=list)
     opportunity: str
+    #: Plain-language extras for the screen (how sure, example posts, numbers, technical notes).
+    #: Empty for gaps that do not have them.
+    details: dict[str, Any] = Field(default_factory=dict)
     decision: GapDecision = GapDecision.PENDING
     reviewer_note: str | None = None
     created_at: str

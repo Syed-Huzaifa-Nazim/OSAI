@@ -6,7 +6,7 @@ folder may contain platform-specific knowledge, so adding a marketplace never
 means touching the pipeline: write the scraper, register it, done.
 
 Scrapers are deliberately **synchronous**. Playwright's sync API refuses to run
-inside an event loop, so the Scout agent calls them through ``asyncio.to_thread``
+inside an event loop, so the Scout engine calls them through ``asyncio.to_thread``
 rather than making every implementation carry an async wrapper it does not need.
 """
 

@@ -108,6 +108,12 @@ def scrape_daraz_product(url: str, product_id: str) -> ScrapedProduct:
     if html_doc:
         product = _parse_page(html_doc, url, product_id)
         product.method = "bs4"
+        if product.metadata.get("price") is None:
+            # Daraz now loads the visible price with JavaScript. The page's tracking data still carries it, and the
+            # listing's search result adds badges and the number sold; the slow browser fallback is then not needed.
+            _fill_from_tracking(product, html_doc)
+            if product.text_fields.get("title"):
+                _fill_from_search(product, warnings)
 
     if product is None or not _has_required_fields(product):
         missing = _missing_fields(product)
@@ -908,6 +914,49 @@ class _Extractor:
         else:
             label = "low"
         self.meta["category_tag_match"] = label
+
+
+def _fill_from_tracking(product: ScrapedProduct, html_doc: str) -> None:
+    """Price, discount and main photo from the page's pdpTrackingData (present without JavaScript)."""
+    text = html_doc.replace('\\"', '"')
+    price = re.search(r'"pdt_price":"([^"]*)"', text)
+    discount = re.search(r'"pdt_discount":"([^"]*)"', text)
+    photo = re.search(r'"pdt_photo":"([^"]*)"', text)
+    def first_number(value: str) -> Optional[float]:
+        m = re.search(r"\d[\d,]*(?:\.\d+)?", value or "")          # "Rs. 1,320" -> 1320, "48% off" -> 48
+        return to_float(m.group(0).replace(",", "")) if m else None
+
+    if price and first_number(price.group(1)):
+        product.metadata["price"] = first_number(price.group(1))
+        product.metadata["price_source"] = "page tracking data"
+    if discount and first_number(discount.group(1)):
+        product.metadata["discount_percent"] = first_number(discount.group(1))
+    if photo and not product.metadata.get("search_image"):
+        product.metadata["search_image"] = photo.group(1)
+
+
+def _fill_from_search(product: ScrapedProduct, warnings: List[str]) -> None:
+    """Price, discount, rating, review count, number sold and badges from the listing's own search result."""
+    from app.scrapers.daraz import search
+
+    item_id = product.metadata.get("item_id") or search.item_id_of(product.url)
+    row = search.find(str(item_id or ""), product.text_fields.get("title", ""))
+    if row is None:
+        warnings.append("The price is loaded by Daraz with JavaScript and the listing was not found in search.")
+        return
+    meta = product.metadata
+    meta["price"] = row["price"]
+    meta["original_price"] = row["original_price"] or row["price"]
+    meta["discount_percent"] = row["discount_pct"] or None
+    if row["rating"] is not None:
+        meta["rating"] = row["rating"]
+    if row["reviews"]:
+        meta["review_count"] = int(row["reviews"])
+    meta["sold"] = row["sold"]
+    for key in ("free_shipping", "voucher", "coins", "daraz_choice"):
+        meta[key] = row[key]
+    meta["search_image"] = row["image"]
+    meta["price_source"] = "daraz search"
 
 
 # ---------------------------------------------------------------------------

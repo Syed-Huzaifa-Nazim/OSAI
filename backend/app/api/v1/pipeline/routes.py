@@ -23,7 +23,7 @@ import logging
 
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response
 
 from app.core.errors import ConflictError, NotFoundError
 from app.core.security import CurrentUser, get_current_user
@@ -191,17 +191,39 @@ async def submit_gap_review(
     return HitlReview.model_validate(review)
 
 
+@router.get("/gaps/report")
+async def gap_report(
+    project_id: str,
+    which: str = Query(default="all", pattern="^(all|kept)$"),
+    user: CurrentUser = Depends(get_current_user),
+) -> Response:
+    """The gaps as a PDF: all of them, or only the ones kept at the checkpoint. Includes each gap's numbers, example
+    posts with their pictures, and the explanation saved from the Explain button."""
+    from app.services import gap_report as report
+
+    repo = get_repository(user.id, user.token)
+    project = repo.get_project(project_id)
+    gaps = repo.list_gaps(project_id)
+    pdf = await asyncio.to_thread(report.render_gaps_pdf, repo, project, gaps, which)
+    slug = "".join(c if c.isalnum() else "-" for c in (project.get("name") or "gaps").lower()).strip("-")[:60]
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{slug or "project"}-{which}-gaps.pdf"'},
+    )
+
+
 @router.post("/gaps/{gap_id}/explain")
 async def explain_gap(
     project_id: str,
     gap_id: str,
     user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    """Grounded explanation of one gap (Instagram).
+    """Grounded explanation of one gap (Instagram): what was found and why it is a gap.
 
-    Retrieves the closest post chunks for each side from pgvector
-    (instagram_post_chunks) and asks the LLM to explain the gap using only
-    those, citing them. Citations to anything not retrieved are rejected.
+    The LLM is given the gap's exact values, the card's example posts and the
+    closest posts retrieved from pgvector (instagram_post_chunks) for each side,
+    and must cite them. Citations to anything it was not given are rejected.
     """
     from app.analysis.instagram import explain
     from app.analysis.instagram.llm import get_llm
@@ -223,6 +245,14 @@ async def explain_gap(
     return {
         "gapId": result["gap_id"],
         "explanation": result["explanation"],
+        "found": result.get("found", ""),
+        "why": result.get("why", ""),
+        "general": result.get("general", ""),
+        "knowledge": result.get("knowledge", []),
+        "knowledgeUsed": result.get("knowledge_used", []),
+        "values": result.get("values", []),
+        "howSure": result.get("how_sure"),
+        "unproven": result.get("unproven", False),
         "grounded": result["grounded"],
         "evidenceUsed": result["evidence_used"],
         "unknownCitations": result["unknown_citations"],
@@ -235,6 +265,11 @@ async def explain_gap(
                 "postUrl": e["post_url"],
                 "similarity": e["similarity"],
                 "format": e.get("format", ""),
+                "date": e.get("date"),
+                "likes": e.get("likes"),
+                "comments": e.get("comments"),
+                "imageUrl": e.get("image_url", ""),
+                "retrieved": e.get("retrieved", False),
             }
             for e in result["evidence"]
         ],

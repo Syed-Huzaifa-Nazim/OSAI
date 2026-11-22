@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, Response, status
 
 from app.core.security import CurrentUser, get_current_user
@@ -29,6 +31,15 @@ async def create_project(
     """
     repo = get_repository(user.id, user.token)
     return Project.model_validate(project_service.create_project(repo, user.id, payload))
+
+
+@router.get("/covers")
+async def project_covers(user: CurrentUser = Depends(get_current_user)) -> dict[str, str]:
+    """One picture per project for its dashboard card, from the user's own scraped side (project id -> URL)."""
+    from app.services import project_covers as covers
+
+    repo = get_repository(user.id, user.token)
+    return await asyncio.to_thread(covers.covers, repo)
 
 
 @router.get("/{project_id}", response_model=Project)

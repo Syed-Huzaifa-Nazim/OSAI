@@ -154,8 +154,8 @@ describe('newProjectSchema', () => {
     ).toBe(false)
   })
 
-  it('caps competitors at five per run', () => {
-    const competitors = Array.from({ length: 6 }, (_, index) => ({
+  it('allows exactly one competitor per analysis', () => {
+    const competitors = Array.from({ length: 2 }, (_, index) => ({
       ...VALID_PROJECT.competitors[0],
       name: `Competitor ${index}`,
     }))

@@ -1,0 +1,228 @@
+{
+ "domain": "Pakistani jewellery shops on Instagram (1k-100k followers)",
+ "built": "2026-11-21",
+ "method": "each shop compared with itself; Wilcoxon signed-rank across shops; Benjamini-Hochberg 5%",
+ "traits": {
+  "offer": {
+   "trait": "caption: offer",
+   "measure": "likes and comments",
+   "verdict": "too few shops to test",
+   "effect_x": null,
+   "shops_tested": 4,
+   "shops_where_better": null,
+   "p_corrected": null
+  },
+  "new_arrival": {
+   "trait": "caption: new arrival",
+   "measure": "likes and comments",
+   "verdict": "not proven",
+   "effect_x": 1.39,
+   "shops_tested": 15,
+   "shops_where_better": 10,
+   "p_corrected": 0.1577
+  },
+  "price": {
+   "trait": "caption: price",
+   "measure": "likes and comments",
+   "verdict": "too few shops to test",
+   "effect_x": null,
+   "shops_tested": 6,
+   "shops_where_better": null,
+   "p_corrected": null
+  },
+  "call_to_order": {
+   "trait": "caption: call to order",
+   "measure": "likes and comments",
+   "verdict": "not proven",
+   "effect_x": 0.89,
+   "shops_tested": 35,
+   "shops_where_better": 14,
+   "p_corrected": 0.2227
+  },
+  "product_details": {
+   "trait": "caption: product details",
+   "measure": "likes and comments",
+   "verdict": "not proven",
+   "effect_x": 0.86,
+   "shops_tested": 46,
+   "shops_where_better": 16,
+   "p_corrected": 0.1544
+  },
+  "review": {
+   "trait": "caption: review",
+   "measure": "likes and comments",
+   "verdict": "not proven",
+   "effect_x": 2.32,
+   "shops_tested": 8,
+   "shops_where_better": 7,
+   "p_corrected": 0.1025
+  },
+  "event_season": {
+   "trait": "caption: event season",
+   "measure": "likes and comments",
+   "verdict": "not proven",
+   "effect_x": 1.07,
+   "shops_tested": 27,
+   "shops_where_better": 15,
+   "p_corrected": 0.7858
+  },
+  "worn": {
+   "trait": "picture: jewellery worn",
+   "measure": "likes and comments",
+   "verdict": "not proven",
+   "effect_x": 1.32,
+   "shops_tested": 39,
+   "shops_where_better": 24,
+   "p_corrected": 0.1285
+  },
+  "face": {
+   "trait": "picture: a face shown",
+   "measure": "likes and comments",
+   "verdict": "helps (proven)",
+   "effect_x": 1.37,
+   "shops_tested": 27,
+   "shops_where_better": 20,
+   "p_corrected": 0.0153
+  },
+  "reel_text": {
+   "trait": "text on screen in the first 3 s",
+   "measure": "views",
+   "verdict": "not proven",
+   "effect_x": 0.95,
+   "shops_tested": 28,
+   "shops_where_better": 13,
+   "p_corrected": 0.9375
+  },
+  "reel_face": {
+   "trait": "a face in the first 3 s",
+   "measure": "views",
+   "verdict": "helps (proven)",
+   "effect_x": 1.74,
+   "shops_tested": 22,
+   "shops_where_better": 20,
+   "p_corrected": 0.0016
+  },
+  "reel_cut": {
+   "trait": "a scene cut in the first 3 s",
+   "measure": "views",
+   "verdict": "not proven",
+   "effect_x": 1.09,
+   "shops_tested": 43,
+   "shops_where_better": 23,
+   "p_corrected": 0.5928
+  },
+  "reel_voice": {
+   "trait": "someone speaking (voice)",
+   "measure": "views",
+   "verdict": "not proven",
+   "effect_x": 1.03,
+   "shops_tested": 54,
+   "shops_where_better": 28,
+   "p_corrected": 0.7754
+  },
+  "reel_short": {
+   "trait": "shorter than the shop's usual reel",
+   "measure": "views",
+   "verdict": "not proven",
+   "effect_x": 0.88,
+   "shops_tested": 68,
+   "shops_where_better": 28,
+   "p_corrected": 0.2242
+  },
+  "reel_fast": {
+   "trait": "more cuts than the shop's usual reel",
+   "measure": "views",
+   "verdict": "not proven",
+   "effect_x": 0.97,
+   "shops_tested": 66,
+   "shops_where_better": 32,
+   "p_corrected": 0.8627
+  }
+ },
+ "typical": {
+  "face": {
+   "typical_share": 0.051,
+   "shops": 82
+  },
+  "worn": {
+   "typical_share": 0.15,
+   "shops": 82
+  },
+  "reel_face": {
+   "typical_share": 0.075,
+   "shops": 76
+  },
+  "reel_text": {
+   "typical_share": 0.761,
+   "shops": 76
+  },
+  "reel_cut": {
+   "typical_share": 0.308,
+   "shops": 76
+  },
+  "reel_voice": {
+   "typical_share": 0.608,
+   "shops": 76
+  },
+  "price": {
+   "typical_share": 0.0,
+   "shops": 82
+  },
+  "offer": {
+   "typical_share": 0.0,
+   "shops": 82
+  },
+  "call_to_order": {
+   "typical_share": 0.475,
+   "shops": 82
+  },
+  "product_details": {
+   "typical_share": 0.55,
+   "shops": 82
+  },
+  "new_arrival": {
+   "typical_share": 0.05,
+   "shops": 82
+  },
+  "review": {
+   "typical_share": 0.0,
+   "shops": 82
+  },
+  "event_season": {
+   "typical_share": 0.05,
+   "shops": 82
+  }
+ },
+ "engagement_benchmark": {
+  "1k-5k": {
+   "min_followers": 1000,
+   "max_followers": 5000,
+   "shops": 19,
+   "engagement_pct": {
+    "p25": 0.289,
+    "median": 0.79,
+    "p75": 2.19
+   }
+  },
+  "5k-20k": {
+   "min_followers": 5000,
+   "max_followers": 20000,
+   "shops": 27,
+   "engagement_pct": {
+    "p25": 0.134,
+    "median": 0.334,
+    "p75": 0.622
+   }
+  },
+  "20k-100k": {
+   "min_followers": 20000,
+   "max_followers": 100000,
+   "shops": 36,
+   "engagement_pct": {
+    "p25": 0.074,
+    "median": 0.125,
+    "p75": 0.239
+   }
+  }
+ }
+}

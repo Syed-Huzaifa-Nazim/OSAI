@@ -1,4 +1,4 @@
-"""Stage 4: Insight Agent (gap and opportunity analysis).
+"""Stage 4: Gap Engine (gap and opportunity analysis).
 
 MOCK IMPLEMENTATION. Returns the hand-written gap set from
 ``app.services.demo_data``, with evidence pointing at the project's real
@@ -25,7 +25,7 @@ logger = logging.getLogger("optistratix.agents.insight")
 
 
 class MockInsightAgent(BaseAgent):
-    name = "Insight Agent"
+    name = "Gap Engine"
     stage = 4
     is_live = False
 
@@ -46,4 +46,31 @@ class MockInsightAgent(BaseAgent):
             tokens_used=38_900,
             cost_usd=0.583,
             warnings=["Mock Insight: gaps are hand-written, not model-generated."],
+        )
+
+
+class NotBuiltInsightAgent(BaseAgent):
+    """Stage 4 for sources whose gap analysis is not built yet (websites, social platforms other than Instagram).
+
+    It returns NO gaps and says so, instead of the hand-written demo gaps: a seller must never see template
+    findings presented as an analysis of their own account. The seeded demo project keeps the mock.
+    """
+
+    name = "Gap Engine (not built yet)"
+    stage = 4
+    is_live = False
+    not_built = True
+
+    def __init__(self, what: str = "this source") -> None:
+        self.what = what
+
+    async def run(self, context: dict[str, Any]) -> AgentResult:
+        logger.info("Insight not built for %s (project=%s)", self.what, context.get("project_id"))
+        return AgentResult(
+            payload=[],
+            items_processed=0,
+            duration_ms=0,
+            tokens_used=None,
+            cost_usd=None,
+            warnings=[f"Gap analysis for {self.what} is not built yet, so no gaps are shown."],
         )

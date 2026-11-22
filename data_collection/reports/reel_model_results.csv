@@ -1,0 +1,6 @@
+model,MAE_log_view_lift,spearman_all,within_shop_median,shops_ranked_right
+baseline: every reel = shop's usual views,0.644,0.0,0.0,0/68
+ridge: basics only,0.672,0.017,0.076,39/68
+boosting: basics only,0.682,0.054,0.078,42/68
+ridge: basics + reel features,0.673,0.056,0.121,39/68
+boosting: basics + reel features,0.694,0.068,0.068,39/68

@@ -1,0 +1,2 @@
+check,checked,draft_correct,accuracy,note
+captions round 4 (50 random new),49,43,0.878,5 of 6 errors = call_to_order missed: only the first 170-260 characters were read; fixed by re-reading 128 captions

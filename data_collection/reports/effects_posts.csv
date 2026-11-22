@@ -1,0 +1,19 @@
+trait,posts_with_trait,shops_using_it,shops_tested,effect_x,shops_where_better,p,p_corrected,proven,verdict
+caption: offer,40,19,4,,,,,False,too few shops to test
+caption: new arrival,173,42,15,1.39,10.0,0.0736,0.1577,False,not proven
+caption: price,53,12,6,,,,,False,too few shops to test
+caption: call to order,619,61,35,0.89,14.0,0.1633,0.2227,False,not proven
+caption: product details,692,63,46,0.86,16.0,0.0617,0.1544,False,not proven
+caption: review,57,25,8,2.32,7.0,0.0234,0.1025,False,not proven
+caption: behind the scenes,66,20,8,0.68,2.0,0.1953,0.2441,False,not proven
+caption: event season,206,46,27,1.07,15.0,0.7496,0.7858,False,not proven
+caption: other,258,48,27,1.3,17.0,0.1167,0.1945,False,not proven
+picture: jewellery worn,297,53,39,1.32,24.0,0.0428,0.1285,False,not proven
+picture: jewellery in hand,415,61,46,0.91,19.0,0.0864,0.1619,False,not proven
+picture: jewellery displayed,541,67,60,1.07,32.0,0.7858,0.7858,False,not proven
+picture: a face shown,189,40,27,1.37,20.0,0.001,0.0153,True,helps (proven)
+picture: text on the picture,791,68,40,0.91,18.0,0.2766,0.3191,False,not proven
+picture: price on the picture,38,9,4,,,,,False,too few shops to test
+format: reel,992,67,30,1.76,20.0,0.0029,0.0221,True,helps (proven)
+format: carousel,262,42,26,0.68,10.0,0.1358,0.2037,False,not proven
+format: photo,100,20,10,0.51,2.0,0.0273,0.1025,False,not proven

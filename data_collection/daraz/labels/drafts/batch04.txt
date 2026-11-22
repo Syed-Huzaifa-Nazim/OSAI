@@ -1,0 +1,100 @@
+R300: quality+; wrong_or_missing-
+R301: quality+; as_pictured+; delivery+; seller+
+R302: none
+R303: as_pictured-; design+
+R304: as_pictured+
+R305: quality+; wrong_or_missing-
+R306: quality-; breakage-
+R307: wrong_or_missing-; design+
+R308: as_pictured-
+R309: quality+; packaging-; wrong_or_missing-; seller-
+R310: quality+; wrong_or_missing-
+R311: quality+
+R312: none
+R313: as_pictured-; price_value-
+R314: breakage-; design+
+R315: none
+R316: wrong_or_missing-; comfort-; quality-
+R317: wrong_or_missing-; design+
+R318: as_pictured-
+R319: quality-; wrong_or_missing-
+R320: as_pictured+
+R321: quality+; comfort+; size_fit+; as_pictured+; seller+
+R322: as_pictured-; quality-; breakage+
+R323: wrong_or_missing-
+R324: design+; colour_fade-
+R325: as_pictured-; quality+; price_value-
+R326: design+
+R327: as_pictured-; size_fit-; wrong_or_missing-
+R328: design+; quality+; breakage+
+R329: price_value-
+R330: quality-; seller+; price_value+
+R331: none
+R332: none
+R333: size_fit-
+R334: breakage-
+R335: delivery-
+R336: stones-
+R337: design+; wrong_or_missing-
+R338: as_pictured+
+R339: design+; quality+
+R340: as_pictured-
+R341: seller+
+R342: quality-
+R343: design+
+R344: none
+R345: quality-; as_pictured-; breakage-
+R346: design+; quality-; price_value-
+R347: none
+R348: size_fit-; breakage-; design+
+R349: quality+; size_fit-; design+
+R350: quality+; seller+
+R351: quality+; size_fit-
+R352: design+
+R353: wrong_or_missing-; quality+; delivery+
+R354: design+; size_fit-; comfort+
+R355: design+; quality+
+R356: quality-; comfort+
+R357: wrong_or_missing-; seller-
+R358: design+; quality+; breakage+; colour_fade+
+R359: none
+R360: design+
+R361: colour_fade-
+R362: comfort+
+R363: comfort+; quality-; price_value+; delivery+; packaging+
+R364: delivery-; design-
+R365: design+; quality+
+R366: design+; size_fit-
+R367: breakage-
+R368: delivery+; seller+; quality+; size_fit+
+R369: quality+
+R370: quality-; colour_fade-
+R371: design-; quality+
+R372: design+
+R373: none
+R374: as_pictured-
+R375: colour_fade-
+R376: design+
+R377: wrong_or_missing-
+R378: as_pictured+
+R379: wrong_or_missing-; seller-; quality-
+R380: design+; quality+
+R381: as_pictured-; design+
+R382: none
+R383: quality-; colour_fade-
+R384: price_value-
+R385: design+; comfort+; stones-
+R386: comfort-; design+
+R387: as_pictured+; quality+; price_value+; packaging+; delivery+
+R388: as_pictured-; price_value-
+R389: price_value+
+R390: quality-
+R391: breakage-; price_value-
+R392: quality+
+R393: quality-
+R394: quality+; packaging+; colour_fade+
+R395: quality+
+R396: design+; quality-; size_fit-; breakage+
+R397: price_value+
+R398: design+
+R399: size_fit-; wrong_or_missing-

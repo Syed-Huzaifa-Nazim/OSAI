@@ -1,0 +1,41 @@
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+50/1641 done, 0 failed, 0 s
+100/1641 done, 0 failed, 0 s
+150/1641 done, 0 failed, 56 s
+200/1641 done, 0 failed, 107 s
+250/1641 done, 0 failed, 145 s
+300/1641 done, 0 failed, 190 s
+350/1641 done, 0 failed, 234 s
+400/1641 done, 0 failed, 271 s
+450/1641 done, 0 failed, 312 s
+500/1641 done, 0 failed, 353 s
+550/1641 done, 0 failed, 385 s
+600/1641 done, 0 failed, 435 s
+fail ConnectionError: HTTPSConnectionPool(host='www.daraz.pk', port=443): Read timed out.
+fail ConnectionError: HTTPSConnectionPool(host='www.daraz.pk', port=443): Read timed out.
+650/1641 done, 2 failed, 509 s
+700/1641 done, 2 failed, 554 s
+750/1641 done, 2 failed, 592 s
+800/1641 done, 2 failed, 647 s
+850/1641 done, 2 failed, 714 s
+900/1641 done, 2 failed, 788 s
+950/1641 done, 2 failed, 842 s
+fail ConnectionError: HTTPSConnectionPool(host='www.daraz.pk', port=443): Read timed out.
+fail ConnectionError: HTTPSConnectionPool(host='www.daraz.pk', port=443): Read timed out.
+1000/1641 done, 4 failed, 972 s
+fail ConnectionError: HTTPSConnectionPool(host='www.daraz.pk', port=443): Read timed out.
+fail ConnectionError: HTTPSConnectionPool(host='www.daraz.pk', port=443): Read timed out.
+1050/1641 done, 6 failed, 1065 s
+1100/1641 done, 6 failed, 1099 s
+1150/1641 done, 6 failed, 1130 s
+1200/1641 done, 6 failed, 1163 s
+1250/1641 done, 6 failed, 1197 s
+1300/1641 done, 6 failed, 1228 s
+1350/1641 done, 6 failed, 1257 s
+1400/1641 done, 6 failed, 1290 s
+1450/1641 done, 6 failed, 1326 s
+1500/1641 done, 6 failed, 1355 s
+1550/1641 done, 6 failed, 1383 s
+1600/1641 done, 6 failed, 1419 s
+finished 1641, failed 6, 1445 s

@@ -5,7 +5,7 @@ import { ChartFrame } from './chart-frame'
 import { ChartTooltip } from './chart-tooltip'
 import { useChartTheme } from './chart-theme'
 
-/** What the Scout Agent actually collected, by source kind. */
+/** What the Scout Engine actually collected, by source kind. */
 export function SourceMixChart({ sources }: { sources: ScrapedSource[] }) {
   const theme = useChartTheme()
 
@@ -20,7 +20,7 @@ export function SourceMixChart({ sources }: { sources: ScrapedSource[] }) {
   return (
     <ChartFrame
       title="Sources collected"
-      description="The corpus the Insight Agent reasoned over."
+      description="The corpus the Gap Engine reasoned over."
       table={{ columns: ['Source type', 'Count'], rows: data.map((row) => [row.kind, row.count]) }}
       height={Math.max(160, data.length * 36)}
     >

@@ -78,9 +78,9 @@ class PipelineState(CamelModel):
 #: Stage metadata, kept in step with frontend/src/lib/pipeline-stages.ts.
 STAGE_DEFINITIONS: dict[int, dict[str, object]] = {
     1: {"key": StageKey.INPUT, "title": "User Input", "actor": StageActor.HUMAN},
-    2: {"key": StageKey.SCOUT, "title": "Scout Agent", "actor": StageActor.AGENT},
+    2: {"key": StageKey.SCOUT, "title": "Scout Engine", "actor": StageActor.AGENT},
     3: {"key": StageKey.PREPROCESS, "title": "Preprocessing & Storage", "actor": StageActor.SYSTEM},
-    4: {"key": StageKey.INSIGHT, "title": "Insight Agent", "actor": StageActor.AGENT},
+    4: {"key": StageKey.INSIGHT, "title": "Gap Engine", "actor": StageActor.AGENT},
     5: {
         "key": StageKey.REVIEW_GAPS,
         "title": "Human Review - Gap Refinement",

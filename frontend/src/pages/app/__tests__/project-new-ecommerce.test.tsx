@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -52,30 +52,39 @@ describe('New analysis, comparison type', () => {
     expect(screen.getByRole('combobox', { name: /comparison type/i })).toBeInTheDocument()
   })
 
-  it('defaults to an e-commerce comparison, the one type available', () => {
+  it('defaults to an Instagram comparison, the product the site is about', () => {
     renderForm()
 
-    expect(screen.getByRole('combobox', { name: /^platform/i })).toBeInTheDocument()
-    expect(screen.getByLabelText(/^product name/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^your product link/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^product link/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^page name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^platform link/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/^product name/i)).not.toBeInTheDocument()
   })
 
-  it('offers all three comparison types, now that each has a scraper', () => {
+  it('offers Instagram and marketplace listings, and no longer offers websites', () => {
     const { container } = renderForm()
     // Radix mirrors each item into a hidden native <select> for forms; its
     // options carry the disabled state without opening the dropdown.
     const option = (value: string) =>
       container.querySelector<HTMLOptionElement>(`select option[value="${value}"]`)
 
-    expect(option('website')?.disabled).toBe(false)
+    expect(option('website')).toBeNull()
     expect(option('social_media')?.disabled).toBe(false)
     expect(option('ecommerce_product')?.disabled).toBe(false)
   })
 
-  it('says scraping starts on create', () => {
+  it('says reading starts on create', () => {
     renderForm()
-    expect(screen.getByText(/scraping starts as soon as you create the analysis/i)).toBeInTheDocument()
+    expect(screen.getByText(/starts as soon as you create the analysis/i)).toBeInTheDocument()
+  })
+
+  it('stays on page 1 and marks the empty fields when Next is pressed too early', async () => {
+    renderForm()
+    expect(screen.getByText(/page 1 of 2/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^page name/i)).toHaveAttribute('aria-invalid', 'true')
+    })
+    expect(screen.getByText(/page 1 of 2/i)).toBeInTheDocument()
   })
 
   it('does not ask for competitor social handles', () => {

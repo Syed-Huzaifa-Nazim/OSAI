@@ -115,7 +115,7 @@ export default function ProjectsPage() {
           description={
             projects?.length
               ? 'Try a different search term or clear the status filter.'
-              : 'Add your brand and the competitors you want to measure against, and the Scout Agent will start collecting.'
+              : 'Add your brand and the competitors you want to measure against, and the Scout Engine will start collecting.'
           }
           icon={<FolderKanban className="size-5" />}
           action={

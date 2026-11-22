@@ -1,0 +1,40 @@
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+800 reviews, 22 reasons, 0 person-checked
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 5307.21it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 12053.98it/s]
+Loading weights:   0%|          | 0/197 [00:00<?, ?it/s]Loading weights: 100%|██████████| 197/197 [00:00<00:00, 10155.82it/s]
+[transformers] [1mXLMRobertaModel LOAD REPORT[0m from: /home/hadia/Downloads/OptiStratixAI/Development/Daraz_Model/model_package/aspect_model
+Key                        | Status     | 
+---------------------------+------------+-
+classifier.out_proj.weight | UNEXPECTED | 
+classifier.dense.bias      | UNEXPECTED | 
+classifier.out_proj.bias   | UNEXPECTED | 
+classifier.dense.weight    | UNEXPECTED | 
+pooler.dense.weight        | MISSING    | 
+pooler.dense.bias          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights:  92%|█████████▏| 184/199 [00:00<00:00, 1822.62it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 1945.76it/s]
+fold 1 done
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3798.19it/s]
+fold 2 done
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 4109.35it/s]
+fold 3 done
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 4590.65it/s]
+fold 4 done
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 4024.51it/s]
+fold 5 done
+                            method  micro_f1  macro_f1  micro_precision  micro_recall micro_f1_on_person_checked  n_reviews  n_person_checked
+      TF-IDF + logistic regression     0.654     0.512            0.718         0.601                       None        800                 0
+  frozen XLM-R (team encoder) + LR     0.623     0.554            0.595         0.654                       None        800                 0
+                     keyword rules     0.590     0.513            0.837         0.456                       None        800                 0
+fine-tuned MiniLM (Model C recipe)     0.573     0.496            0.456         0.770                       None        800                 0
+         team model as-is (mapped)     0.395     0.332            0.874         0.255                       None        800                 0
+majority (two most common reasons)     0.297     0.040            0.284         0.312                       None        800                 0
+training the final model on all reviews: fine-tuned MiniLM (Model C recipe)
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 3901.97it/s]
+Writing model shards:   0%|          | 0/1 [00:00<?, ?it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  8.40it/s]Writing model shards: 100%|██████████| 1/1 [00:00<00:00,  8.39it/s]
+saved /home/hadia/Downloads/OptiStratixAI/Development/backend_v2/app/analysis/daraz/models/review_reasons

@@ -1,0 +1,8 @@
+method,micro_f1,macro_f1,exact_match,micro_f1_on_person_checked,n_scored,n_person_checked
+majority (always product_details + call_to_order),0.454,0.083,0.175,0.35,962,100
+keyword rules,0.72,0.648,0.474,0.653,962,100
+TF-IDF + logistic regression,0.733,0.555,0.473,0.638,962,100
+multilingual embeddings + logistic regression,0.631,0.473,0.274,0.626,962,100
+fine-tuned multilingual transformer,0.709,0.258,0.48,0.548,962,100
+LLM zero-shot (openai/gpt-oss-120b),0.797,0.758,0.573,0.757,962,100
+LLM few-shot (openai/gpt-oss-120b),0.818,0.751,0.611,0.78,560,75

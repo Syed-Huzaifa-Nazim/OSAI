@@ -35,7 +35,7 @@ const PRIORITY_RANK: Record<GapPriority, number> = {
   low: 3,
 }
 
-/** Stage 4 output: read-only view of everything the Insight Agent found. */
+/** Stage 4 output: read-only view of everything the Gap Engine found. */
 export default function InsightsPage() {
   const projectId = useProjectId()
   const project = useProject(projectId)
@@ -76,7 +76,7 @@ export default function InsightsPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Stage 4 · Insight Agent"
+        eyebrow="Step 2 · Find gaps"
         title="Gaps and opportunities"
         description="What the analysis found between your brand and the competitors you named. Every claim carries the passage it came from."
         actions={
@@ -102,11 +102,11 @@ export default function InsightsPage() {
         <LoadingState rows={4} />
       ) : (gaps ?? []).length === 0 ? (
         <EmptyState
-          title={stageComplete ? 'No gaps were identified' : 'The Insight Agent has not run yet'}
+          title={stageComplete ? 'No gaps were identified' : 'The Gap Engine has not run yet'}
           description={
             stageComplete
               ? 'The analysis completed without finding a gap it could support with evidence. That is a real result. It usually means the competitor set was too similar to your brand to be informative.'
-              : 'Start the pipeline and let the Scout and Insight agents work through your competitor set. Findings appear here as soon as stage 4 completes.'
+              : 'Start the pipeline and let the Scout and Gap engines work through your competitor set. Findings appear here as soon as stage 4 completes.'
           }
           icon={<Lightbulb className="size-5" />}
           action={

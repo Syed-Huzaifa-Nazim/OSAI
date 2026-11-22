@@ -1,0 +1,173 @@
+{
+ "named_by": "the developers, after reading each topic's top words (edit freely)",
+ "topics": {
+  "0": {
+   "name": "Everyday chatter",
+   "generic": true,
+   "terms": [
+    "like",
+    "just",
+    "know",
+    "don",
+    "time",
+    "let",
+    "way",
+    "make"
+   ]
+  },
+  "1": {
+   "name": "Links and \"check it out\" posts",
+   "generic": false,
+   "terms": [
+    "bio",
+    "link",
+    "check",
+    "click",
+    "read",
+    "tap",
+    "song",
+    "available"
+   ]
+  },
+  "2": {
+   "name": "New arrivals and openings",
+   "generic": false,
+   "terms": [
+    "new",
+    "single",
+    "come",
+    "brand",
+    "look",
+    "shop",
+    "wear",
+    "open"
+   ]
+  },
+  "3": {
+   "name": "Special days (Mother's Day, Valentine's, Father's Day)",
+   "generic": false,
+   "terms": [
+    "day",
+    "happy",
+    "mother",
+    "beautiful",
+    "amazing",
+    "mothers",
+    "come",
+    "rest"
+   ]
+  },
+  "4": {
+   "name": "Seasonal collections",
+   "generic": false,
+   "terms": [
+    "ready",
+    "summer",
+    "season",
+    "#summer",
+    "dresses",
+    "#dress",
+    "getting",
+    "sunny"
+   ]
+  },
+  "5": {
+   "name": "Orders and availability",
+   "generic": false,
+   "terms": [
+    "order",
+    "available",
+    "measurements",
+    "individual",
+    "sewing",
+    "write",
+    "direct",
+    "pre"
+   ]
+  },
+  "6": {
+   "name": "Website links and events",
+   "generic": false,
+   "terms": [
+    "com",
+    "www",
+    "comicon",
+    "sep",
+    "shop",
+    "dec",
+    "#pokemon",
+    "anime"
+   ]
+  },
+  "7": {
+   "name": "Greetings and wishes",
+   "generic": false,
+   "terms": [
+    "year",
+    "happy",
+    "birthday",
+    "wishing",
+    "christmas",
+    "time",
+    "wish",
+    "family"
+   ]
+  },
+  "8": {
+   "name": "Thank-yous and team",
+   "generic": false,
+   "terms": [
+    "thank",
+    "support",
+    "team",
+    "amazing",
+    "years",
+    "family",
+    "big",
+    "work"
+   ]
+  },
+  "9": {
+   "name": "Podcasts and books",
+   "generic": false,
+   "terms": [
+    "today",
+    "book",
+    "podcasts",
+    "episode",
+    "listen",
+    "leave",
+    "talk",
+    "spotify"
+   ]
+  },
+  "10": {
+   "name": "Music and nights out",
+   "generic": false,
+   "terms": [
+    "music",
+    "night",
+    "great",
+    "weekend",
+    "live",
+    "video",
+    "come",
+    "saturday"
+   ]
+  },
+  "11": {
+   "name": "Love and life messages",
+   "generic": false,
+   "terms": [
+    "love",
+    "life",
+    "best",
+    "beautiful",
+    "family",
+    "years",
+    "thanks",
+    "#love"
+   ]
+  }
+ }
+}

@@ -1,0 +1,710 @@
+{
+  "summary": {
+    "total": 60,
+    "negative": {
+      "count": 15,
+      "percent": 25.0
+    },
+    "neutral": {
+      "count": 13,
+      "percent": 21.7
+    },
+    "positive": {
+      "count": 32,
+      "percent": 53.3
+    }
+  },
+  "reasons": {
+    "positive": [
+      {
+        "aspect": "Price",
+        "reviews": 3,
+        "percent_of_reviews": 5.0,
+        "evidence": [
+          {
+            "review": "Great to use.. at this price range it's a good deal. khub e nice price o thik e asy akhn tiklyi today",
+            "confidence": 0.986
+          },
+          {
+            "review": "Nothing special about them but they are good for this price.",
+            "confidence": 0.965
+          },
+          {
+            "review": "Absolute loveddd it!! I ordered the brown one and its AMAAAZZZINNGGG. I was scared about ut being tight but it fit me perfectly. My waist is 32 btw. The material is really soft and the design is exactly the same. It is sooo worth the price.",
+            "confidence": 0.965
+          }
+        ]
+      },
+      {
+        "aspect": "Sound",
+        "reviews": 2,
+        "percent_of_reviews": 3.3,
+        "evidence": [
+          {
+            "review": "The product is very good for the price. The sound quality is excellent.",
+            "confidence": 0.983
+          },
+          {
+            "review": "It's inexpensive but very satisfying to use. Both sound and call quality are great.",
+            "confidence": 0.956
+          }
+        ]
+      },
+      {
+        "aspect": "Authenticity",
+        "reviews": 2,
+        "percent_of_reviews": 3.3,
+        "evidence": [
+          {
+            "review": "The product and quality of book is authentic .I am enjoying the book.",
+            "confidence": 0.993
+          },
+          {
+            "review": "Original product... drop resistance... display protection not cleared... whether an extra protector is needed.",
+            "confidence": 0.953
+          }
+        ]
+      },
+      {
+        "aspect": "Packaging",
+        "reviews": 2,
+        "percent_of_reviews": 3.3,
+        "evidence": [
+          {
+            "review": "Good packaging",
+            "confidence": 0.964
+          },
+          {
+            "review": "received on time. packaging is good. smell is bearable. not used it yet so can't tell that it's works or not. but the nexton products are good that's why purchasing it. hope it's works well.",
+            "confidence": 0.961
+          }
+        ]
+      },
+      {
+        "aspect": "Display_Camera",
+        "reviews": 1,
+        "percent_of_reviews": 1.7,
+        "evidence": [
+          {
+            "review": "Awesome camera quality and night vision quality. Overall, the best for the price.",
+            "confidence": 0.964
+          }
+        ]
+      },
+      {
+        "aspect": "Delivery",
+        "reviews": 1,
+        "percent_of_reviews": 1.7,
+        "evidence": [
+          {
+            "review": "received on time. packaging is good. smell is bearable. not used it yet so can't tell that it's works or not. but the nexton products are good that's why purchasing it. hope it's works well.",
+            "confidence": 0.961
+          }
+        ]
+      }
+    ],
+    "negative": [
+      {
+        "aspect": "Quality",
+        "reviews": 3,
+        "percent_of_reviews": 5.0,
+        "evidence": [
+          {
+            "review": "Its damaged from 3 sites…!!!!! Disapponted low quality plastic.",
+            "confidence": 0.986
+          },
+          {
+            "review": "poor quality and not adjustable Honda 125 basically this is Honda cd 70cc size",
+            "confidence": 0.984
+          },
+          {
+            "review": "The bukle is same quality but the belt is ver poor quality",
+            "confidence": 0.97
+          }
+        ]
+      },
+      {
+        "aspect": "Durability",
+        "reviews": 2,
+        "percent_of_reviews": 3.3,
+        "evidence": [
+          {
+            "review": "cheep plastic broken down after 1 month. sound quality is also very bad.",
+            "confidence": 0.975
+          },
+          {
+            "review": "It's broken.One of connected wire has no plug.",
+            "confidence": 0.964
+          }
+        ]
+      },
+      {
+        "aspect": "Authenticity",
+        "reviews": 2,
+        "percent_of_reviews": 3.3,
+        "evidence": [
+          {
+            "review": "Not the original M10, but a copy version.",
+            "confidence": 0.989
+          },
+          {
+            "review": "Bad duplicate product, fraud seller.",
+            "confidence": 0.986
+          }
+        ]
+      },
+      {
+        "aspect": "Battery",
+        "reviews": 1,
+        "percent_of_reviews": 1.7,
+        "evidence": [
+          {
+            "review": "Battery connection issue. Product quality is not good.",
+            "confidence": 0.969
+          }
+        ]
+      },
+      {
+        "aspect": "Sound",
+        "reviews": 1,
+        "percent_of_reviews": 1.7,
+        "evidence": [
+          {
+            "review": "cheep plastic broken down after 1 month. sound quality is also very bad.",
+            "confidence": 0.961
+          }
+        ]
+      },
+      {
+        "aspect": "Connectivity",
+        "reviews": 1,
+        "percent_of_reviews": 1.7,
+        "evidence": [
+          {
+            "review": "Used product. Bad sound, disconnects frequently, complete waste of money.",
+            "confidence": 0.954
+          }
+        ]
+      },
+      {
+        "aspect": "Size_Capacity",
+        "reviews": 1,
+        "percent_of_reviews": 1.7,
+        "evidence": [
+          {
+            "review": "poor quality and not adjustable Honda 125 basically this is Honda cd 70cc size",
+            "confidence": 0.954
+          }
+        ]
+      },
+      {
+        "aspect": "Delivery",
+        "reviews": 1,
+        "percent_of_reviews": 1.7,
+        "evidence": [
+          {
+            "review": "I order blue huddi but i receive in black color very disappointing delivery",
+            "confidence": 0.959
+          }
+        ]
+      }
+    ]
+  },
+  "per_review": [
+    {
+      "review": "Excellent quality, and thanks for the gift.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.889,
+      "reasons": []
+    },
+    {
+      "review": "Wax was packaged well. And it was good. Will use in some days and post a second review as follow up. Recommended this product.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.959,
+      "reasons": []
+    },
+    {
+      "review": "very good flats I am very happy",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.985,
+      "reasons": []
+    },
+    {
+      "review": "Received the product in good and intact condition, working fine as well.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.88,
+      "reasons": []
+    },
+    {
+      "review": "Fair for the price, but it hurts my ears.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.876,
+      "reasons": []
+    },
+    {
+      "review": "Wow it's too amazing I like the product and I want to buy more Appreciated ❤❤❤",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.973,
+      "reasons": []
+    },
+    {
+      "review": "The bukle is same quality but the belt is ver poor quality",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.694,
+      "reasons": [
+        {
+          "aspect": "Quality",
+          "polarity": "negative",
+          "confidence": 0.97
+        }
+      ]
+    },
+    {
+      "review": "Excellent product. loved it. Will definitely recommend it",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.982,
+      "reasons": []
+    },
+    {
+      "review": "Network speed is stable.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.729,
+      "reasons": []
+    },
+    {
+      "review": "I order blue huddi but i receive in black color very disappointing delivery",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.981,
+      "reasons": [
+        {
+          "aspect": "Delivery",
+          "polarity": "negative",
+          "confidence": 0.959
+        }
+      ]
+    },
+    {
+      "review": "It's broken.One of connected wire has no plug.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.966,
+      "reasons": [
+        {
+          "aspect": "Durability",
+          "polarity": "negative",
+          "confidence": 0.964
+        }
+      ]
+    },
+    {
+      "review": "received on time. packaging is good. smell is bearable. not used it yet so can't tell that it's works or not. but the nexton products are good that's why purchasing it. hope it's works well.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.551,
+      "reasons": [
+        {
+          "aspect": "Delivery",
+          "polarity": "positive",
+          "confidence": 0.961
+        },
+        {
+          "aspect": "Packaging",
+          "polarity": "positive",
+          "confidence": 0.961
+        }
+      ]
+    },
+    {
+      "review": "great wow",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.977,
+      "reasons": []
+    },
+    {
+      "review": "awesome shirt",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.976,
+      "reasons": []
+    },
+    {
+      "review": "The product is very good for the price. The sound quality is excellent.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.914,
+      "reasons": [
+        {
+          "aspect": "Sound",
+          "polarity": "positive",
+          "confidence": 0.983
+        }
+      ]
+    },
+    {
+      "review": "Good, but I thought it would be a long-range camera. It's only limited by Wi-Fi range.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.717,
+      "reasons": []
+    },
+    {
+      "review": "Not worth the money, the thumb broke.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.955,
+      "reasons": []
+    },
+    {
+      "review": "Battery connection issue. Product quality is not good.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.838,
+      "reasons": [
+        {
+          "aspect": "Battery",
+          "polarity": "negative",
+          "confidence": 0.969
+        }
+      ]
+    },
+    {
+      "review": "The product and quality of book is authentic .I am enjoying the book.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.948,
+      "reasons": [
+        {
+          "aspect": "Authenticity",
+          "polarity": "positive",
+          "confidence": 0.993
+        }
+      ]
+    },
+    {
+      "review": "Alhamdulillah, I am satisfied. ❤️",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.746,
+      "reasons": []
+    },
+    {
+      "review": "behtreen product buy kro sb bhaii",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.974,
+      "reasons": []
+    },
+    {
+      "review": "Good, and I also received the gifts. Wow ❤️❤️",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.844,
+      "reasons": []
+    },
+    {
+      "review": "Bad experience 👎",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.988,
+      "reasons": []
+    },
+    {
+      "review": "the remote control is not original tv control panel not working just buttons.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.982,
+      "reasons": []
+    },
+    {
+      "review": "they are selling copy of gionee. not a good product. money wasted",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.991,
+      "reasons": []
+    },
+    {
+      "review": "Satisfactory quality",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.789,
+      "reasons": []
+    },
+    {
+      "review": "Awesome camera quality and night vision quality. Overall, the best for the price.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.904,
+      "reasons": [
+        {
+          "aspect": "Display_Camera",
+          "polarity": "positive",
+          "confidence": 0.964
+        }
+      ]
+    },
+    {
+      "review": "Not the original M10, but a copy version.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.565,
+      "reasons": [
+        {
+          "aspect": "Authenticity",
+          "polarity": "negative",
+          "confidence": 0.989
+        }
+      ]
+    },
+    {
+      "review": "Great to use.. at this price range it's a good deal. khub e nice price o thik e asy akhn tiklyi today",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.949,
+      "reasons": [
+        {
+          "aspect": "Price",
+          "polarity": "positive",
+          "confidence": 0.986
+        }
+      ]
+    },
+    {
+      "review": "poor quality and not adjustable Honda 125 basically this is Honda cd 70cc size",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.986,
+      "reasons": [
+        {
+          "aspect": "Quality",
+          "polarity": "negative",
+          "confidence": 0.984
+        },
+        {
+          "aspect": "Size_Capacity",
+          "polarity": "negative",
+          "confidence": 0.954
+        }
+      ]
+    },
+    {
+      "review": "Absolute loveddd it!! I ordered the brown one and its AMAAAZZZINNGGG. I was scared about ut being tight but it fit me perfectly. My waist is 32 btw. The material is really soft and the design is exactly the same. It is sooo worth the price.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.884,
+      "reasons": [
+        {
+          "aspect": "Price",
+          "polarity": "positive",
+          "confidence": 0.965
+        }
+      ]
+    },
+    {
+      "review": "Good & same all sizes.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.968,
+      "reasons": []
+    },
+    {
+      "review": "Used product. Bad sound, disconnects frequently, complete waste of money.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.967,
+      "reasons": [
+        {
+          "aspect": "Connectivity",
+          "polarity": "negative",
+          "confidence": 0.954
+        }
+      ]
+    },
+    {
+      "review": "Good packaging",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.959,
+      "reasons": [
+        {
+          "aspect": "Packaging",
+          "polarity": "positive",
+          "confidence": 0.964
+        }
+      ]
+    },
+    {
+      "review": "The seller's behavior was excellent. Overall, it's an amazing product for the price.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.799,
+      "reasons": []
+    },
+    {
+      "review": "Nothing special about them but they are good for this price.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.777,
+      "reasons": [
+        {
+          "aspect": "Price",
+          "polarity": "positive",
+          "confidence": 0.965
+        }
+      ]
+    },
+    {
+      "review": "every thing is all right but the size is not fit on my foot",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.912,
+      "reasons": []
+    },
+    {
+      "review": "Its damaged from 3 sites…!!!!! Disapponted low quality plastic.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.987,
+      "reasons": [
+        {
+          "aspect": "Quality",
+          "polarity": "negative",
+          "confidence": 0.986
+        }
+      ]
+    },
+    {
+      "review": "shirt is nice and breathable for summer wear, but the sweatpants are very warm. they have a light fleece lining inside which means it can absolutely not be worn in summer here :/.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.645,
+      "reasons": []
+    },
+    {
+      "review": "😊 nice",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.952,
+      "reasons": []
+    },
+    {
+      "review": "Same as shown in picture. Well packed, with an extra pair of laces. Soul is hard but overall worth the price 👍",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.688,
+      "reasons": []
+    },
+    {
+      "review": "Original product... drop resistance... display protection not cleared... whether an extra protector is needed.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.933,
+      "reasons": [
+        {
+          "aspect": "Authenticity",
+          "polarity": "positive",
+          "confidence": 0.953
+        }
+      ]
+    },
+    {
+      "review": "Rlly good",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.913,
+      "reasons": []
+    },
+    {
+      "review": "excellent zabardast",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.983,
+      "reasons": []
+    },
+    {
+      "review": "both acha hia",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.958,
+      "reasons": []
+    },
+    {
+      "review": "Good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality, good quality,",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.916,
+      "reasons": []
+    },
+    {
+      "review": "It shakes the whole room.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.655,
+      "reasons": []
+    },
+    {
+      "review": "the white clay is really dry and i am unable to make anything out of it. I have used clay before and these are way too dried.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.978,
+      "reasons": []
+    },
+    {
+      "review": "Not original but output is the same.RECOMMENDED.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.945,
+      "reasons": []
+    },
+    {
+      "review": "These ear pods are not working and are not being charged.....So I am returning it! I don't need it.....poor quality.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.967,
+      "reasons": []
+    },
+    {
+      "review": "It's inexpensive but very satisfying to use. Both sound and call quality are great.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.8,
+      "reasons": [
+        {
+          "aspect": "Sound",
+          "polarity": "positive",
+          "confidence": 0.956
+        }
+      ]
+    },
+    {
+      "review": "Bad duplicate product, fraud seller.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.981,
+      "reasons": [
+        {
+          "aspect": "Authenticity",
+          "polarity": "negative",
+          "confidence": 0.986
+        }
+      ]
+    },
+    {
+      "review": "Product we got as it was seen in pictures. Thank you",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.772,
+      "reasons": []
+    },
+    {
+      "review": "its not work that much.not whitening the teeth. just clean the teeth thats it.but its ok if you want to use for cleaning the teeth.",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.504,
+      "reasons": []
+    },
+    {
+      "review": "Normal charger nothing special",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.946,
+      "reasons": []
+    },
+    {
+      "review": "Build Quality is good too. Seller mentioned that blower is adjustable but I did not find any think to adjust. Other it is worth buying.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.525,
+      "reasons": []
+    },
+    {
+      "review": "Alhamdulillah, it's a very good pendrive.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.802,
+      "reasons": []
+    },
+    {
+      "review": "cheep plastic broken down after 1 month. sound quality is also very bad.",
+      "sentiment": "negative",
+      "sentiment_confidence": 0.99,
+      "reasons": [
+        {
+          "aspect": "Durability",
+          "polarity": "negative",
+          "confidence": 0.975
+        },
+        {
+          "aspect": "Sound",
+          "polarity": "negative",
+          "confidence": 0.961
+        }
+      ]
+    },
+    {
+      "review": "This speaker is good, Alhamdulillah.",
+      "sentiment": "positive",
+      "sentiment_confidence": 0.667,
+      "reasons": []
+    },
+    {
+      "review": "The battery is charging thakei and...",
+      "sentiment": "neutral",
+      "sentiment_confidence": 0.507,
+      "reasons": []
+    }
+  ]
+}

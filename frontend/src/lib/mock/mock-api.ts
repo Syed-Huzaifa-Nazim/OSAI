@@ -99,7 +99,7 @@ const state: MockState = {
       featureKey: 'sentiment-tracker',
       name: 'Review Sentiment Tracker',
       description:
-        'Teammate-built module. Continuous sentiment scan over review sources, feeding the Insight Agent.',
+        'Teammate-built module. Continuous sentiment scan over review sources, feeding the Gap Engine.',
       status: 'coming_soon',
       connectedAt: null,
       config: null,

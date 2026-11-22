@@ -10,10 +10,10 @@ import { useThemeStore } from '@/stores/theme-store'
  * normal-vision floor, and contrast against the mode's own surface) and each
  * mode passes all six checks on its own steps. Dark is not a flipped light.
  *
- *   dark  surface #121212 · light surface #FFF9EB
+ *   dark  surface #17152A · light surface #FFFFFF (Violet theme)
  *
  * The categorical order is fixed and assigned in sequence, never cycled. Slot 1
- * is always the user's own brand, so the honey accent means "you" in every
+ * is always the user's own brand, so the violet accent means "you" in every
  * comparison. Four slots is the ceiling: a fifth series folds into "Other".
  */
 
@@ -33,25 +33,25 @@ export interface ChartTheme {
 }
 
 const DARK: ChartTheme = {
-  categorical: ['#c17d2a', '#4b8ad2', '#36a05c', '#b17acd'],
-  sequential: ['#604524', '#8e6129', '#be7d2d', '#db9643', '#e8af68'],
-  status: { good: '#36a05c', warning: '#e8af68', critical: '#cf5341' },
-  surface: '#121212',
-  grid: 'rgba(168, 159, 148, 0.14)',
-  axis: 'rgba(168, 159, 148, 0.28)',
-  text: '#f4e9d2',
-  textMuted: '#a89f94',
+  categorical: ['#8b73ff', '#5aa2f0', '#3fbf7a', '#f8c81c'],
+  sequential: ['#2e2766', '#463a9c', '#6150d1', '#7b61ff', '#a594ff'],
+  status: { good: '#3fbf7a', warning: '#f8c81c', critical: '#f0606e' },
+  surface: '#17152a',
+  grid: 'rgba(165, 148, 255, 0.14)',
+  axis: 'rgba(165, 148, 255, 0.28)',
+  text: '#f2efff',
+  textMuted: '#a9a5c7',
 }
 
 const LIGHT: ChartTheme = {
-  categorical: ['#af6d1d', '#2967ae', '#257e46', '#914ab5'],
-  sequential: ['#ebd8c2', '#dfbc90', '#d69f5c', '#cb822a', '#9e621a'],
-  status: { good: '#257e46', warning: '#9e621a', critical: '#b23c2b'},
-  surface: '#fff9eb',
-  grid: 'rgba(120, 108, 94, 0.16)',
-  axis: 'rgba(120, 108, 94, 0.34)',
-  text: '#171717',
-  textMuted: '#5f584f',
+  categorical: ['#5b3be6', '#2967ae', '#1f7f4f', '#a37800'],
+  sequential: ['#ddd6fe', '#c4b5fd', '#a78bfa', '#7c5cf0', '#5b3be6'],
+  status: { good: '#1f7f4f', warning: '#a37800', critical: '#c8283c' },
+  surface: '#ffffff',
+  grid: 'rgba(91, 59, 230, 0.10)',
+  axis: 'rgba(70, 60, 120, 0.30)',
+  text: '#13112b',
+  textMuted: '#5b5878',
 }
 
 export function useChartTheme(): ChartTheme {

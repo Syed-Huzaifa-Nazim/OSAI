@@ -248,6 +248,13 @@ def stubbed(monkeypatch: pytest.MonkeyPatch) -> dict[str, list]:
     monkeypatch.setattr(chroma, "add_chunks", fake_add_chunks)
     monkeypatch.setattr(chroma, "query", fake_query)
     monkeypatch.setattr(chroma, "delete_collection", lambda project_id: None)
+
+    # Instagram chunks go to pgvector; no model download in tests.
+    from app.analysis.instagram import embeddings as pg_embeddings
+
+    monkeypatch.setattr(
+        pg_embeddings, "embed", lambda texts: [[1.0] + [0.0] * 383 for _ in texts]
+    )
     return calls
 
 
@@ -487,10 +494,15 @@ def test_captions_hashtags_and_comments_are_embedded_separately(
     project_id = _create(client, INSTAGRAM_INTAKE)
     _scrape(client, project_id)
 
-    assert {row["field_type"] for row in stubbed["stored"]} == {"caption", "hashtags", "comments"}
-    assert {row["kind"] for row in stubbed["stored"]} == {"instagram"}
-    # A post has no title of its own, so its caption names it in the citation.
-    assert all(row["source_title"] for row in stubbed["stored"])
+    from app.services.repository import MemoryRepository
+
+    # Instagram chunks are stored in Postgres (pgvector), never in Chroma.
+    assert stubbed["stored"] == []
+    rows = [r for r in MemoryRepository._instagram_chunks if r["project_id"] == project_id]
+    assert {row["field_type"] for row in rows} == {"caption", "hashtags", "comments"}
+    assert {row["role"] for row in rows} == {"own", "competitor"}
+    assert all(len(row["embedding"]) == 384 for row in rows)
+    assert all(row["post_url"] for row in rows)
 
 
 # ------------------------------------------------------- website comparison

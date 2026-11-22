@@ -281,10 +281,12 @@ async def _run_stage(
         if project.get("social_platform") == "instagram":
             context["instagram_posts"] = repo.list_instagram_posts(project_id)
             context["instagram_post_comments"] = repo.list_instagram_post_comments(project_id)
-        result = await get_agent(4, project).run(context)
+        agent = get_agent(4, project)
+        result = await agent.run(context)
         repo.replace_gaps(project_id, result.payload)
         repo.update_project(project_id, {"gap_count": len(result.payload)})
-        message = f"{result.items_processed} gaps identified"
+        message = (result.warnings[0] if getattr(agent, "not_built", False) and result.warnings
+                   else f"{result.items_processed} gaps identified")
 
     elif stage_id == 6:
         result = await _run_strategy_stage(repo, project_id, project, context)
@@ -316,6 +318,9 @@ async def _run_stage(
             "notes": list(result.warnings),
             "analysis": (result.artifacts.get("instagram_analysis") or {}).get("competitors")
             if isinstance(result.artifacts.get("instagram_analysis"), dict)
+            else None,
+            "daraz": (result.artifacts.get("daraz_analysis") or {}).get("competitors")
+            if isinstance(result.artifacts.get("daraz_analysis"), dict)
             else None,
         },
     )

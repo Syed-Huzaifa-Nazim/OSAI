@@ -1,0 +1,61 @@
+{
+ "about": "Checked general facts the Explain button may use for 'why this kind of difference can matter'. Each fact has its source. The LLM may only rephrase these and must cite them as [K#]; it cannot add facts. 'verified': false means the source is a news site or a study summary, and should be checked against the original before a demo. Edit freely: add facts, fix wording, remove anything you cannot stand behind.",
+ "facts": [
+  {
+   "id": "carousel-swipe",
+   "tags": ["format:carousel"],
+   "text": "A carousel is one Instagram post that holds several photos and videos, which people swipe through.",
+   "source": "Instagram Help Center: Share multiple photos or videos as a single post",
+   "url": "https://help.instagram.com/iphone-app/269314186824048",
+   "verified": true
+  },
+  {
+   "id": "recommended-to-non-followers",
+   "tags": ["format:video / reel", "media:video_quality"],
+   "text": "Instagram can recommend posts and reels from public accounts to people who do not follow them, in places like Explore, Reels and Feed.",
+   "source": "Instagram Help Center: Recommendations guidelines",
+   "url": "https://help.instagram.com/653964212890722",
+   "verified": true
+  },
+  {
+   "id": "low-quality-reels",
+   "tags": ["media:video_quality", "format:video / reel"],
+   "text": "Instagram says lower-quality reels are less likely to be recommended to people who do not already follow the account.",
+   "source": "Instagram for Creators: What creators need to know about Instagram recommendations",
+   "url": "https://creators.instagram.com/blog/instagram-recommendations-eligibility-tips-creators",
+   "verified": true
+  },
+  {
+   "id": "hashtag-search",
+   "tags": ["hashtag"],
+   "text": "Tapping a hashtag on Instagram opens search results with posts and accounts that use it, so hashtags can help people who do not follow an account find its posts.",
+   "source": "Search Engine Land: Instagram updates hashtag search",
+   "url": "https://searchengineland.com/instagram-updates-hashtag-search-account-post-438748",
+   "verified": false
+  },
+  {
+   "id": "profile-links",
+   "tags": ["profile:website"],
+   "text": "An Instagram profile can show up to five links, which gives visitors a direct way to reach a shop or a contact page.",
+   "source": "TechCrunch (18 Apr 2023): Instagram adds support for up to 5 links in bio",
+   "url": "https://techcrunch.com/2023/04/18/instagram-takes-on-linktree-and-others-with-support-for-up-to-5-links-in-bio/",
+   "verified": true
+  },
+  {
+   "id": "image-quality-purchase",
+   "tags": ["media:image_quality"],
+   "text": "A 2024 study of Facebook Marketplace listings found that better image quality raised how buyers judged a product's quality, which in turn raised their intention to buy.",
+   "source": "DLSU Business & Economics Review (2024): The Mediating Effect of Perceived Quality to Image Quality and Purchase Intention",
+   "url": "https://animorepository.dlsu.edu.ph/ber/vol34/iss1/16",
+   "verified": false
+  },
+  {
+   "id": "memorability-consistent",
+   "tags": ["media:memorability"],
+   "text": "Research on 60,000 images found that some images are remembered much more than others, and that different people tend to remember the same images.",
+   "source": "Khosla et al., Understanding and Predicting Image Memorability at a Large Scale (ICCV 2015)",
+   "url": "https://openaccess.thecvf.com/content_iccv_2015/papers/Khosla_Understanding_and_Predicting_ICCV_2015_paper.pdf",
+   "verified": true
+  }
+ ]
+}

@@ -110,6 +110,75 @@ export const api = {
     request<T>(path, { ...options, method: 'DELETE' }),
 }
 
+/**
+ * Downloads a file from a protected endpoint (it needs the login token, so a plain link would be refused)
+ * and saves it in the browser under `filename`.
+ */
+/**
+ * Opens a file from the API (e.g. a PDF report) in a browser tab. `tab` must be opened by the click itself
+ * (window.open before any await), or the browser blocks it as a pop-up; without it the file is downloaded instead.
+ */
+export async function openFile(path: string, filename: string, tab: Window | null): Promise<void> {
+  const headers = new Headers()
+  const token = await getAccessToken()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  let response: Response
+  try {
+    response = await fetch(`${config.apiBaseUrl}${path}`, { headers })
+  } catch {
+    tab?.close()
+    throw new ApiError(0, null, 'Could not reach the OptiStratixAI API. Check your connection.')
+  }
+  if (!response.ok) {
+    tab?.close()
+    const text = await response.text()
+    throw new ApiError(
+      response.status,
+      (text ? safeJsonParse(text) : null) as ApiErrorBody | null,
+      `Opening the report failed with status ${response.status}`,
+    )
+  }
+  const url = URL.createObjectURL(await response.blob())
+  if (tab) {
+    tab.location.href = url
+    return
+  }
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+}
+
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const headers = new Headers()
+  const token = await getAccessToken()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  let response: Response
+  try {
+    response = await fetch(`${config.apiBaseUrl}${path}`, { headers })
+  } catch {
+    throw new ApiError(0, null, 'Could not reach the OptiStratixAI API. Check your connection.')
+  }
+  if (!response.ok) {
+    const text = await response.text()
+    throw new ApiError(
+      response.status,
+      (text ? safeJsonParse(text) : null) as ApiErrorBody | null,
+      `Download failed with status ${response.status}`,
+    )
+  }
+  const url = URL.createObjectURL(await response.blob())
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}
+
 /** Normalises anything thrown into a message safe to show a user. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message

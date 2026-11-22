@@ -64,6 +64,50 @@ def grade_account(model, row):
             "probabilities": {str(c): float(x) for c, x in zip(model.classes_, p)}}
 
 
+# Names for the features that are not habits (shown, never reported as gaps).
+OTHER_LABELS = {
+    "feat_followers": "Followers",
+    "feat_following": "Following",
+    "feat_total_posts": "Total posts",
+    "feat_follow_ratio": "Followers per following",
+    "feat_is_verified": "Verified badge",
+}
+
+
+def feature_label(feat):
+    if feat in ACTIONABLE:
+        return ACTIONABLE[feat]
+    if feat in OTHER_LABELS:
+        return OTHER_LABELS[feat]
+    if feat.startswith("feat_cat_"):
+        return "Category: " + feat.replace("feat_cat_", "").replace("_", " ")
+    return feat
+
+
+def drivers(model, row, top_k=5):
+    """What moved this account's chance of 'good', habit by habit (TreeSHAP).
+
+    Returns the starting point (the average account's chance of 'good') and the
+    top_k features with the largest push up or down, in probability points.
+    Starting point + all pushes = the model's chance of 'good' for this account.
+    """
+    sv, base = _shap_for_good(model, row)
+    top = sv.abs().sort_values(ascending=False).index[:top_k]
+    return {
+        "base_good_chance": base,
+        "items": [
+            {
+                "feature": feat,
+                "label": feature_label(feat),
+                "value": None if pd.isna(row[feat].iloc[0]) else float(row[feat].iloc[0]),
+                "shap": float(sv[feat]),
+                "actionable": feat in ACTIONABLE,
+            }
+            for feat in top
+        ],
+    }
+
+
 def find_gaps(model, user_row, comp_row, top_k=TOP_K, min_gap=MIN_GAP):
     """user_row / comp_row: one-row DataFrames from features.account_features()."""
     sv_u, _ = _shap_for_good(model, user_row)

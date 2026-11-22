@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FormField } from '@/components/ui/form-field'
 import { Section } from '@/components/marketing/section'
+import { ContactVisual } from '@/components/marketing/contact-visual'
 import { contactSchema, type ContactValues } from '@/lib/validation'
 import { contactApi } from '@/lib/api/services'
 import { errorMessage } from '@/lib/api-client'
@@ -48,7 +49,7 @@ export default function ContactPage() {
 
   return (
     <>
-      <section className="pb-4 pt-16 sm:pt-24">
+      <section className="pb-0 pt-10 sm:pt-14">
         <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -68,7 +69,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <Section className="pt-8">
+      <Section className="pt-6 sm:pt-8">
         <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <Card className="p-7 sm:p-8">
             {sent ? (
@@ -164,6 +165,7 @@ export default function ContactPage() {
           </Card>
 
           <div className="space-y-4">
+            <ContactVisual />
             <Card glass className="p-6">
               <span className="flex size-9 items-center justify-center rounded-full bg-primary/12 text-primary">
                 <MapPin className="size-4" />

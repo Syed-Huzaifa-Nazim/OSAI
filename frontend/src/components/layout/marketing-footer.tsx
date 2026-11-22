@@ -9,7 +9,7 @@ export function MarketingFooter() {
         <div className="space-y-4">
           <Logo />
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            Human-in-the-loop multi-agentic RAG for smarter digital marketing. A Final Year Project
+            Competitor analysis for small online shops: see what works for them, find your gaps, decide what to change. A Final Year Project
             at the Department of Artificial Intelligence, Dawood University of Engineering &amp;
             Technology.
           </p>
@@ -47,7 +47,7 @@ export function MarketingFooter() {
 
       <div className="border-t border-border/10">
         <div className="container flex flex-wrap items-center justify-between gap-3 py-5 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} OptiStratixAI. Released under the MIT License.</p>
+          <p>© {new Date().getFullYear()} OptiStratixAI.</p>
           <p>Dawood University of Engineering &amp; Technology · Department of AI</p>
         </div>
       </div>

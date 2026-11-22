@@ -59,7 +59,7 @@ class SourcePreprocessAgent(BaseAgent):
                     texts.append(chunk)
                     metadatas.append({
                         "project_id": project_id,
-                        # What the Insight Agent cites, so evidence resolves to a
+                        # What the Gap Engine cites, so evidence resolves to a
                         # row the sources screen already shows.
                         "source_id": source_id,
                         "document_id": document_id,

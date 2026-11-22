@@ -27,7 +27,6 @@ function renderShell(initialPath = '/') {
         element: <MarketingShell />,
         children: [
           { path: '/', element: <h1>Home page</h1> },
-          { path: '/pricing', element: <h1>Pricing page</h1> },
           { path: '/about', element: <h1>About page</h1> },
         ],
       },
@@ -84,11 +83,11 @@ describe('marketing mobile drawer', () => {
     await user.click(screen.getByLabelText('Open navigation'))
     await waitFor(() => expect(drawer()).toBeInTheDocument())
 
-    const links = screen.getAllByRole('link', { name: /pricing/i })
+    const links = screen.getAllByRole('link', { name: /^about$/i })
     await user.click(links[links.length - 1]!)
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Pricing page' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'About page' })).toBeInTheDocument()
     })
     // The navigation must not leave the dialog behind.
     await waitFor(() => {

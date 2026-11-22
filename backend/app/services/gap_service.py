@@ -7,12 +7,17 @@ from typing import Any
 from app.core.errors import ConflictError
 from app.models.gap import GapPatch, GapReviewSubmit
 from app.services import demo_data, pipeline_service
+from app.services.post_stills import post_stills, with_stills
 from app.services.repository import Repository, new_id
 
 
 def list_gaps(repo: Repository, project_id: str) -> list[dict[str, Any]]:
     repo.get_project(project_id)
-    return repo.list_gaps(project_id)
+    gaps = repo.list_gaps(project_id)
+    if any((g.get("details") or {}).get("examples") or ((g.get("details") or {}).get("explanation") or {}).get("evidence")
+           for g in gaps):
+        gaps = with_stills(gaps, post_stills(repo, project_id))
+    return gaps
 
 
 def update_gap(

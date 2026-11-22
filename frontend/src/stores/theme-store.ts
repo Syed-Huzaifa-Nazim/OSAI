@@ -13,8 +13,8 @@ interface ThemeStore {
 
 function resolveMode(mode: ThemeMode): 'light' | 'dark' {
   if (mode !== 'system') return mode
-  if (typeof window === 'undefined') return 'dark'
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+  if (typeof window === 'undefined') return 'light'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 function applyToDocument(mode: ThemeMode): 'light' | 'dark' {
@@ -32,8 +32,8 @@ function applyToDocument(mode: ThemeMode): 'light' | 'dark' {
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
-      mode: 'dark',
-      resolved: 'dark',
+      mode: 'light',
+      resolved: 'light',
       setMode: (mode) => {
         set({ mode, resolved: applyToDocument(mode) })
       },

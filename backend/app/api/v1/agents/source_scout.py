@@ -1,4 +1,4 @@
-"""Stage 2: Scout Agent for website and social comparisons.
+"""Stage 2: Scout Engine for website and social comparisons.
 
 LIVE IMPLEMENTATION. Unlike the mock Scout this one really does go out and
 read pages, through the scrapers in ``app/scrapers/``.
@@ -61,7 +61,7 @@ DETAIL_ID_PREFIX = {"website": "page", "instagram": "post"}
 class SourceScoutAgent(BaseAgent):
     """Scrapes both sides of a website or social comparison."""
 
-    name = "Scout Agent (website/social)"
+    name = "Scout Engine (website/social)"
     stage = 2
     is_live = True
 
@@ -77,7 +77,7 @@ class SourceScoutAgent(BaseAgent):
         own_url = (project.get("brand_website") or "").strip()
 
         if not kind:
-            raise ConflictError("This project has nothing for the Scout Agent to read.")
+            raise ConflictError("This project has nothing for the Scout Engine to read.")
         if not own_url:
             raise ConflictError(
                 "This project has no link of your own, so there is nothing to compare."
@@ -209,11 +209,11 @@ class SourceScoutAgent(BaseAgent):
 
 
 class WebsiteScoutAgent(SourceScoutAgent):
-    name = "Scout Agent (website)"
+    name = "Scout Engine (website)"
 
 
 class SocialScoutAgent(SourceScoutAgent):
-    name = "Scout Agent (social)"
+    name = "Scout Engine (social)"
 
 
 __all__ = ["SourceScoutAgent", "WebsiteScoutAgent", "SocialScoutAgent"]

@@ -29,15 +29,20 @@ export function StatCard({
       transition={spring}
       whileHover={{ y: -2 }}
     >
-      <Card glass className={cn('h-full p-5', className)}>
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {label}
-          </p>
-          <Icon className={cn('size-4 shrink-0', accentClassName)} aria-hidden="true" />
+      <Card className={cn('flex h-full flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5', className)}>
+        <span
+          className={cn(
+            'flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted sm:size-12 sm:rounded-2xl',
+            accentClassName,
+          )}
+        >
+          <Icon className="size-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground sm:text-sm">{label}</p>
+          <p className="font-display text-2xl font-bold tabular-nums">{value}</p>
+          {hint ? <p className="hidden text-xs text-muted-foreground sm:block">{hint}</p> : null}
         </div>
-        <p className="mt-3 font-display text-2xl font-semibold tabular-nums">{value}</p>
-        {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
       </Card>
     </motion.div>
   )

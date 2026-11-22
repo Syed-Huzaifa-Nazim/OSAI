@@ -1,0 +1,10 @@
+label,captions_with_label,TF-IDF + logistic regression,multilingual embeddings + logistic regression,fine-tuned multilingual transformer,keyword rules
+offer,35,0.522,0.252,0.416,0.747
+new_arrival,108,0.476,0.478,0.542,0.671
+price,45,0.346,0.412,0.878,0.795
+call_to_order,471,0.726,0.701,0.809,0.831
+product_details,579,0.87,0.815,0.841,0.761
+review,31,0.429,0.292,0.377,0.577
+behind_the_scenes,39,0.364,0.2,0.441,0.34
+event_season,132,0.624,0.589,0.6,0.583
+other,144,0.64,0.513,0.595,0.53

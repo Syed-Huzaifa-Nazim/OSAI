@@ -1,11 +1,11 @@
 import {
   CreditCard,
+  FileBarChart,
   FileSearch,
   FileText,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
-  Plug,
   Radar,
   Scale,
   Settings,
@@ -29,12 +29,12 @@ export interface NavItem {
 export const MAIN_NAV: NavItem[] = [
   { label: 'Dashboard', to: '/app/dashboard', icon: LayoutDashboard },
   { label: 'Projects', to: '/app/projects', icon: Radar, matchPrefix: true },
+  { label: 'My reports', to: '/app/reports', icon: FileBarChart },
 ]
 
 export const SETTINGS_NAV: NavItem[] = [
   { label: 'Profile', to: '/app/settings/profile', icon: User },
   { label: 'Account', to: '/app/settings/account', icon: Settings },
-  { label: 'Integrations', to: '/app/settings/integrations', icon: Plug },
   { label: 'Billing', to: '/app/settings/billing', icon: CreditCard },
 ]
 
@@ -83,7 +83,6 @@ export function projectNav(
 export const MARKETING_NAV: { label: string; to: string }[] = [
   { label: 'How it works', to: '/how-it-works' },
   { label: 'Features', to: '/features' },
-  { label: 'Pricing', to: '/pricing' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
 ]

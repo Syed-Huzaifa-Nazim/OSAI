@@ -10,10 +10,11 @@ from typing import Any
 
 from app.api.v1.agents.base import BaseAgent
 from app.api.v1.agents.critic import MockCriticAgent
+from app.api.v1.agents.daraz_insight import DarazInsightAgent
 from app.api.v1.agents.ecommerce_insight import EcommerceInsightAgent
 from app.api.v1.agents.ecommerce_preprocess import EcommercePreprocessAgent
 from app.api.v1.agents.ecommerce_scout import EcommerceScoutAgent
-from app.api.v1.agents.insight import MockInsightAgent
+from app.api.v1.agents.insight import MockInsightAgent, NotBuiltInsightAgent
 from app.api.v1.agents.preprocess import MockPreprocessAgent
 from app.api.v1.agents.scout import MockScoutAgent
 from app.api.v1.agents.social_insight import SocialInsightAgent
@@ -52,6 +53,8 @@ _WEBSITE_AGENTS: dict[int, type[BaseAgent]] = {
 _SOCIAL_AGENTS: dict[int, type[BaseAgent]] = {
     2: SocialScoutAgent,
     3: SourcePreprocessAgent,
+    # Instagram gaps come from the trained engagement model; other platforms
+    # fall back to the mock inside the agent.
     4: SocialInsightAgent,
 }
 
@@ -82,6 +85,14 @@ def get_agent(stage: int, project: dict[str, Any] | None = None) -> BaseAgent:
     overrides: dict[int, type[BaseAgent]] = {}
     if project and not project.get("is_demo"):
         overrides = _BY_COMPARISON_TYPE.get(project.get("comparison_type") or "", {})
+
+    # A real (non-demo) website comparison has no gap analysis yet: say so instead of showing demo gaps.
+    if stage == 4 and project and not project.get("is_demo") and project.get("comparison_type") == ComparisonType.WEBSITE.value:
+        return NotBuiltInsightAgent("websites")
+
+    # Daraz listings get the data-based Daraz Gap Engine; other marketplaces keep the arithmetic comparison.
+    if stage == 4 and project and not project.get("is_demo") and (project.get("ecommerce_platform") or "") == "daraz":
+        return DarazInsightAgent()
 
     agent_class = overrides.get(stage) or _MOCK_AGENTS.get(stage)
     if agent_class is None:

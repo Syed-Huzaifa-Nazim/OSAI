@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
+import { FindGapsDialog } from '@/components/shared/find-gaps-dialog'
 import { motion } from 'framer-motion'
-import { ArrowUpRight, Heart, MessageCircle, Play, RotateCcw, ScanSearch, Sparkles } from 'lucide-react'
+import {
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  MessageCircle,
+  Play,
+  RotateCcw,
+  ScanSearch,
+  Sparkles,
+  TriangleAlert,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -32,7 +44,7 @@ import { projectHomePath } from '@/lib/project-routes'
 import { queryKeys } from '@/lib/query-client'
 import { phaseOf } from '@/lib/scrape-phase'
 import { formatDate } from '@/lib/utils'
-import { spring, staggerContainer, staggerItem } from '@/lib/motion'
+import { spring } from '@/lib/motion'
 import type { ScrapedPage, ScrapedPost } from '@/types/domain'
 
 /**
@@ -67,6 +79,17 @@ export default function ProjectSourcesPage() {
   const pipeline = usePipeline(projectId, (state) => phaseOf(state).phase === 'embedding')
   const startScrape = useStartScrape()
   const startAnalysis = useStartAnalysis()
+  // The Find gaps dialog: open while the analysis runs, then a green check and the way to the gaps.
+  const [gapsDialog, setGapsDialog] = useState(false)
+  const stage4Running = pipeline.data?.stages[4]?.status === 'running'
+  // Only a run seen running counts as finished, so an earlier result never flashes the check mark.
+  const sawRunning = useRef(false)
+  useEffect(() => {
+    if (stage4Running) {
+      sawRunning.current = true
+      setGapsDialog(true)
+    }
+  }, [stage4Running])
   const client = useQueryClient()
   // The intake form starts the scrape and navigates here in the same tick, so
   // the first pipeline read can land before the start has registered.
@@ -133,6 +156,8 @@ export default function ProjectSourcesPage() {
   // Gap analysis (stage 4): Instagram only, once both profiles are scraped.
   const canAnalyse = isSocial && project.data.socialPlatform === 'instagram' && phase.phase === 'done'
   const analysis = pipeline.data.stages[4] ?? null
+  // Problems met while reading the profiles (for example: fewer posts than asked for), kept with the scraping stage.
+  const scrapeNotes = pipeline.data.stages[2]?.metrics?.notes ?? []
   const analysing = analysis?.status === 'running' || startAnalysis.isPending
   const analysed = analysis?.status === 'complete'
   const reviewGapsPath = `/app/projects/${projectId}/review-gaps`
@@ -173,7 +198,11 @@ export default function ProjectSourcesPage() {
               <Button
                 size="sm"
                 variant={analysed ? 'outline' : 'default'}
-                onClick={() => startAnalysis.mutate(projectId)}
+                onClick={() => {
+                  sawRunning.current = false
+                  setGapsDialog(true)
+                  startAnalysis.mutate(projectId)
+                }}
                 loading={analysing}
                 disabled={analysing}
               >
@@ -183,6 +212,21 @@ export default function ProjectSourcesPage() {
             ) : null}
           </div>
         }
+      />
+
+      <FindGapsDialog
+        open={gapsDialog}
+        onOpenChange={setGapsDialog}
+        state={
+          startAnalysis.isError || analysis?.status === 'error'
+            ? 'failed'
+            : analysed && !analysing && sawRunning.current
+              ? 'done'
+              : 'running'
+        }
+        message={analysis?.message}
+        error={startAnalysis.isError ? errorMessage(startAnalysis.error) : analysis?.error}
+        reviewPath={reviewGapsPath}
       />
 
       {phase.phase === 'idle' ? (
@@ -259,15 +303,34 @@ export default function ProjectSourcesPage() {
             transition={spring}
             className="space-y-4"
           >
-            <div>
-              <h2 className="font-display text-base font-semibold">What was collected</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {isSocial
-                  ? 'Every public post the scraper read, with its engagement and the comments collected for it.'
-                  : 'Every page the crawler read, with its headings, links and text.'}
-              </p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            {scrapeNotes.length > 0 ? (
+              <Card className="flex gap-3 border-warning/40 bg-warning/10 p-4">
+                <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning-ink" aria-hidden="true" />
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-semibold">Notes from reading the profiles</p>
+                  <ul className="list-disc space-y-0.5 pl-4 text-sm text-muted-foreground">
+                    {scrapeNotes.map((note) => (
+                      <li key={note}>{note}</li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
+            ) : null}
+            {isSocial ? null : (
+              <div>
+                <h2 className="font-display text-base font-semibold">What was collected</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Every page the crawler read, with its headings, links and text.</p>
+              </div>
+            )}
+            <div className="relative grid gap-4 md:grid-cols-2 md:gap-8">
+              {isSocial ? (
+                <span
+                  className="absolute left-1/2 top-1/2 z-10 hidden size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card font-display text-base font-extrabold text-primary shadow-lg ring-[6px] ring-primary/10 md:flex"
+                  aria-hidden="true"
+                >
+                  VS
+                </span>
+              ) : null}
               {(['own', 'competitor'] as const).map((role) =>
                 isSocial ? (
                   <ProfileCard
@@ -456,67 +519,69 @@ function ProfileCard({ role, posts }: { role: 'own' | 'competitor'; posts: Scrap
   // post that is the other account, which is how this card once labelled a
   // profile with a stranger's name.
   const username = posts[0]?.profileUsername ?? usernameFromUrl(submitted)
+  // The profile's follower count, read from its profile stats when it was scraped.
+  const followers = posts.find((post) => post.followersCount != null)?.followersCount ?? null
   const total = (pick: (post: ScrapedPost) => number | null) =>
     posts.reduce((sum, post) => sum + (pick(post) ?? 0), 0)
+  const reels = posts.filter((post) => (post.mediaType ?? '').toLowerCase() === 'video').length
 
   return (
-    <Card className="flex h-full flex-col p-5">
-      <div className="flex items-center justify-between gap-3">
-        <Badge variant={isOwn ? 'default' : 'secondary'}>
-          {isOwn ? 'Your profile' : 'Competitor'}
-        </Badge>
-        {submitted ? (
-          <a
-            href={submitted}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-primary"
-          >
-            Open profile
-            <ArrowUpRight className="size-3" />
-          </a>
-        ) : null}
+    <Card className="relative flex h-full flex-col overflow-hidden p-0">
+      <div className={isOwn ? 'h-1.5 bg-gradient-to-r from-primary to-primary/40' : 'h-1.5 bg-gradient-to-r from-warning to-warning/40'} />
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-center gap-3">
+          <ProfileAvatar
+            picture={posts.find((post) => post.profilePicture)?.profilePicture ?? null}
+            letter={(username || '?').slice(0, 1)}
+            isOwn={isOwn}
+          />
+          <div className="min-w-0 flex-1">
+            <p className={isOwn ? 'text-xs font-semibold text-primary' : 'text-xs font-semibold text-warning-ink'}>
+              {isOwn ? 'Your page' : 'Competitor'}
+            </p>
+            <h3 className="truncate font-display text-lg font-bold" title={submitted}>
+              {username ? `@${username}` : hostOf(submitted)}
+            </h3>
+          </div>
+          {submitted ? (
+            <a
+              href={submitted}
+              target="_blank"
+              rel="noreferrer"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border/30 text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+              aria-label="Open profile on Instagram"
+              title="Open profile on Instagram"
+            >
+              <ArrowUpRight className="size-4" />
+            </a>
+          ) : null}
+        </div>
+
+        <div className="mt-4 flex items-end justify-between gap-3 rounded-2xl bg-muted/40 px-4 py-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Followers</p>
+            <p className="font-display text-2xl font-extrabold tabular-nums">
+              {followers === null ? '—' : followers.toLocaleString()}
+            </p>
+          </div>
+          <div className="flex gap-4 text-right">
+            <MiniStat label="Posts" value={posts.length} />
+            <MiniStat label="Reels" value={reels} />
+            <MiniStat label="Likes" value={total((post) => post.likeCount)} />
+          </div>
+        </div>
+
+        {posts.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">No public posts could be read for this profile.</p>
+        ) : (
+          <PostSlider
+            posts={posts}
+            onOpen={(post) => {
+              setOpened(post)
+            }}
+          />
+        )}
       </div>
-
-      <h3 className="mt-3 truncate font-display text-base font-semibold" title={submitted}>
-        {username ? `@${username}` : hostOf(submitted)}
-      </h3>
-
-      <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
-        <Stat label="Posts read" value={posts.length.toLocaleString()} />
-        <Stat label="Likes" value={total((post) => post.likeCount).toLocaleString()} />
-        <Stat label="Comments" value={total((post) => post.commentCount).toLocaleString()} />
-        <Stat label="Hashtags" value={total((post) => post.hashtagCount).toLocaleString()} />
-      </dl>
-
-      {posts.length === 0 ? (
-        <p className="mt-4 border-t border-border/15 pt-4 text-sm text-muted-foreground">
-          No public posts could be read for this profile.
-        </p>
-      ) : (
-        <>
-          <motion.ul
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-            className="mt-4 grid grid-cols-3 gap-2 border-t border-border/15 pt-4"
-          >
-            {posts.map((post) => (
-              <motion.li key={post.id} variants={staggerItem}>
-                <PostTile
-                  post={post}
-                  onOpen={() => {
-                    setOpened(post)
-                  }}
-                />
-              </motion.li>
-            ))}
-          </motion.ul>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Open a post to read its caption, hashtags and the comments collected for it.
-          </p>
-        </>
-      )}
 
       <PostDetailDialog
         post={opened}
@@ -539,6 +604,8 @@ function PostTile({ post, onOpen }: { post: ScrapedPost; onOpen: () => void }) {
   const first = post.media?.[0]
   const thumbnail = first?.mediaUrl ?? post.mediaUrl
   const video = thumbnail ? isVideo(thumbnail, first?.mediaType ?? post.mediaType) : false
+  // A video's own file cannot be shown as a picture; its cover frame can (scraped since migration 0013).
+  const cover = video ? (first?.thumbnailUrl ?? null) : null
 
   return (
     <button
@@ -554,6 +621,13 @@ function PostTile({ post, onOpen }: { post: ScrapedPost; onOpen: () => void }) {
           className="aspect-square w-full border-0"
           fit="cover"
         />
+      ) : cover ? (
+        <span className="relative block">
+          <SafeImage src={mediaSrc(cover)} alt="" className="aspect-square w-full border-0" fit="cover" />
+          <span className="pointer-events-none absolute right-1.5 bottom-1.5 rounded-full bg-brand-ink-black/70 p-1 text-white">
+            <Play className="size-3" aria-hidden="true" />
+          </span>
+        </span>
       ) : (
         <span className="flex aspect-square w-full items-center justify-center bg-muted/30 text-muted-foreground">
           {video ? (
@@ -582,6 +656,110 @@ function PostTile({ post, onOpen }: { post: ScrapedPost; onOpen: () => void }) {
         </span>
       ) : null}
     </button>
+  )
+}
+
+/** A profile's posts, three at a time, with buttons to move through the rest. */
+function PostSlider({ posts, onOpen }: { posts: ScrapedPost[]; onOpen: (post: ScrapedPost) => void }) {
+  const PAGE = 3
+  const [start, setStart] = useState(0)
+  const last = Math.max(0, posts.length - PAGE)
+  const shown = posts.slice(start, start + PAGE)
+  const move = (step: number) => {
+    setStart((current) => Math.min(last, Math.max(0, current + step * PAGE)))
+  }
+  return (
+    <div className="mt-4">
+      <div className="relative">
+        <motion.ul
+          key={start}
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={spring}
+          className="grid grid-cols-3 gap-2"
+        >
+          {shown.map((post) => (
+            <li key={post.id}>
+              <PostTile
+                post={post}
+                onOpen={() => {
+                  onOpen(post)
+                }}
+              />
+            </li>
+          ))}
+        </motion.ul>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => {
+            move(-1)
+          }}
+          disabled={start === 0}
+          className="flex size-9 items-center justify-center rounded-full border border-border/30 bg-card text-primary shadow-sm transition hover:bg-primary hover:text-primary-foreground disabled:pointer-events-none disabled:opacity-30"
+          aria-label="Previous posts"
+        >
+          <ChevronLeft className="size-4" />
+        </button>
+        <span className="text-xs text-muted-foreground">
+          {start + 1}–{Math.min(start + PAGE, posts.length)} of {posts.length} posts
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            move(1)
+          }}
+          disabled={start >= last}
+          className="flex size-9 items-center justify-center rounded-full border border-border/30 bg-card text-primary shadow-sm transition hover:bg-primary hover:text-primary-foreground disabled:pointer-events-none disabled:opacity-30"
+          aria-label="Next posts"
+        >
+          <ChevronRight className="size-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The profile's own picture, with a ring in its side's colour. Instagram's picture links expire after a while, and
+ * older scrapes have none, so the first letter of the handle is shown instead when there is no picture to load.
+ */
+function ProfileAvatar({ picture, letter, isOwn }: { picture: string | null; letter: string; isOwn: boolean }) {
+  const [failed, setFailed] = useState(false)
+  const ring = isOwn ? 'ring-primary/40' : 'ring-warning/60'
+  if (picture && !failed) {
+    return (
+      <img
+        src={mediaSrc(picture)}
+        alt=""
+        onError={() => {
+          setFailed(true)
+        }}
+        className={`size-12 shrink-0 rounded-full object-cover shadow-md ring-2 ring-offset-2 ring-offset-card ${ring}`}
+      />
+    )
+  }
+  return (
+    <span
+      className={
+        isOwn
+          ? 'flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blush font-display text-lg font-extrabold uppercase text-primary-foreground shadow-md'
+          : 'flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-warning to-blush font-display text-lg font-extrabold uppercase text-warning-foreground shadow-md'
+      }
+      aria-hidden="true"
+    >
+      {letter}
+    </span>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-sm font-bold tabular-nums">{value.toLocaleString()}</p>
+    </div>
   )
 }
 

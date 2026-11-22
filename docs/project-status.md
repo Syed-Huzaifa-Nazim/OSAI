@@ -137,7 +137,7 @@ pipeline, unlike Daraz and Alibaba.
 product comparison: stages 4-9 stayed idle, no gaps and no strategy were
 produced, and `POST /scout/run` answered 409. What differed was the screen. A
 website or social project opened on the **pipeline page**, which lists all nine
-stages and labels stage 2 "Scout Agent" and stage 3 "Preprocessing & Storage",
+stages and labels stage 2 "Scout Engine" and stage 3 "Preprocessing & Storage",
 so a run that correctly stops at 3 reads as a pipeline that started and stalled.
 A product comparison never shows that screen.
 
@@ -413,14 +413,14 @@ agents themselves are not.
 
 | Component | State | What is genuinely real |
 |---|---|---|
-| **Scout Agent** (stage 2) | 🔴 Mock | Nothing: returns hand-written source templates bound to the project's real competitor rows. No network request is made. |
+| **Scout Engine** (stage 2) | 🔴 Mock | Nothing: returns hand-written source templates bound to the project's real competitor rows. No network request is made. |
 | **Preprocessing** (stage 3) | 🟡 Partly real | Chunking is real (sliding window, sentence-boundary preference, clamped overlap) and writes to Chroma. Embeddings use Chroma's default model, not OpenAI. |
-| **Insight Agent** (stage 4) | 🔴 Mock | Gap templates are hand-written, but **evidence is bound to the project's real source rows**, so every citation in the UI resolves. |
+| **Gap Engine** (stage 4) | 🔴 Mock | Gap templates are hand-written, but **evidence is bound to the project's real source rows**, so every citation in the UI resolves. |
 | **Strategist** (stage 6a) | 🟡 Partly real | Templates are hand-written, but **selection is driven by the categories of the gaps the human actually accepted**, dropping everything except pricing yields a pricing strategy. |
 | **Critic** (stage 6b) | 🟢 Real logic | Rule-based, not a second model, but the four checks genuinely run and genuinely modify the draft. Every intervention keeps `before` and `after`. |
 | **Document** (stage 8) | 🟢 Real | Assembled from what the run actually produced. Real counts, real gap titles, real review records. |
 | **Automation** (stage 9) | 🟡 Partly real | Asset templates are hand-written; mapping to initiatives is real. |
-| **Vector search** | 🟡 Available | Chroma is wired and queryable; the mock Insight Agent does not use it. |
+| **Vector search** | 🟡 Available | Chroma is wired and queryable; the mock Gap Engine does not use it. |
 | **Contact email** | 🔴 Not sent | Submissions are stored. No transactional provider. The UI says so. |
 | **Billing** | 🔴 Placeholder | No provider, no card collection. Both pages say so. |
 
@@ -467,10 +467,10 @@ Flagged in-product as well as here.
 
 ### Next engineering steps, in the order I would take them
 
-1. **Live Scout Agent.** The highest-value swap, everything downstream already
+1. **Live Scout Engine.** The highest-value swap, everything downstream already
    consumes real source rows. **Must include SSRF protection** before it fetches
    a user-supplied URL (see `security.md`, gap 3).
-2. **Live Insight Agent.** Retrieval already works; the missing piece is the
+2. **Live Gap Engine.** Retrieval already works; the missing piece is the
    prompt and the check that rejects a claim whose quote cannot be matched back
    to a retrieved chunk.
 3. **OpenAI embeddings** in stage 3, replacing Chroma's default.

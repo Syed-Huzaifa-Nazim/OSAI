@@ -107,9 +107,19 @@ class InstagramSourceScraper(SourceScraper):
         comments_limit = min(settings.instagram_comments_limit, S.MAX_COMMENTS_PER_POST)
 
         items = client.fetch_profile_posts(profile_url, posts_limit)
+        warnings: list[str] = []
+        # The profile run only nests the newest 12 posts. For more, a "posts" run reads them directly; the profile
+        # run is still what the name, followers and bio come from.
+        more: list[dict] = []
+        if posts_limit > S.DETAILS_POSTS_CAP:
+            try:
+                more = client.fetch_more_posts(profile_url, posts_limit)
+            except ScraperError as exc:
+                logger.warning("Extra Instagram posts could not be read for %s: %s", profile_url, exc)
+                warnings.append(f"Only the newest {S.DETAILS_POSTS_CAP} posts could be read ({exc}).")
         records: list[dict] = []
         seen_posts: set[str] = set()
-        for input_url, post in client.iter_posts(items):
+        for input_url, post in [*client.iter_posts(more), *client.iter_posts(items)]:
             record = extract.extract_post(input_url or profile_url, post)
             if not record:
                 continue
@@ -125,13 +135,26 @@ class InstagramSourceScraper(SourceScraper):
             if len(records) >= posts_limit:
                 break
 
+        # The extra-posts run can also "succeed" with nothing (Instagram blocked it, or the Apify run was cut short
+        # for credit or memory). Then only the profile run's 12 posts are left: say so, instead of silently showing
+        # fewer posts than the profile has.
+        total = next((item.get("postsCount") for item in items if isinstance(item, dict) and isinstance(item.get("postsCount"), int)), None)
+        if (records and len(records) < posts_limit and not any("could be read" in w for w in warnings)
+                and (total > len(records) if total is not None else len(records) >= S.DETAILS_POSTS_CAP)):
+            warnings.append(
+                f"Only {len(records)} posts could be read for this profile"
+                + (f" (it has {total:,})" if total else "")
+                + ". The request for more posts returned nothing: Apify may be out of credit or busy, or Instagram "
+                "blocked it. Scrape again later to read up to "
+                f"{posts_limit}."
+            )
+
         if not records:
             raise ScraperError(
                 f"No public posts were found for {profile_url}. The profile may be private, "
                 "empty, or the link may be wrong."
             )
 
-        warnings: list[str] = []
         comments_by_post: dict[str, list[dict]] = {}
         if comments_limit > 0:
             # Reading comments is a second actor run and the slowest part of a

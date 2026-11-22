@@ -87,6 +87,8 @@ export function useStartScrape() {
       await client.invalidateQueries({ queryKey: queryKeys.projects.sources(projectId) })
       await client.invalidateQueries({ queryKey: ['projects', projectId, 'comparison'] })
       await client.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) })
+      // the app-wide job watcher reads the project list: it must see the job start
+      await client.invalidateQueries({ queryKey: queryKeys.projects.list() })
     },
     onError: (error) => {
       toast.error('Could not start scraping', { description: errorMessage(error) })
@@ -106,6 +108,8 @@ export function useStartAnalysis() {
     onSuccess: async (state, projectId) => {
       client.setQueryData(queryKeys.projects.pipeline(projectId), state)
       await client.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) })
+      // the app-wide job watcher reads the project list: it must see the job start
+      await client.invalidateQueries({ queryKey: queryKeys.projects.list() })
     },
     onError: (error) => {
       toast.error('Could not start the analysis', { description: errorMessage(error) })

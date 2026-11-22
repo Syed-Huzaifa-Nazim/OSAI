@@ -161,7 +161,7 @@ class EcommercePreprocessAgent(BaseAgent):
                     metadatas.append({
                         "project_id": project_id,
                         "product_id": product_id,
-                        # source_id is what the Insight Agent cites, so evidence
+                        # source_id is what the Gap Engine cites, so evidence
                         # resolves to a row the sources screen already shows.
                         "source_id": product.get("source_id") or "",
                         "source_url": product.get("url", ""),

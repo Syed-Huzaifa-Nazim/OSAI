@@ -66,7 +66,9 @@ const config: Config = {
         warning: {
           DEFAULT: 'hsl(var(--warning) / <alpha-value>)',
           foreground: 'hsl(var(--warning-foreground) / <alpha-value>)',
+          ink: 'hsl(var(--warning-ink) / <alpha-value>)',
         },
+        blush: 'hsl(var(--blush) / <alpha-value>)',
         border: 'hsl(var(--border) / <alpha-value>)',
         input: 'hsl(var(--input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',

@@ -1,10 +1,27 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { ArrowRight, Info, Plus, Radar, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  Building2,
+  ChevronRight,
+  Goal,
+  Info,
+  Lightbulb,
+  Plus,
+  Scale,
+  Trash2,
+  Trophy,
+} from 'lucide-react'
+import { CompareAnimation } from '@/components/shared/compare-animation'
+import { SectionHead } from '@/components/shared/section-head'
+import { USER_STEPS } from '@/lib/user-steps'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FormField } from '@/components/ui/form-field'
@@ -15,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { PageHeader } from '@/components/shared/page-header'
 import { useCreateProject } from '@/hooks/use-projects'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { usePlatforms, useStartScrape } from '@/hooks/use-platforms'
@@ -29,9 +45,8 @@ import type { ComparisonType, Industry, SocialComparisonPlatform } from '@/types
  * What the user is comparing. Each option describes the *input* the user
  * supplies, because that is what changes on this form.
  *
- * All three have a real scraper behind them now, and all three scrape and
- * display rather than running the agent pipeline. The `available` flag stays
- * so a type can be switched off again in one line.
+ * Instagram and marketplace listings are offered. Website comparison was dropped from the UI (no time and no
+ * data to build its gap analysis); its code stays so older website projects still open.
  */
 const COMPARISON_TYPES: {
   value: ComparisonType
@@ -40,15 +55,9 @@ const COMPARISON_TYPES: {
   available: boolean
 }[] = [
   {
-    value: 'website',
-    label: 'Website',
-    description: 'Compare landing pages and site content.',
-    available: true,
-  },
-  {
     value: 'social_media',
-    label: 'Social media platform',
-    description: 'Compare social presence and recent posts.',
+    label: 'Instagram or other social media',
+    description: 'Compare two accounts and their recent posts.',
     available: true,
   },
   {
@@ -134,12 +143,67 @@ const INDUSTRIES: Industry[] = [
   'other',
 ]
 
-/** Stage 1: everything the Scout and Insight agents need before they start. */
+/** Each platform's logo, shown inside the platform choice. */
+const PLATFORM_LOGO: Record<string, string> = {
+  instagram: '/hero/instagram.png',
+  facebook: '/hero/facebook.png',
+  daraz: '/hero/daraz-mark.png',
+  alibaba: '/hero/alibaba-mark.png',
+}
+
+/** The fields on page 1; Next checks only these before moving on. */
+const PAGE_ONE_FIELDS = [
+  'comparisonType',
+  'ecommercePlatform',
+  'socialPlatform',
+  'brandName',
+  'brandWebsite',
+  'brandDescription',
+] as const
+
+const CARD = 'rounded-[1.75rem] border border-border/15 bg-card/95 p-6 shadow-[0_24px_60px_-32px_hsl(var(--shadow-color)/0.45)] sm:p-7'
+
+/** The six steps, step 1 current: the same steps every page shows. */
+function StepsBar() {
+  return (
+    <ol className="flex min-w-[34rem] items-start" aria-label="The six steps of an analysis">
+      {USER_STEPS.map((step, index) => (
+        <li key={step.label} className="flex flex-1 flex-col items-center gap-1.5 text-center text-xs leading-tight text-muted-foreground">
+          <span className="relative flex w-full justify-center">
+            {index > 0 ? (
+              <span
+                className={cn(
+                  'absolute right-1/2 top-1/2 mr-5 h-0.5 w-[calc(100%-2.5rem)] rounded-full',
+                  index === 1 ? 'bg-gradient-to-r from-primary to-border/40' : 'bg-border/40',
+                )}
+                aria-hidden="true"
+              />
+            ) : null}
+            <span
+              className={cn(
+                'relative flex size-10 items-center justify-center rounded-full text-sm font-bold',
+                index === 0
+                  ? 'bg-primary text-primary-foreground shadow-[0_0_0_6px_hsl(var(--primary)/0.15)]'
+                  : 'border border-border/40 bg-card text-primary',
+              )}
+            >
+              {index + 1}
+            </span>
+          </span>
+          <span className={cn('max-w-[6.5rem]', index === 0 && 'font-semibold text-foreground')}>{step.label}</span>
+          {!step.built ? <span className="-mt-1 text-[10px] font-semibold">Soon</span> : step.you ? <span className="-mt-1 text-[10px] font-semibold text-warning-ink">You</span> : null}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 export default function NewProjectPage() {
   useDocumentTitle('New analysis')
   const navigate = useNavigate()
   const createProject = useCreateProject()
   const startScrape = useStartScrape()
+  const [page, setPage] = useState<1 | 2>(1)
 
   const {
     register,
@@ -147,6 +211,7 @@ export default function NewProjectPage() {
     handleSubmit,
     watch,
     setValue,
+    trigger,
     formState: { errors },
   } = useForm<NewProjectValues>({
     resolver: zodResolver(newProjectSchema),
@@ -158,9 +223,9 @@ export default function NewProjectPage() {
       targetAudience: '',
       objectives: [''],
       competitors: [{ name: '', landingPageUrl: '', notes: '' }],
-      comparisonType: 'ecommerce_product',
+      comparisonType: 'social_media',
       ecommercePlatform: '',
-      socialPlatform: '',
+      socialPlatform: 'instagram',
     },
   })
 
@@ -170,6 +235,7 @@ export default function NewProjectPage() {
   const comparisonType = watch('comparisonType')
   const ecommercePlatform = watch('ecommercePlatform')
   const socialPlatform = watch('socialPlatform')
+  const descriptionLength = (watch('brandDescription') ?? '').length
 
   // The platform list comes from the backend's scraper registry, so a newly
   // registered scraper appears here with no change to this file.
@@ -178,19 +244,22 @@ export default function NewProjectPage() {
   const isSocial = comparisonType === 'social_media'
   const selectedPlatform = platforms.data?.find((item) => item.platform === ecommercePlatform)
   const selectedSocial = SOCIAL_PLATFORMS.find((item) => item.value === socialPlatform)
+  const platformLogo = PLATFORM_LOGO[(isSocial ? socialPlatform : ecommercePlatform) ?? '']
 
   const copy = FIELD_COPY[comparisonType]
   const ownUrlPlaceholder = isEcommerce
     ? (selectedPlatform?.urlExample ?? 'https://www.daraz.pk/products/...')
-    : isSocial
-      ? (selectedSocial?.example ?? 'https://www.instagram.com/yourpage')
-      : 'https://yourbrand.com'
+    : (selectedSocial?.example ?? 'https://www.instagram.com/yourpage')
   const competitorUrlPlaceholder = isEcommerce
     ? (selectedPlatform?.urlExample ?? 'https://www.daraz.pk/products/...')
-    : isSocial
-      ? (selectedSocial?.example.replace('yourpage', 'competitor') ??
-        'https://www.instagram.com/competitor')
-      : 'https://competitor.com'
+    : (selectedSocial?.example.replace('yourpage', 'competitor') ?? 'https://www.instagram.com/competitor')
+
+  const goNext = async () => {
+    if (await trigger([...PAGE_ONE_FIELDS])) {
+      setPage(2)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
 
   const onSubmit = handleSubmit((values) => {
     createProject.mutate(
@@ -228,35 +297,100 @@ export default function NewProjectPage() {
     )
   })
 
+  /** The note and the buttons; on page 2 they sit right under the competitor card (no empty gap). */
+  const footer = (stacked: boolean) => (
+    <div className={cn('flex flex-col-reverse items-stretch gap-4', !stacked && 'sm:flex-row sm:items-center sm:justify-between')}>
+      <p className="inline-flex items-center gap-2 self-start rounded-full bg-primary/5 px-4 py-2 text-sm text-muted-foreground">
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Info className="size-3" aria-hidden="true" />
+        </span>
+        Page {page} of 2 · Reading starts as soon as you create the analysis.
+      </p>
+      <div className="flex items-center justify-end gap-3">
+        <Button
+          type="button"
+          variant="ghost"
+          className="text-primary"
+          onClick={() => {
+            if (page === 2) {
+              setPage(1)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            } else {
+              navigate('/app/projects')
+            }
+          }}
+        >
+          {page === 2 ? (
+            <>
+              <ArrowLeft /> Back
+            </>
+          ) : (
+            'Cancel'
+          )}
+        </Button>
+        <Button
+          type="submit"
+          size="lg"
+          loading={page === 2 && createProject.isPending}
+          className="h-14 rounded-full border-4 border-card bg-warning px-9 text-base text-warning-foreground shadow-[0_14px_30px_-10px_hsl(var(--warning)/0.75)] hover:bg-warning/90"
+        >
+          {page === 1 ? 'Next' : createProject.isPending ? 'Creating…' : 'Create analysis'}
+          {page === 2 && createProject.isPending ? null : <ArrowRight />}
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="mx-auto max-w-3xl space-y-7">
-      <PageHeader
-        eyebrow="Stage 1 · User input"
-        title="New analysis"
-        description="What the agents know about you is what you tell them here. The more specific this is, the less generic everything downstream will be."
-      />
+    <div className="relative mx-auto max-w-6xl space-y-7 pb-4">
+      {/* ---------------------------------------------------- title + steps */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={spring}
+        className="grid items-center gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]"
+      >
+        <div className="border-l-4 border-warning pl-5">
+          <h1 className="font-display text-2xl font-extrabold leading-tight sm:text-3xl">
+            Let&rsquo;s uncover what&rsquo;s working for your competitor
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">
+            Answer a few simple questions to start your analysis.
+          </p>
+        </div>
+        <div className="-mx-1 overflow-x-auto px-1 pb-1">
+          <StepsBar />
+        </div>
+      </motion.div>
 
-      <Card className="flex items-start gap-3 border-primary/25 bg-primary/5 p-4">
-        <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-        <p className="text-sm text-muted-foreground">
-          Scraping starts as soon as you create the analysis. Both listings are read in the
-          background, so you can leave the comparison page and come back.
-        </p>
-      </Card>
+      <form
+        onSubmit={(event) => {
+          if (page === 1) {
+            event.preventDefault()
+            void goNext()
+            return
+          }
+          void onSubmit(event)
+        }}
+        className="space-y-6"
+        noValidate
+      >
+        {/* =============================================== page 1 */}
+        <div className={cn(page === 1 ? 'block' : 'hidden')}>
+          <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)_auto_minmax(0,1fr)]">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={spring}
+              className="hidden xl:block"
+            >
+              <CompareAnimation />
+            </motion.div>
 
-      <form onSubmit={onSubmit} className="space-y-6" noValidate>
-        {/* --------------------------------------------- comparison type */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
-          <Card className="space-y-5 p-6">
-            <div>
-              <h2 className="font-display text-base font-semibold">What you are comparing</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Decides what the Scout Agent goes and reads. Everything after stage 2 is the same
-                either way.
-              </p>
-            </div>
+            {/* ------------------------------ analysis details */}
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.05 }} className={cn(CARD, 'h-full space-y-5')}>
+              <SectionHead icon={BarChart3} title="Analysis details" subtitle="Tell us what you want to compare." />
 
-            <div className="grid gap-5 sm:grid-cols-2">
               <FormField
                 label="Comparison type"
                 htmlFor="comparisonType"
@@ -278,8 +412,11 @@ export default function NewProjectPage() {
                     }
                   }}
                 >
-                  <SelectTrigger id="comparisonType" aria-invalid={Boolean(errors.comparisonType)}>
-                    <SelectValue placeholder="Choose one" />
+                  <SelectTrigger id="comparisonType" className="h-12" aria-invalid={Boolean(errors.comparisonType)}>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Scale className="size-5 text-primary" aria-hidden="true" />
+                      <SelectValue placeholder="Choose one" />
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
                     {COMPARISON_TYPES.map((item) => (
@@ -294,8 +431,7 @@ export default function NewProjectPage() {
                 </Select>
               </FormField>
 
-              {/* Only meaningful for an e-commerce comparison, so it appears
-                  alongside rather than sitting disabled the rest of the time. */}
+              {/* Only meaningful for an e-commerce comparison. */}
               {isEcommerce ? (
                 <FormField
                   label="Platform"
@@ -311,13 +447,11 @@ export default function NewProjectPage() {
                     }}
                     disabled={platforms.isPending}
                   >
-                    <SelectTrigger
-                      id="ecommercePlatform"
-                      aria-invalid={Boolean(errors.ecommercePlatform)}
-                    >
-                      <SelectValue
-                        placeholder={platforms.isPending ? 'Loading…' : 'Choose a platform'}
-                      />
+                    <SelectTrigger id="ecommercePlatform" className="h-12" aria-invalid={Boolean(errors.ecommercePlatform)}>
+                      <div className="flex min-w-0 items-center gap-3">
+                        {platformLogo ? <img src={platformLogo} alt="" className="size-6 rounded-md object-contain" /> : null}
+                        <SelectValue placeholder={platforms.isPending ? 'Loading…' : 'Choose a platform'} />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
                       {(platforms.data ?? []).map((item) => (
@@ -330,7 +464,6 @@ export default function NewProjectPage() {
                 </FormField>
               ) : null}
 
-              {/* Same placement and behaviour as the e-commerce platform. */}
               {isSocial ? (
                 <FormField
                   label="Platform"
@@ -347,16 +480,15 @@ export default function NewProjectPage() {
                       })
                     }}
                   >
-                    <SelectTrigger id="socialPlatform" aria-invalid={Boolean(errors.socialPlatform)}>
-                      <SelectValue placeholder="Choose a platform" />
+                    <SelectTrigger id="socialPlatform" className="h-12" aria-invalid={Boolean(errors.socialPlatform)}>
+                      <div className="flex min-w-0 items-center gap-3">
+                        {platformLogo ? <img src={platformLogo} alt="" className="size-6 rounded-md object-contain" /> : null}
+                        <SelectValue placeholder="Choose a platform" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
                       {SOCIAL_PLATFORMS.map((item) => (
-                        <SelectItem
-                          key={item.value}
-                          value={item.value}
-                          disabled={!item.available}
-                        >
+                        <SelectItem key={item.value} value={item.value} disabled={!item.available}>
                           {item.label}
                           {item.available ? null : (
                             <span className="ml-2 text-xs text-muted-foreground">Coming soon</span>
@@ -367,88 +499,90 @@ export default function NewProjectPage() {
                   </Select>
                 </FormField>
               ) : null}
-            </div>
 
-            {isSocial ? (
-              <p className="text-sm text-muted-foreground">
-                Both links must be pages on the selected platform.
-              </p>
-            ) : null}
+              <div className="flex gap-3 rounded-2xl bg-primary/5 p-4">
+                <Lightbulb className="size-7 shrink-0 fill-warning text-warning-ink" aria-hidden="true" />
+                <p className="text-sm text-primary">
+                  {isEcommerce
+                    ? 'We read both listings (price, specifications, images, reviews and seller details) and compare them field by field. Both links must be product pages on this platform.'
+                    : 'We read the latest posts of both pages, find what works for your competitor that you are not doing yet, and show the real posts behind each gap. Both links must be on this platform.'}
+                </p>
+              </div>
+            </motion.div>
 
-            {isEcommerce ? (
-              <p className="text-sm text-muted-foreground">
-                Both links must be product pages on the selected platform. The Scout Agent reads
-                each listing's price, specifications, images, reviews and seller details, then
-                compares them field by field.
-              </p>
-            ) : null}
-          </Card>
-        </motion.div>
+            <motion.button
+              type="button"
+              onClick={() => {
+                void goNext()
+              }}
+              whileHover={{ x: 3 }}
+              className="hidden size-12 items-center justify-center self-center rounded-full border border-primary/25 bg-card text-primary shadow-md lg:flex"
+              aria-label="Next page"
+            >
+              <ChevronRight className="size-5" />
+            </motion.button>
 
-        {/* ------------------------------------------------------- brand */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.05 }}
-        >
-          <Card className="space-y-5 p-6">
-            <div>
-              <h2 className="font-display text-base font-semibold">Your brand</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                The subject of the analysis: the business the gaps will be measured against.
-              </p>
-            </div>
+            {/* ------------------------------------ your brand */}
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.1 }} className={cn(CARD, 'h-full space-y-5')}>
+              <SectionHead icon={Building2} title="Your brand" subtitle="Tell us about your brand: the gaps are measured against it." />
 
-            <div className="grid gap-5 sm:grid-cols-2">
-              <FormField
-                label={copy.nameLabel}
-                htmlFor="brandName"
-                error={errors.brandName?.message}
-                required
-              >
+              <FormField label={copy.nameLabel} htmlFor="brandName" error={errors.brandName?.message} required>
                 <Input
                   id="brandName"
-                  placeholder={copy.namePlaceholder}
+                  className="h-12"
+                  placeholder={`e.g. ${copy.namePlaceholder}`}
                   aria-invalid={Boolean(errors.brandName)}
                   {...register('brandName')}
                 />
               </FormField>
 
-              {/* One field, relabelled per type: the user's website, social
-                  page or product listing. Required on all three, because it is
-                  the baseline every comparison is measured against. */}
-              <FormField
-                label={copy.ownUrlLabel}
-                htmlFor="brandWebsite"
-                error={errors.brandWebsite?.message}
-                required
-              >
+              {/* One field, relabelled per type: the user's social page or product listing. */}
+              <FormField label={copy.ownUrlLabel} htmlFor="brandWebsite" error={errors.brandWebsite?.message} required>
                 <Input
                   id="brandWebsite"
+                  className="h-12"
                   placeholder={ownUrlPlaceholder}
                   aria-invalid={Boolean(errors.brandWebsite)}
                   {...register('brandWebsite')}
                 />
               </FormField>
-            </div>
 
-            <FormField
-              label="What the business does"
-              htmlFor="brandDescription"
-              error={errors.brandDescription?.message}
-              hint={`Up to ${MAX_SHORT_TEXT} characters`}
-              required
-            >
-              <Textarea
-                id="brandDescription"
-                rows={4}
-                placeholder="Small-batch speciality coffee roaster selling direct to consumers and to independent cafés, with a subscription tier."
-                aria-invalid={Boolean(errors.brandDescription)}
-                {...register('brandDescription')}
-              />
-            </FormField>
+              <FormField
+                label="What the business does"
+                htmlFor="brandDescription"
+                error={errors.brandDescription?.message}
+                hint={`Up to ${MAX_SHORT_TEXT} characters`}
+                required
+              >
+                <div className="relative">
+                  <Textarea
+                    id="brandDescription"
+                    rows={3}
+                    placeholder="e.g. Small-batch coffee roaster selling direct to consumers and independent cafés."
+                    aria-invalid={Boolean(errors.brandDescription)}
+                    {...register('brandDescription')}
+                  />
+                  <span
+                    className={cn(
+                      'pointer-events-none absolute bottom-2 right-3 text-[11px] tabular-nums',
+                      descriptionLength > MAX_SHORT_TEXT ? 'text-destructive' : 'text-muted-foreground',
+                    )}
+                  >
+                    {descriptionLength}/{MAX_SHORT_TEXT}
+                  </span>
+                </div>
+              </FormField>
+            </motion.div>
+          </div>
+        </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+        {/* =============================================== page 2 */}
+        <div className={cn(page === 2 ? 'block' : 'hidden')}>
+          <div className="grid items-start gap-6 lg:grid-cols-2">
+            {/* ----------------------------- goals and audience */}
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={spring} className={cn(CARD, 'space-y-5')}>
+              <SectionHead icon={Goal} title="Your goals" subtitle="What you sell, to whom, and what you want to achieve." />
+
               <FormField label="Industry" htmlFor="industry" error={errors.industry?.message} required>
                 <Select
                   value={industry}
@@ -456,7 +590,7 @@ export default function NewProjectPage() {
                     setValue('industry', value as Industry, { shouldValidate: true })
                   }}
                 >
-                  <SelectTrigger id="industry" aria-invalid={Boolean(errors.industry)}>
+                  <SelectTrigger id="industry" className="h-12" aria-invalid={Boolean(errors.industry)}>
                     <SelectValue placeholder="Choose one" />
                   </SelectTrigger>
                   <SelectContent>
@@ -477,127 +611,81 @@ export default function NewProjectPage() {
               >
                 <Textarea
                   id="targetAudience"
-                  rows={3}
-                  placeholder="Urban home-brewing enthusiasts aged 25-40, plus independent café owners sourcing wholesale."
+                  rows={2}
+                  placeholder="e.g. Home-brewing enthusiasts aged 25-40, and café owners buying wholesale."
                   aria-invalid={Boolean(errors.targetAudience)}
                   {...register('targetAudience')}
                 />
               </FormField>
-            </div>
-          </Card>
-        </motion.div>
 
-        {/* -------------------------------------------------- objectives */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.1 }}
-        >
-          <Card className="space-y-5 p-6">
-            <div>
-              <h2 className="font-display text-base font-semibold">What you are trying to achieve</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                The Strategist weighs initiatives against these. Keep them concrete.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {objectives.map((_, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <Input
-                    placeholder={
-                      index === 0 ? 'Grow direct subscription revenue' : 'Another objective'
-                    }
-                    aria-label={`Objective ${index + 1}`}
-                    {...register(`objectives.${index}` as const)}
-                  />
-                  {objectives.length > 1 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setValue(
-                          'objectives',
-                          objectives.filter((_item, position) => position !== index),
-                          { shouldValidate: true },
-                        )
-                      }}
-                      aria-label={`Remove objective ${index + 1}`}
-                    >
-                      <Trash2 />
-                    </Button>
-                  ) : null}
-                </div>
-              ))}
-              {errors.objectives ? (
-                <p role="alert" className="text-xs text-destructive">
-                  {errors.objectives.message ?? errors.objectives.root?.message}
-                </p>
-              ) : null}
-            </div>
-
-            {objectives.length < 6 ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setValue('objectives', [...objectives, ''])
-                }}
-              >
-                <Plus />
-                Add objective
-              </Button>
-            ) : null}
-          </Card>
-        </motion.div>
-
-        {/* ------------------------------------------------- competitors */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.15 }}
-        >
-          <Card className="space-y-5 p-6">
-            <div>
-              <h2 className="font-display text-base font-semibold">Competitors</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {isEcommerce
-                  ? 'The listings to measure yours against. One to five per run.'
-                  : 'Who the Scout Agent goes and reads. One to five per run.'}
-              </p>
-            </div>
-
-            <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
-              {competitors.fields.map((field, index) => (
-                <motion.div
-                  key={field.id}
-                  variants={staggerItem}
-                  className="rounded-lg border border-border/20 bg-muted/25 p-5"
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <p className="flex items-center gap-2 text-sm font-medium">
-                      <Radar className="size-4 text-primary" />
-                      Competitor {index + 1}
-                    </p>
-                    {competitors.fields.length > 1 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">What you are trying to achieve</p>
+                {objectives.map((_, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <Input
+                      className="h-11"
+                      placeholder={index === 0 ? 'e.g. Grow direct subscription revenue' : 'Another goal'}
+                      aria-label={`Objective ${index + 1}`}
+                      {...register(`objectives.${index}` as const)}
+                    />
+                    {objectives.length > 1 ? (
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon-sm"
+                        size="icon"
                         onClick={() => {
-                          competitors.remove(index)
+                          setValue(
+                            'objectives',
+                            objectives.filter((_item, position) => position !== index),
+                            { shouldValidate: true },
+                          )
                         }}
-                        aria-label={`Remove competitor ${index + 1}`}
+                        aria-label={`Remove objective ${index + 1}`}
                       >
                         <Trash2 />
                       </Button>
                     ) : null}
                   </div>
+                ))}
+                {errors.objectives ? (
+                  <p role="alert" className="text-xs text-destructive">
+                    {errors.objectives.message ?? errors.objectives.root?.message}
+                  </p>
+                ) : null}
+                {objectives.length < 6 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setValue('objectives', [...objectives, ''])
+                    }}
+                  >
+                    <Plus />
+                    Add objective
+                  </Button>
+                ) : null}
+              </div>
+            </motion.div>
 
-                  <div className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
+            {/* ------------------------------------ competitor + buttons */}
+            <div className="space-y-5">
+            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.05 }} className={cn(CARD, 'space-y-5')}>
+              <SectionHead
+                icon={Trophy}
+                tone="warning"
+                title="Your competitor"
+                subtitle={
+                  isEcommerce
+                    ? 'The listing to measure yours against.'
+                    : 'The page the Scout Engine reads and compares with yours.'
+                }
+              />
+
+              <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
+                {competitors.fields.map((field, index) => (
+                  <motion.div key={field.id} variants={staggerItem} className="rounded-2xl border border-border/15 bg-muted/30 p-4">
+                    <div className="space-y-3">
                       <FormField
                         label="Name"
                         htmlFor={`competitors.${index}.name`}
@@ -606,7 +694,7 @@ export default function NewProjectPage() {
                       >
                         <Input
                           id={`competitors.${index}.name`}
-                          placeholder="Northbrew Coffee Co."
+                          placeholder="e.g. Northbrew Coffee Co."
                           aria-invalid={Boolean(errors.competitors?.[index]?.name)}
                           {...register(`competitors.${index}.name` as const)}
                         />
@@ -624,59 +712,30 @@ export default function NewProjectPage() {
                           {...register(`competitors.${index}.landingPageUrl` as const)}
                         />
                       </FormField>
+                      <FormField label="Notes" htmlFor={`competitors.${index}.notes`} hint="Optional">
+                        <Input
+                          id={`competitors.${index}.notes`}
+                          placeholder="e.g. Largest regional player."
+                          {...register(`competitors.${index}.notes` as const)}
+                        />
+                      </FormField>
                     </div>
+                  </motion.div>
+                ))}
+              </motion.div>
 
-                    <FormField
-                      label="Notes for the agents"
-                      htmlFor={`competitors.${index}.notes`}
-                      hint="Optional"
-                    >
-                      <Input
-                        id={`competitors.${index}.notes`}
-                        placeholder="Largest regional player. Heavy paid social spend."
-                        {...register(`competitors.${index}.notes` as const)}
-                      />
-                    </FormField>
-                  </div>
-                </motion.div>
-              ))}
+              {errors.competitors?.root ? (
+                <p role="alert" className="text-xs text-destructive">
+                  {errors.competitors.root.message}
+                </p>
+              ) : null}
             </motion.div>
-
-            {errors.competitors?.root ? (
-              <p role="alert" className="text-xs text-destructive">
-                {errors.competitors.root.message}
-              </p>
-            ) : null}
-
-            {competitors.fields.length < 5 ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  competitors.append({
-                    name: '',
-                    landingPageUrl: '',
-                    notes: '',
-                  })
-                }}
-              >
-                <Plus />
-                Add competitor
-              </Button>
-            ) : null}
-          </Card>
-        </motion.div>
-
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <Button type="button" variant="ghost" onClick={() => { navigate('/app/projects') }}>
-            Cancel
-          </Button>
-          <Button type="submit" size="lg" loading={createProject.isPending}>
-            {createProject.isPending ? 'Creating…' : 'Create analysis'}
-            {createProject.isPending ? null : <ArrowRight />}
-          </Button>
+            {page === 2 ? footer(true) : null}
+            </div>
+          </div>
         </div>
+
+        {page === 1 ? footer(false) : null}
       </form>
     </div>
   )

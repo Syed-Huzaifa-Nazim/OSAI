@@ -28,8 +28,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
     openai_embedding_model: str = "text-embedding-3-small"
+    # Groq: used only by the Instagram analysis to label comment mood.
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
+    groq_fallback_models: str = ""
 
     # --- vector store ---
     chroma_persist_dir: str = "./.chroma"
@@ -44,6 +46,8 @@ class Settings(BaseSettings):
     playwright_serialize: bool = True      # one headless browser at a time
     scraper_enable_playwright: bool = True
     scraper_max_reviews: int = 40
+    #: The team's Daraz review model (two fine-tuned XLM-RoBERTa models + review_analyzer.py).
+    daraz_review_model_dir: str = str(BACKEND_DIR.parent / "Daraz_Model" / "model_package")
     # Alibaba (app/scrapers/alibaba/): minimum gap between requests to the site,
     # widened automatically if robots.txt declares a longer Crawl-delay, and how
     # many wordings of a product title are searched before giving up.
@@ -69,7 +73,14 @@ class Settings(BaseSettings):
     # post shows its comments, so the post budget is what bounds the scrape:
     # 12 posts per profile with every post's comments read, rather than 20
     # posts with most of them having nothing to show.
-    instagram_posts_limit: int = 12
+    instagram_posts_limit: int = 30
+    # Score each post's picture or video with the models we trained (needs those models trained).
+    instagram_score_media: bool = True
+    # Topic gaps (app/analysis/instagram/topics.py). Off: the topic model reads English captions only, and its
+    # 12 topics come from general business accounts, so it fits Roman Urdu shops poorly.
+    instagram_topics: bool = False
+    # Posting-time gaps show times in the shop's own time zone (Instagram gives UTC). Pakistan by default.
+    instagram_timezone: str = "Asia/Karachi"
     instagram_comments_limit: int = 20
     # Comments are a second actor run and by far the slowest part of a social
     # scrape (~80s for one profile, measured). 0 means every collected post

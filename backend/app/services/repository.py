@@ -745,10 +745,24 @@ class SupabaseRepository:
         return result.data or []
 
     def replace_instagram_post_media(self, project_id: str, rows: list[dict[str, Any]]) -> None:
-        """Usually a no-op delete: replacing the posts already cascaded these."""
+        """Usually a no-op delete: replacing the posts already cascaded these.
+
+        If migration 0013 (the thumbnail_url column) has not been run yet, the rows are stored without
+        their cover pictures instead of failing: the grid then shows a play icon for videos, as before.
+        """
         self.client.table("instagram_post_media").delete().eq("project_id", project_id).execute()
-        if rows:
+        if not rows:
+            return
+        try:
             self.client.table("instagram_post_media").insert(rows).execute()
+        except Exception as exc:  # noqa: BLE001 - only the missing-column case is retried
+            if "thumbnail_url" not in str(exc):
+                raise
+            logger.warning("instagram_post_media has no thumbnail_url column (run migration 0013); "
+                           "storing media without cover pictures")
+            self.client.table("instagram_post_media").insert(
+                [{k: v for k, v in r.items() if k != "thumbnail_url"} for r in rows]
+            ).execute()
 
     def list_instagram_post_comments(self, project_id: str) -> list[dict[str, Any]]:
         result = (

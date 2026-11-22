@@ -33,11 +33,11 @@ export function SidebarLink({
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'group relative flex h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors',
+          'group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors',
           expanded ? 'justify-start' : 'justify-center',
           isActive
-            ? 'text-primary'
-            : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground',
+            ? 'font-semibold text-primary'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         )
       }
     >
@@ -47,15 +47,7 @@ export function SidebarLink({
             <motion.span
               layoutId="sidebar-active"
               transition={springSnappy}
-              className="absolute inset-0 rounded-md bg-primary/12"
-              aria-hidden="true"
-            />
-          ) : null}
-          {isActive ? (
-            <motion.span
-              layoutId="sidebar-active-bar"
-              transition={springSnappy}
-              className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+              className="absolute inset-0 rounded-xl bg-primary/10"
               aria-hidden="true"
             />
           ) : null}

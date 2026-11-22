@@ -58,8 +58,17 @@ pytest-asyncio>=0.25.0
 # and uses Chroma's built-in embedder, so retrieval is identical either way.
 # Install it only if you specifically want the torch path:
 #   pip install sentence-transformers
+
+# --- Instagram engagement analysis (app/analysis/instagram/) ---
 scikit-learn>=1.4
 shap>=0.46
 pandas>=2.2
 joblib>=1.4
 groq>=0.11
+scipy>=1.11
+pillow>=10.0
+opencv-python-headless>=4.8
+
+# --- picture / video scoring (app/analysis/instagram/cnn_features.py) ---
+# The vision network needs PyTorch. Install the small CPU build yourself (the default pip build is several GB):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu

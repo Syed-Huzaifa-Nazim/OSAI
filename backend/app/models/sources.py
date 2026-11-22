@@ -15,7 +15,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.models.common import CamelModel
 
@@ -54,6 +54,8 @@ class PostMedia(CamelModel):
     media_type: str | None = None
     #: Instagram's own CDN URL. Nothing is downloaded or re-hosted.
     media_url: str
+    #: The still picture for this item; for a video, its cover frame (so a grid can show it). Older rows: None.
+    thumbnail_url: str | None = None
 
 
 class PostComment(CamelModel):
@@ -141,6 +143,22 @@ class ScrapedPost(CamelModel):
     #: Neither is a column: both are attached when the post is read back.
     media: list[PostMedia] = Field(default_factory=list)
     comments: list[PostComment] = Field(default_factory=list)
+    #: The profile's follower count and picture, read from its profile_stats, for the profile card.
+    followers_count: int | None = None
+    profile_picture: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _followers_from_profile(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("followers_count") is None:
+            stats = data.get("profile_stats")
+            if isinstance(stats, dict) and isinstance(stats.get("followers_count"), (int, float)):
+                data = {**data, "followers_count": int(stats["followers_count"])}
+        if isinstance(data, dict) and not data.get("profile_picture"):
+            stats = data.get("profile_stats")
+            if isinstance(stats, dict) and isinstance(stats.get("profile_picture"), str):
+                data = {**data, "profile_picture": stats["profile_picture"]}
+        return data
 
 
 class ScrapedDocuments(CamelModel):

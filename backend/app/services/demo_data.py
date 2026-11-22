@@ -201,7 +201,7 @@ _SOURCE_TEMPLATES: list[dict[str, Any]] = [
 
 
 def build_sources(project_id: str, competitors: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """What the mock Scout Agent 'collects'.
+    """What the mock Scout Engine 'collects'.
 
     Templates are bound to the project's real competitor rows so titles, URLs
     and ``competitor_id`` references all resolve in the UI.
@@ -354,7 +354,7 @@ _GAP_TEMPLATES: list[dict[str, Any]] = [
 
 
 def build_gaps(project_id: str, sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """What the mock Insight Agent 'finds'.
+    """What the mock Gap Engine 'finds'.
 
     Evidence is bound to the project's real source rows, so every citation in
     the UI links to something that exists.
@@ -910,7 +910,7 @@ def demo_integrations() -> list[dict[str, Any]]:
             "name": "Review Sentiment Tracker",
             "description": (
                 "Teammate-built module. Continuous sentiment scan over review sources, feeding "
-                "the Insight Agent."
+                "the Gap Engine."
             ),
             "status": "coming_soon",
             "connected_at": None,

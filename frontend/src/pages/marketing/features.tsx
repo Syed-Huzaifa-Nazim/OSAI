@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
+  Check,
   FileText,
   Lightbulb,
   ListChecks,
@@ -14,9 +15,18 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Section } from '@/components/marketing/section'
+import {
+  ApproveVisual,
+  CollectVisual,
+  ContentVisual,
+  ExplainVisual,
+  GapsVisual,
+  ReviewVisual,
+  StrategyVisual,
+} from '@/components/marketing/feature-visuals'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { cn } from '@/lib/utils'
-import { revealOnScroll, spring, viewportOnce } from '@/lib/motion'
+import { revealOnScroll, spring, springSoft, viewportOnce } from '@/lib/motion'
 
 interface Feature {
   icon: typeof Radar
@@ -26,133 +36,132 @@ interface Feature {
   points: { label: string; detail: string }[]
   accent: string
   human?: boolean
+  /** Not built yet: shown with a Coming soon badge. */
+  comingSoon?: boolean
+  /** The small animated picture of what this step does. */
+  visual: () => React.JSX.Element
 }
 
 const FEATURES: Feature[] = [
   {
     icon: Radar,
-    eyebrow: 'Stage 2 · Data acquisition',
-    title: 'Scout Agent',
-    body: 'Collects the raw material: competitor landing pages, social posts, customer reviews, forum threads and trade news. What it gathers is cleaned, chunked, embedded and stored as a retrievable corpus scoped to your project, not a pile of scraped HTML.',
+    eyebrow: 'Step 1 · Collect posts',
+    title: 'Scout Engine',
+    visual: CollectVisual,
+    body: 'Reads exactly the links you give it and nothing else: the latest Instagram posts of both accounts (photos, reels, likes, comments, hashtags), or Daraz and Alibaba product listings. It is a collector, not an agent: it makes no decisions.',
     points: [
       {
-        label: 'Multi-platform by default',
-        detail: 'Landing pages and social media in the same run, so comparisons hold across both.',
+        label: 'Instagram through Apify',
+        detail: 'Posts, captions, likes, comments and cover pictures of both accounts, up to 30 posts each.',
       },
       {
-        label: 'Review and forum signal',
-        detail: 'Where customers say what they actually think, in their own words.',
+        label: 'Daraz and Alibaba',
+        detail: 'Product listings read with BeautifulSoup, with Playwright when a page needs a browser.',
       },
       {
-        label: 'Per-project vector collection',
-        detail: 'One ChromaDB collection per analysis; nothing leaks between projects.',
+        label: 'Stored per project',
+        detail: 'Captions and comments are embedded and kept in Supabase (pgvector), so explanations can search them.',
       },
     ],
     accent: 'text-stage-2',
   },
   {
     icon: Lightbulb,
-    eyebrow: 'Stage 4 · Gap analysis',
-    title: 'Insight Agent',
-    body: 'Compares your brand against the corpus and returns specific, categorised gaps (content, SEO, social engagement, positioning, audience, conversion and pricing), each with a confidence score and the passages that support it.',
+    eyebrow: 'Step 2 · Find gaps',
+    title: 'Gap Engine',
+    visual: GapsVisual,
+    body: 'Compares the two accounts post by post and keeps only the differences that hold up: what the competitor does more and does well, what works worse on your own page, and photos that look poorly made. Every gap is found by statistics and a trained model, not written by a language model.',
     points: [
       {
-        label: 'Comparative, not descriptive',
-        detail: 'Findings are about the distance between you and them, not a summary of either.',
+        label: 'What it compares',
+        detail: 'Types of post (photo, reel, carousel), hashtags, your own weak spots, picture quality and the profile.',
       },
       {
-        label: 'Confidence, stated honestly',
-        detail: 'Every gap carries a score, so a weak signal is visibly a weak signal.',
+        label: 'How sure, stated honestly',
+        detail: 'Statistical tests decide High, Medium or Low. A real difference that could still be chance is shown as "Not proven yet: worth testing".',
       },
       {
-        label: 'Evidence attached',
-        detail: 'Quote, source, URL and retrieval relevance for each claim.',
+        label: 'Real posts attached',
+        detail: 'Each gap carries the posts behind it, with their likes, comments and dates.',
       },
     ],
     accent: 'text-stage-4',
   },
   {
-    icon: ListChecks,
-    eyebrow: 'Stage 5 · Human checkpoint',
-    title: 'Gap refinement',
-    body: 'The first gate. The pipeline stops and waits: no strategy is drafted until a person has been through the gap list and decided which ones are real for this business.',
+    icon: Sparkles,
+    eyebrow: 'Step 2 · Explanations',
+    title: 'Explained in simple words',
+    visual: ExplainVisual,
+    body: 'Press Explain on any gap: you get what the numbers show, why it counts as a gap, and why that kind of difference can matter, in a few short sentences. The language model only rephrases what it is given; it cannot add facts.',
     points: [
-      { label: 'Accept or reject each gap', detail: 'Rejected gaps never reach the Strategist.' },
       {
-        label: 'Override the agent priority',
-        detail: 'The model proposes; you decide what is actually critical.',
+        label: 'From your own posts',
+        detail: 'The gap’s example posts plus the closest posts found by searching both accounts (retrieval).',
       },
       {
-        label: 'Annotate for the Strategist',
-        detail: 'Notes you leave become context for the next stage.',
+        label: 'General reasons from checked facts',
+        detail: 'A small knowledge base of sourced facts; a general reason without a real source is removed.',
       },
+      {
+        label: 'Every reference checked',
+        detail: 'Code removes any reference to a post or fact the model was not given, and says so.',
+      },
+    ],
+    accent: 'text-primary',
+  },
+  {
+    icon: ListChecks,
+    eyebrow: 'Step 3 · Review gaps',
+    title: 'Your decision',
+    visual: ReviewVisual,
+    body: 'Nothing moves on until you have been through the gaps and decided which ones are real for your shop.',
+    points: [
+      { label: 'Keep or drop each gap', detail: 'Dropped gaps never reach the strategy.' },
+      { label: 'Set your own priority', detail: 'You decide what matters most, not the system.' },
+      { label: 'Notes and a PDF report', detail: 'Add notes, then download all gaps or only the ones you kept.' },
     ],
     accent: 'text-stage-5',
     human: true,
   },
   {
     icon: Swords,
-    eyebrow: 'Stage 6 · Strategy generation',
-    title: 'Strategist + Critic',
-    body: 'Two agents, deliberately in tension. The Strategist drafts initiatives against the gaps you kept. The Critic then attacks that draft on four dimensions (strength, clarity, feasibility and evidence), and rewrites or removes what does not hold up.',
+    eyebrow: 'Step 4 · Strategy + critic',
+    title: 'A plan, then a second opinion',
+    visual: StrategyVisual,
+    body: 'Being built. A plan will be written from the gaps you kept, then checked by a second reviewer (the critic) that looks for weak, unclear or unsupported points and shows what it changed.',
     points: [
-      {
-        label: 'Adversarial by design',
-        detail: 'A second model whose job is to disagree with the first.',
-      },
-      {
-        label: 'Transparent revisions',
-        detail: 'Before and after are both kept, so you can see what changed and why.',
-      },
-      {
-        label: 'Unsupported claims cut',
-        detail: 'Initiatives with no basis in the intake or the corpus are removed outright.',
-      },
+      { label: 'Built only from kept gaps', detail: 'The plan works from your decisions, not from everything found.' },
+      { label: 'Changes are visible', detail: 'Before and after are both kept, so you can see what the critic changed and why.' },
     ],
     accent: 'text-stage-6',
+    comingSoon: true,
   },
   {
     icon: ShieldCheck,
-    eyebrow: 'Stage 7 · Human checkpoint',
-    title: 'Final approval',
-    body: 'The second gate. You read the strategy with the Critic annotations visible, then approve it for execution or send it back with notes for another version.',
+    eyebrow: 'Step 5 · Approve strategy',
+    title: 'Your approval',
+    visual: ApproveVisual,
+    body: 'Being built. You will read the plan with the critic’s notes visible, then approve it or send it back with your changes.',
     points: [
-      {
-        label: 'Approve, reject or revise',
-        detail: 'A revision request loops back to stage 6 and produces a new version.',
-      },
-      {
-        label: 'Critic panel always visible',
-        detail: 'The disagreements are shown, not buried. That is the point.',
-      },
-      { label: 'Decisions are logged', detail: 'Reviewer, decision, notes and timestamp, kept.' },
+      { label: 'Approve or ask for changes', detail: 'A change request produces a new version of the plan.' },
+      { label: 'Decisions are kept', detail: 'Who decided, what, and when.' },
     ],
     accent: 'text-stage-7',
     human: true,
+    comingSoon: true,
   },
   {
     icon: FileText,
-    eyebrow: 'Stage 8 · Output',
-    title: 'Strategy document',
-    body: 'An approved strategy is assembled into a document: executive summary, competitive position, prioritised gaps, initiatives, a week-by-week implementation plan, and the validation trail behind all of it.',
+    eyebrow: 'Step 6 · Create content',
+    title: 'Content for your plan',
+    visual: ContentVisual,
+    body: 'Being built. For the plan you approved: a strategy document, and the content to carry it out, such as captions, images and short reels.',
     points: [
-      { label: 'Implementation plan', detail: 'Sequenced by effort and dependency, not by whim.' },
-      { label: 'Validation trail included', detail: 'Which gaps were accepted, and by whom.' },
-      { label: 'Exportable', detail: 'PDF, DOCX or Markdown.' },
-    ],
-    accent: 'text-stage-8',
-  },
-  {
-    icon: Sparkles,
-    eyebrow: 'Stage 9 · Scale',
-    title: 'Content automation',
-    body: 'Each approved initiative becomes concrete assets (blog outlines, SEO briefs, social posts, ad copy and email sequences), with the effort estimated so you can plan the quarter rather than guess at it.',
-    points: [
-      { label: 'Mapped to initiatives', detail: 'Every asset traces back to a strategy it serves.' },
-      { label: 'Draft on demand', detail: 'Generate the full body for any asset you want to keep.' },
-      { label: 'Dismiss what does not fit', detail: 'Suggestions are suggestions.' },
+      { label: 'Tied to the plan', detail: 'Every piece of content traces back to the part of the plan it serves.' },
+      { label: 'Yours to edit', detail: 'Keep, change or drop anything that is suggested.' },
     ],
     accent: 'text-stage-9',
+    comingSoon: true,
   },
 ]
 
@@ -161,7 +170,7 @@ export default function FeaturesPage() {
 
   return (
     <>
-      <section className="pb-4 pt-16 sm:pt-24">
+      <section className="pb-0 pt-10 sm:pt-14">
         <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
@@ -171,61 +180,79 @@ export default function FeaturesPage() {
           >
             <p className="eyebrow">Features</p>
             <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-              Four agents, two gates, one document
+              Six steps, and what each one does today
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-              Each part of the pipeline does one job and hands off cleanly to the next. Here is what
-              each of them actually produces.
+              Steps 1 to 3 work now. Steps 4 to 6 are being built, and are marked so.
             </p>
           </motion.div>
         </div>
       </section>
 
       <Section>
-        <div className="space-y-6">
+        <div className="space-y-5">
           {FEATURES.map((feature, index) => (
             <motion.div
               key={feature.title}
-              variants={revealOnScroll}
-              initial="initial"
-              whileInView="whileInView"
+              initial={{ opacity: 0, x: index % 2 ? 60 : -60, rotate: index % 2 ? 2.5 : -2.5 }}
+              whileInView={{ opacity: 1, x: 0, rotate: 0 }}
               viewport={viewportOnce}
+              transition={springSoft}
             >
               <Card
                 glass={feature.human}
                 className={cn(
-                  'grid gap-8 p-7 sm:p-9 lg:grid-cols-[1fr_1.1fr]',
+                  'relative grid items-center gap-8 overflow-hidden p-6 sm:p-8 lg:grid-cols-[1.05fr_1fr]',
                   feature.human && 'border-brand-butter-cream/35',
                   index % 2 === 1 && 'lg:[&>*:first-child]:order-2',
                 )}
               >
-                <div className="space-y-4">
-                  <span
-                    className={cn(
-                      'flex size-11 items-center justify-center rounded-full bg-muted/60',
-                      feature.accent,
-                    )}
-                  >
-                    <feature.icon className="size-5" />
-                  </span>
+                <div className="relative space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={cn(
+                        'bg-gradient-to-b bg-clip-text font-display text-5xl font-extrabold leading-none text-transparent',
+                        feature.human ? 'from-warning to-warning/30' : feature.comingSoon ? 'from-blush to-blush/30' : 'from-primary to-primary/30',
+                      )}
+                    >
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className={cn('flex size-10 items-center justify-center rounded-full bg-muted/60', feature.accent)}>
+                      <feature.icon className="size-5" />
+                    </span>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="eyebrow">{feature.eyebrow}</p>
-                    {feature.human ? <Badge variant="secondary">Human checkpoint</Badge> : null}
+                    {feature.human ? <Badge variant="warning">Your decision</Badge> : null}
+                    {feature.comingSoon ? <Badge variant="muted">Coming soon</Badge> : null}
                   </div>
-                  <h2 className="font-display text-2xl font-semibold tracking-tight">
-                    {feature.title}
-                  </h2>
+                  <h2 className="font-display text-2xl font-semibold tracking-tight">{feature.title}</h2>
                   <p className="text-sm leading-relaxed text-muted-foreground">{feature.body}</p>
+                  <ul className="space-y-2">
+                    {feature.points.map((point, pointIndex) => (
+                      <motion.li
+                        key={point.label}
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={viewportOnce}
+                        transition={{ ...springSoft, delay: 0.1 + pointIndex * 0.08 }}
+                        className="flex gap-2.5 text-sm"
+                      >
+                        <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Check className="size-3" strokeWidth={3} aria-hidden="true" />
+                        </span>
+                        <span>
+                          <span className="font-medium">{point.label}.</span>{' '}
+                          <span className="text-muted-foreground">{point.detail}</span>
+                        </span>
+                      </motion.li>
+                    ))}
+                  </ul>
                 </div>
 
-                <ul className="space-y-4 self-center">
-                  {feature.points.map((point) => (
-                    <li key={point.label} className="rounded-md border border-border/20 bg-muted/25 p-4">
-                      <p className="text-sm font-medium">{point.label}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{point.detail}</p>
-                    </li>
-                  ))}
-                </ul>
+                <div className="relative self-center">
+                  <feature.visual />
+                </div>
               </Card>
             </motion.div>
           ))}
@@ -251,7 +278,7 @@ export default function FeaturesPage() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link to="/pricing">View pricing</Link>
+              <Link to="/how-it-works">How it works</Link>
             </Button>
           </div>
         </motion.div>

@@ -1,0 +1,5 @@
+features,MAE_log_lift,spearman_all,within_shop_median,shops_ranked_right
+baseline: every post = shop's usual,0.87,0.0,0.0,0/70
+no picture tags,0.942,0.098,0.081,42/70
+CLIP zero-shot draft tags,0.926,0.136,0.221,45/70
+"Model D tags (jewellery_shown, face)",0.924,0.112,0.113,44/70

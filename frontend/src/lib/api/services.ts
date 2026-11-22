@@ -8,7 +8,7 @@
  * rest of the app cannot tell the difference.
  */
 
-import { api } from '../api-client'
+import { api, downloadFile, openFile } from '../api-client'
 import { isDemoMode } from '../config'
 import { mockApi } from '../mock/mock-api'
 import type {
@@ -18,6 +18,7 @@ import type {
   ContactSubmission,
   EcommerceProduct,
   Gap,
+  GapNumbersRow,
   ParameterComparison,
   GapDecision,
   GapPriority,
@@ -63,6 +64,10 @@ export const projectsApi = {
 
   remove: (id: string): Promise<void> =>
     isDemoMode ? mockApi.deleteProject(id) : api.delete<void>(`/projects/${id}`),
+
+  /** One picture per project (project id -> URL), from the user's own scraped side. Demo projects have none. */
+  covers: (): Promise<Record<string, string>> =>
+    isDemoMode ? Promise.resolve({}) : api.get<Record<string, string>>('/projects/covers'),
 
   competitors: (id: string): Promise<Competitor[]> =>
     isDemoMode
@@ -110,6 +115,14 @@ export interface GapPatch {
 }
 
 export const gapsApi = {
+  /** The gap report as a PDF: all gaps, or only the ones kept at the checkpoint. */
+  /** Opens the gap report PDF in `tab` (opened by the click), or downloads it when there is no tab. */
+  openReport: (projectId: string, tab: Window | null): Promise<void> =>
+    openFile(`/projects/${projectId}/gaps/report?which=all`, 'gap-report-all.pdf', tab),
+
+  downloadReport: (projectId: string, which: 'all' | 'kept'): Promise<void> =>
+    downloadFile(`/projects/${projectId}/gaps/report?which=${which}`, `gap-report-${which}.pdf`),
+
   list: (projectId: string): Promise<Gap[]> =>
     isDemoMode ? mockApi.listGaps(projectId) : api.get<Gap[]>(`/projects/${projectId}/gaps`),
 
@@ -136,6 +149,19 @@ export const gapsApi = {
 export interface GapExplanation {
   gapId: string
   explanation: string
+  /** What the difference is, with the exact numbers. */
+  found?: string
+  /** Why this counts as a gap, from the posts. */
+  why?: string
+  /** Why this kind of difference can matter, from a checked fact (cited as [K1]). Empty when no fact fits. */
+  general?: string
+  /** The checked facts the explanation was given, with their sources. */
+  knowledge?: KnowledgeFact[]
+  knowledgeUsed?: string[]
+  /** The exact values the explanation was given (the card's numbers table). */
+  values?: GapNumbersRow[]
+  howSure?: string | null
+  unproven?: boolean
   /** True when every citation points at evidence that was really retrieved. */
   grounded: boolean
   evidenceUsed: string[]
@@ -149,7 +175,22 @@ export interface GapExplanation {
     similarity: number
     /** photo, video / reel or carousel. */
     format?: string
+    date?: string | null
+    likes?: number | null
+    comments?: number | null
+    /** True when found by the meaning search (pgvector), false when it is one of the card's own posts. */
+    retrieved?: boolean
+    imageUrl?: string
   }[]
+}
+
+/** One checked fact from the knowledge base (backend/app/analysis/instagram/knowledge_base.json). */
+export interface KnowledgeFact {
+  id: string
+  text: string
+  source: string
+  url: string
+  verified: boolean
 }
 
 /* ---------------------------------------------- strategy + critic (6,7) --- */

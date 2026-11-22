@@ -79,7 +79,7 @@ export default function DocumentPage() {
     return (
       <div className="space-y-7">
         <PageHeader
-          eyebrow="Stage 8 · Execution-oriented output"
+          eyebrow="Step 6 · Your strategy document"
           title="Strategy document"
           description="The approved strategy, assembled into something you can hand to someone."
         />
@@ -110,7 +110,7 @@ export default function DocumentPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Stage 8 · Execution-oriented output"
+        eyebrow="Step 6 · Your strategy document"
         title={document.title}
         description={`${document.wordCount.toLocaleString()} words · generated ${formatDate(document.generatedAt)}`}
         actions={

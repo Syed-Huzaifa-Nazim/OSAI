@@ -1,0 +1,100 @@
+R500: design+; as_pictured+
+R501: design+; as_pictured+; quality+
+R502: design+; quality+
+R503: wrong_or_missing-; quality-; seller-
+R504: quality-
+R505: quality+
+R506: breakage-
+R507: quality+
+R508: quality-; as_pictured-
+R509: design+; quality+; breakage+
+R510: design+; breakage-
+R511: quality-
+R512: delivery+; quality+
+R513: design+; delivery-
+R514: quality+; colour_fade+; price_value+
+R515: seller-
+R516: quality+
+R517: breakage-
+R518: quality+
+R519: price_value+; delivery-
+R520: design+; quality+; wrong_or_missing-
+R521: wrong_or_missing-
+R522: design+; quality+; breakage+
+R523: as_pictured+; delivery+
+R524: design+; quality+
+R525: seller+
+R526: design+; quality+
+R527: design+; size_fit-; quality-; colour_fade-
+R528: quality+; colour_fade-; size_fit+
+R529: design+; size_fit-
+R530: as_pictured+
+R531: size_fit-
+R532: as_pictured+
+R533: design+; as_pictured+
+R534: as_pictured+; seller+
+R535: packaging+; seller+; as_pictured+
+R536: seller+
+R537: size_fit-
+R538: design+; size_fit-; wrong_or_missing-
+R539: design+
+R540: quality-; wrong_or_missing-; seller-
+R541: design+; size_fit-
+R542: wrong_or_missing-; quality-; price_value-
+R543: price_value+; design+
+R544: as_pictured-
+R545: as_pictured-; size_fit-
+R546: breakage-; as_pictured-; price_value-
+R547: design+; wrong_or_missing-; delivery+
+R548: quality+
+R549: wrong_or_missing-
+R550: quality+; colour_fade+; design+
+R551: quality+; wrong_or_missing-
+R552: wrong_or_missing-; seller-; quality-
+R553: as_pictured+; delivery+
+R554: design+
+R555: wrong_or_missing-
+R556: wrong_or_missing-
+R557: wrong_or_missing-
+R558: as_pictured+
+R559: as_pictured-; colour_fade-
+R560: wrong_or_missing-
+R561: design+; packaging-
+R562: quality+
+R563: design-
+R564: as_pictured-; quality-
+R565: quality+; delivery-
+R566: wrong_or_missing-
+R567: breakage-
+R568: delivery-
+R569: breakage-
+R570: quality+; wrong_or_missing-
+R571: design+; quality+; price_value+
+R572: none
+R573: wrong_or_missing-; delivery-
+R574: design+; quality+; seller+
+R575: quality+; packaging+
+R576: quality-
+R577: none
+R578: wrong_or_missing-
+R579: none
+R580: design+; breakage-
+R581: quality+; seller+
+R582: wrong_or_missing-; seller-
+R583: quality-; wrong_or_missing-
+R584: comfort+; size_fit+
+R585: design+; quality+; breakage+
+R586: quality+
+R587: wrong_or_missing-
+R588: quality-
+R589: size_fit-
+R590: quality-; size_fit-
+R591: quality-; breakage-; price_value-
+R592: wrong_or_missing-
+R593: quality-; size_fit-
+R594: wrong_or_missing-
+R595: quality+; delivery+; seller+
+R596: seller+
+R597: design+; quality+
+R598: design+; delivery-
+R599: comfort-; as_pictured-

@@ -1,0 +1,12 @@
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+200 photos
+400 photos
+photo failed 109958837 HTTPError
+600 photos
+800 photos
+1000 photos
+1200 photos
+1400 photos
+1600 photos
+1640 tagged; {'displayed': 1182, 'worn': 268, 'in_hand': 148, 'other': 42} faces 39

@@ -110,13 +110,15 @@ def media_items(post: dict[str, Any]) -> list[dict[str, Any]]:
                 continue
             url = child.get("videoUrl") or child.get("displayUrl")
             if url:
-                items.append({"media_type": clean_text(child.get("type")) or None, "media_url": url})
+                items.append({"media_type": clean_text(child.get("type")) or None, "media_url": url,
+                              "thumbnail_url": child.get("displayUrl") or None})
     else:
         url = _get(post, "media_url", S.POST_PATHS)
         if url:
             items.append({
                 "media_type": clean_text(_get(post, "media_type", S.POST_PATHS)) or None,
                 "media_url": str(url),
+                "thumbnail_url": (str(t) if (t := _get(post, "thumbnail_url", S.POST_PATHS)) else None),
             })
 
     return items[: S.MAX_MEDIA_PER_POST]
@@ -159,7 +161,7 @@ def profile_stats(items: list[dict[str, Any]]) -> dict[str, Any]:
             value = _get(item, key, S.PROFILE_PATHS)
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 stats[key] = int(value)
-        for key in ("biography", "external_url", "category", "full_name"):
+        for key in ("biography", "external_url", "category", "full_name", "profile_picture"):
             value = _get(item, key, S.PROFILE_PATHS)
             if isinstance(value, str) and value.strip():
                 stats[key] = value.strip()

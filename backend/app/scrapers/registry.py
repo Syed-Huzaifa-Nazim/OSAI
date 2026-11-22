@@ -1,6 +1,6 @@
 """Which scraper handles which platform.
 
-The single lookup table the rest of the backend goes through. The Scout agent,
+The single lookup table the rest of the backend goes through. The Scout engine,
 the intake validators and the ``/scrapers/platforms`` endpoint all read from
 here, so a new marketplace becomes available everywhere at once:
 

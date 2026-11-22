@@ -34,11 +34,10 @@ function renderAt(path: string) {
 }
 
 const PUBLIC_ROUTES: { path: string; heading: RegExp }[] = [
-  { path: '/', heading: /competitor analysis that/i },
-  { path: '/how-it-works', heading: /the nine stages, end to end/i },
-  { path: '/features', heading: /four agents, two gates/i },
+  { path: '/', heading: /outsmart your competitors, wherever you sell/i },
+  { path: '/how-it-works', heading: /six steps, from your link to your content/i },
+  { path: '/features', heading: /six steps, and what each one does today/i },
   { path: '/about', heading: /built as a final year project/i },
-  { path: '/pricing', heading: /placeholder pricing/i },
   { path: '/contact', heading: /get in touch/i },
 ]
 
@@ -77,15 +76,14 @@ describe('navigating between routes', () => {
    * tests above would all still pass.
    */
   it.each([
-    { link: /how it works/i, heading: /the nine stages, end to end/i },
-    { link: /^features$/i, heading: /four agents, two gates/i },
-    { link: /^pricing$/i, heading: /placeholder pricing/i },
+    { link: /how it works/i, heading: /six steps, from your link to your content/i },
+    { link: /^features$/i, heading: /six steps, and what each one does today/i },
     { link: /^about$/i, heading: /built as a final year project/i },
   ])('clicking $link reaches the page', async ({ link, heading }) => {
     const user = userEvent.setup()
     renderAt('/')
 
-    await screen.findByRole('heading', { level: 1, name: /competitor analysis that/i })
+    await screen.findByRole('heading', { level: 1, name: /outsmart your competitors, wherever you sell/i })
 
     const nav = screen.getByRole('navigation', { name: /main/i })
     await user.click(within(nav).getByRole('link', { name: link }))

@@ -5,10 +5,6 @@ import type { ReactNode } from 'react'
 import { Logo } from '@/components/shared/logo'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { spring } from '@/lib/motion'
-import { PIPELINE_STAGES } from '@/lib/pipeline-stages'
-import { STAGE_COLOR_CLASSES } from '@/components/pipeline/stage-colors'
-import { resolveStageIcon } from '@/components/pipeline/stage-icon'
-import { cn } from '@/lib/utils'
 
 interface AuthShellProps {
   title: string
@@ -56,45 +52,20 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
       </div>
 
       <aside className="relative z-10 hidden overflow-hidden border-l border-border/15 bg-card/30 lg:block">
-        <div className="flex h-full flex-col justify-center gap-3 p-10">
-          <p className="eyebrow mb-3">The nine stages</p>
-          {PIPELINE_STAGES.map((stage, index) => {
-            const Icon = resolveStageIcon(stage.icon)
-            const colors = STAGE_COLOR_CLASSES[stage.id]
-            return (
-              <motion.div
-                key={stage.id}
-                initial={{ opacity: 0, x: 18 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ ...spring, delay: 0.05 * index }}
-                className="flex items-center gap-3"
-              >
-                <span
-                  className={cn(
-                    'flex size-8 shrink-0 items-center justify-center rounded-full',
-                    colors.bgSoft,
-                    colors.text,
-                  )}
-                >
-                  <Icon className="size-3.5" />
-                </span>
-                <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
-                  {String(stage.id).padStart(2, '0')}
-                </span>
-                <span
-                  className={cn(
-                    'text-sm',
-                    stage.isCheckpoint ? 'font-medium text-brand-butter-cream' : 'text-foreground/80',
-                  )}
-                >
-                  {stage.title}
-                </span>
-              </motion.div>
-            )
-          })}
-          <p className="mt-4 max-w-xs text-xs leading-relaxed text-muted-foreground">
-            Two of those nine stages are yours. The system will not write a strategy, or finish one,
-            without your sign-off.
+        <div className="relative flex h-full flex-col items-center justify-center p-10 text-center">
+          <div className="pointer-events-none absolute inset-[15%] rounded-full bg-primary/20 blur-3xl" aria-hidden="true" />
+          <motion.img
+            src="/brand/logo-large.png"
+            alt="OptiStratixAI"
+            className="relative w-full max-w-[22rem] select-none drop-shadow-[0_24px_40px_hsl(var(--shadow-color)/0.35)]"
+            draggable={false}
+            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
+            transition={{ opacity: { duration: 0.5 }, scale: { duration: 0.5 }, y: { duration: 6, repeat: Infinity, ease: 'easeInOut' } }}
+          />
+          <p className="relative mt-8 font-display text-3xl font-extrabold tracking-tight">OptiStratixAI</p>
+          <p className="relative mt-2 max-w-xs text-sm text-muted-foreground">
+            See what works for your competitors. Find your gaps. Grow your shop.
           </p>
         </div>
       </aside>

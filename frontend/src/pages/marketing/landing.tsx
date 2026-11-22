@@ -2,23 +2,37 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
+  Check,
+  Smartphone,
   Database,
+  FileDown,
+  Globe,
+  Store,
+  Link2,
+  ScanSearch,
   FileSearch,
-  Lightbulb,
   PlayCircle,
   Quote,
-  ShieldCheck,
-  Swords,
-  UserRoundCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Section } from '@/components/marketing/section'
-import { PipelineTeaser } from '@/components/marketing/pipeline-teaser'
 import { ComparisonTable } from '@/components/marketing/comparison-table'
-import { AgentCard } from '@/components/marketing/agent-card'
+import { AppPhones } from '@/components/marketing/app-phones'
+import { FanCards } from '@/components/marketing/fan-cards'
+import { ReportVisual } from '@/components/marketing/extra-visuals'
+import { StepStory } from '@/components/marketing/step-story'
+import { HeroShowcase } from '@/components/marketing/hero-showcase'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { spring, staggerContainer, staggerItem, revealOnScroll, viewportOnce } from '@/lib/motion'
+
+/** Where a comparison can run: Instagram in full; Daraz and Alibaba listings compared; Facebook planned. */
+const PLATFORMS: { name: string; logo?: string; soon?: boolean }[] = [
+  { name: 'Instagram', logo: '/hero/instagram.png' },
+  { name: 'Daraz', logo: '/hero/daraz-mark.png' },
+  { name: 'Alibaba', logo: '/hero/alibaba-mark.png' },
+  { name: 'Facebook', logo: '/hero/facebook.png', soon: true },
+]
 
 const PROBLEMS = [
   {
@@ -44,27 +58,28 @@ export default function LandingPage() {
   return (
     <>
       {/* ------------------------------------------------------------ hero */}
-      <section className="relative overflow-hidden pb-16 pt-16 sm:pb-24 sm:pt-24">
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={spring}
-            className="max-w-3xl"
-          >
-            <h1 className="font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-              Competitor analysis that{' '}
-              <span className="text-gradient-honey">shows its working</span>
+      <section className="relative overflow-hidden pb-8 pt-10 sm:pb-10 sm:pt-14">
+        <div
+          className="pointer-events-none absolute -right-40 -top-40 size-[36rem] rounded-full bg-primary/15 blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="container grid items-center gap-12 lg:grid-cols-[1.05fr_1fr]">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+              <Store className="size-3.5" aria-hidden="true" /> For small online sellers
+            </span>
+            <h1 className="mt-5 font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+              Outsmart your competitors, <span className="text-primary">wherever you sell</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              OptiStratixAI reads your competitors&rsquo; landing pages and social media, finds the
-              strategic gaps you are losing ground to, and turns them into a marketing strategy you
-              can actually execute, with a human validating every major step.
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+              Compare your Instagram or your Daraz and Alibaba listings with a competitor&rsquo;s. See
+              what is working for them, find the gaps in your own, and turn them into a plan and content, with every
+              finding backed by real data.
             </p>
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
                 <Link to="/signup">
-                  Start an analysis
+                  Start analyzing
                   <ArrowRight />
                 </Link>
               </Button>
@@ -75,20 +90,54 @@ export default function LandingPage() {
                 </Link>
               </Button>
             </div>
-            <p className="mt-5 text-xs text-muted-foreground">
-              Two mandatory human checkpoints per run. Every claim carries its source.
+            <ul className="mt-6 flex flex-wrap items-center gap-2" aria-label="Where you can compare">
+              {PLATFORMS.map((platform) => (
+                <li
+                  key={platform.name}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/20 bg-card px-2.5 py-1 text-xs font-medium shadow-sm"
+                >
+                  {platform.logo ? (
+                    <img src={platform.logo} alt="" className="size-4 object-contain" />
+                  ) : (
+                    <Globe className="size-4 text-primary" aria-hidden="true" />
+                  )}
+                  {platform.name}
+                  {platform.soon ? <span className="text-muted-foreground">· Soon</span> : null}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-sm text-muted-foreground">
+              You decide what matters: every gap is yours to keep or drop.
             </p>
           </motion.div>
+
+          <HeroShowcase />
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.15 }}
-          className="container mt-16"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+          className="container mt-10"
         >
-          <p className="eyebrow mb-4">The pipeline, running</p>
-          <PipelineTeaser />
+          <div className="card-soft grid gap-6 border border-border/15 p-6 sm:p-8 md:grid-cols-[1.2fr_repeat(3,1fr)] md:items-center">
+            <div>
+              <p className="font-display text-xl font-bold">Analyze. Review. Grow.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Your competitor analysis partner for online shops.</p>
+            </div>
+            {[
+              { icon: Link2, text: 'Add your link and your competitor\'s link' },
+              { icon: ScanSearch, text: 'We compare both and find what works for them' },
+              { icon: FileDown, text: 'Keep what matters and download the report' },
+            ].map((step) => (
+              <motion.div key={step.text} variants={staggerItem} className="flex items-center gap-3 md:flex-col md:text-center">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <step.icon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="text-sm font-medium">{step.text}</span>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </section>
 
@@ -99,117 +148,16 @@ export default function LandingPage() {
         title="Nobody is short of competitor data"
         description="What is missing is the step between having it and knowing what to do about it."
       >
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="animate"
-          viewport={viewportOnce}
-          className="grid gap-5 md:grid-cols-3"
-        >
-          {PROBLEMS.map((problem) => (
-            <motion.div key={problem.title} variants={staggerItem}>
-              <Card className="h-full p-6">
-                <span className="flex size-10 items-center justify-center rounded-full bg-primary/12 text-primary">
-                  <problem.icon className="size-5" />
-                </span>
-                <h3 className="mt-5 font-display text-base font-semibold">{problem.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {problem.body}
-                </p>
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
+        <FanCards items={PROBLEMS} label="Three problems small sellers face" />
       </Section>
 
       {/* ------------------------------------------------------ how it works */}
       <Section
         eyebrow="How it works"
-        title="Nine stages. Two of them are yours."
-        description="Four agents do the reading and the reasoning. You decide what matters and what ships."
+        title="Six steps. Two of them are yours."
+        description="Scroll through them. The system reads and compares; you decide which gaps matter and which plan goes ahead. Steps 4 to 6 are being built."
       >
-        <motion.div
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="animate"
-          viewport={viewportOnce}
-          className="grid gap-5 md:grid-cols-2 lg:grid-cols-3"
-        >
-          <AgentCard
-            icon={Database}
-            eyebrow="Stages 2-3"
-            title="Scout Agent"
-            description="Collects competitor and market data from the web, social platforms, reviews, forums and news, then cleans, chunks and embeds it into a vector store scoped to your project."
-            bullets={[
-              'Landing pages and social posts',
-              'Customer reviews and forum threads',
-              'Retrievable corpus, not a scraped dump',
-            ]}
-            accentClassName="text-stage-2"
-          />
-          <AgentCard
-            icon={Lightbulb}
-            eyebrow="Stage 4"
-            title="Insight Agent"
-            description="Compares your brand against that corpus to identify gaps, opportunities and competitive trends, each scored for confidence and attached to the passage it came from."
-            bullets={[
-              'Gaps grouped by category',
-              'Confidence scored, not asserted',
-              'Every finding cites its source',
-            ]}
-            accentClassName="text-stage-4"
-          />
-          <AgentCard
-            icon={UserRoundCheck}
-            eyebrow="Stage 5"
-            title="You review the gaps"
-            description="Nothing is written until you have been through the list. Keep what fits the business, drop what does not, and reprioritise anything the agent misjudged."
-            bullets={[
-              'Accept, reject or reprioritise',
-              'Leave a note the Strategist reads',
-              'Your decisions are logged',
-            ]}
-            human
-            accentClassName="text-stage-5"
-          />
-          <AgentCard
-            icon={Swords}
-            eyebrow="Stage 6"
-            title="Strategist + Critic"
-            description="The Strategist drafts initiatives against the gaps you kept. The Critic then challenges that draft for strength, clarity, feasibility and evidence, and you see exactly what it changed."
-            bullets={[
-              'Adversarial second pass',
-              'Unsupported claims removed',
-              'Before and after both visible',
-            ]}
-            accentClassName="text-stage-6"
-          />
-          <AgentCard
-            icon={ShieldCheck}
-            eyebrow="Stage 7"
-            title="You approve the strategy"
-            description="The final gate. Approve it for execution, or send it back with notes and let the two agents produce another version."
-            bullets={[
-              'Approve, reject or request revision',
-              'Critic annotations shown inline',
-              'Revisions are versioned',
-            ]}
-            human
-            accentClassName="text-stage-7"
-          />
-          <AgentCard
-            icon={FileSearch}
-            eyebrow="Stages 8-9"
-            title="Document and follow-through"
-            description="An approved strategy becomes a full document with an implementation plan, then a set of content assets (blogs, SEO briefs, social and ads), mapped to the initiatives you signed off."
-            bullets={[
-              'Exportable strategy document',
-              'Step-by-step action plan',
-              'Content assets per initiative',
-            ]}
-            accentClassName="text-stage-8"
-          />
-        </motion.div>
+        <StepStory />
 
         <motion.div
           variants={revealOnScroll}
@@ -220,11 +168,41 @@ export default function LandingPage() {
         >
           <Button asChild variant="outline">
             <Link to="/how-it-works">
-              Walk through all nine stages
+              Walk through all six steps
               <ArrowRight />
             </Link>
           </Button>
         </motion.div>
+      </Section>
+
+      {/* ---------------------------------------------------------- phone app */}
+      <Section tinted>
+        <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <motion.div variants={revealOnScroll} initial="initial" whileInView="whileInView" viewport={viewportOnce}>
+            <span className="inline-flex items-center gap-2 rounded-full bg-warning/20 px-3 py-1 text-xs font-semibold text-warning-ink">
+              <Smartphone className="size-3.5" aria-hidden="true" /> Phone app · coming soon
+            </span>
+            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+              Your competitor check, <span className="text-primary">in your pocket</span>
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              A phone app is planned: see new gaps as they are found, keep or drop them with a tap, and read why each
+              one matters, wherever you are.
+            </p>
+            <ul className="mt-5 space-y-2.5 text-sm">
+              {['Your dashboard at a glance', 'Review gaps with one tap', 'Explanations with the real posts behind them'].map((line) => (
+                <li key={line} className="flex items-center gap-2.5">
+                  <span className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Check className="size-3" strokeWidth={3} aria-hidden="true" />
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-5 text-xs text-muted-foreground">Screens shown are a preview with example content.</p>
+          </motion.div>
+          <AppPhones />
+        </div>
       </Section>
 
       {/* ------------------------------------------------------ comparison */}
@@ -245,24 +223,27 @@ export default function LandingPage() {
           whileInView="whileInView"
           viewport={viewportOnce}
         >
-          <Card glass className="overflow-hidden p-10 text-center sm:p-14">
-            <h2 className="mx-auto max-w-2xl font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-              Run your first analysis
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
-              Add your brand and the competitors you care about. The Scout Agent takes it from
-              there, and stops at the first checkpoint to hear from you.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Button asChild size="lg">
-                <Link to="/signup">
-                  Create an account
-                  <ArrowRight />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link to="/about">Read the project story</Link>
-              </Button>
+          <Card glass className="overflow-hidden p-8 sm:p-12">
+            <div className="grid items-center gap-10 lg:grid-cols-2">
+              <div className="text-center lg:text-left">
+                <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Run your first analysis</h2>
+                <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-muted-foreground lg:mx-0">
+                  Add your page and a competitor&rsquo;s. The Scout Engine reads both, the Gap Engine finds what works
+                  for them that you are not doing yet, and then it stops and waits for you to decide.
+                </p>
+                <div className="mt-8 flex flex-wrap justify-center gap-3 lg:justify-start">
+                  <Button asChild size="lg">
+                    <Link to="/signup">
+                      Create an account
+                      <ArrowRight />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link to="/about">Read the project story</Link>
+                  </Button>
+                </div>
+              </div>
+              <ReportVisual />
             </div>
           </Card>
         </motion.div>

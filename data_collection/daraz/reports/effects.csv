@@ -1,0 +1,31 @@
+outcome,lever,name,kind,words_tested,median_rho,words_positive,top20_typical,rest_typical,p,p_corrected,proven,direction,verdict
+search rank,price_vs_word,price compared with similar listings,number,25,-0.246,3,0.818,1.05,6.556510925292969e-06,0.0001,True,less is better,proven: less is better
+search rank,discount_pct,discount shown (%),number,25,0.037,16,37.0,37.5,0.19081425666809082,0.273,False,more is better,not proven
+search rank,has_discount,a discount shown,yesno,25,0.0,12,0.85,0.833,1.0,1.0,False,less is better,not proven
+search rank,free_shipping,free shipping badge,yesno,25,0.092,16,0.7,0.65,0.04826241731643677,0.0905,False,more is better,not proven
+search rank,voucher,a voucher badge,yesno,25,0.09,19,0.7,0.617,0.023649930953979492,0.0591,False,more is better,not proven
+search rank,coins,Daraz coins discount,yesno,25,0.009,14,0.6,0.5,0.2002161741256714,0.273,False,more is better,not proven
+search rank,daraz_choice,Daraz Choice badge,yesno,9,-0.139,2,0.0,0.083,0.01953125,0.0591,False,less is better,not proven
+search rank,title_words,words in the title,number,25,0.065,18,16.0,16.0,0.11993378400802612,0.1999,False,more is better,not proven
+search rank,title_has_search_word,the search word in the title,yesno,23,0.065,15,0.65,0.283,0.0448758602142334,0.0905,False,more is better,not proven
+search rank,image_count,number of photos,number,25,0.107,15,6.0,5.0,0.021908342838287354,0.0591,False,more is better,not proven
+search rank,photo_worn,main photo shows the jewellery worn,yesno,24,0.012,12,0.125,0.15,0.7898378372192383,0.8463,False,more is better,not proven
+search rank,photo_face,main photo shows a face,yesno,8,-0.022,2,0.05,0.05,0.4609375,0.5319,False,less is better,not proven
+search rank,description_words,words in the description,number,25,0.081,16,90.5,76.5,0.021908342838287354,0.0591,False,more is better,not proven
+search rank,bullet_count,bullet points in the description,number,25,0.013,13,0.0,0.0,0.2996123433113098,0.3745,False,more is better,not proven
+search rank,variant_count,colour / size options,number,25,0.12,21,2.0,2.0,0.0030878782272338867,0.0232,True,more is better,proven: more is better
+number sold,price_vs_word,price compared with similar listings,number,25,-0.238,3,0.818,1.05,5.245208740234375e-06,0.0,True,less is better,proven: less is better
+number sold,discount_pct,discount shown (%),number,25,0.048,15,37.0,37.5,0.39571136236190796,0.4946,False,more is better,not proven
+number sold,has_discount,a discount shown,yesno,25,0.052,16,0.85,0.833,0.33878785371780396,0.462,False,more is better,not proven
+number sold,free_shipping,free shipping badge,yesno,25,0.118,19,0.7,0.65,0.012466490268707275,0.0267,True,more is better,proven: more is better
+number sold,voucher,a voucher badge,yesno,25,0.126,20,0.7,0.617,0.01597297191619873,0.0299,True,more is better,proven: more is better
+number sold,coins,Daraz coins discount,yesno,25,0.006,13,0.6,0.5,0.9578450322151184,0.9578,False,more is better,not proven
+number sold,daraz_choice,Daraz Choice badge,yesno,9,0.454,8,0.0,0.083,0.0078125,0.0195,True,more is better,proven: more is better
+number sold,title_words,words in the title,number,25,0.126,18,16.0,16.0,0.002507925033569336,0.0094,True,more is better,proven: more is better
+number sold,title_has_search_word,the search word in the title,yesno,23,-0.104,10,0.65,0.283,0.13413381576538086,0.2012,False,less is better,not proven
+number sold,image_count,number of photos,number,25,0.233,23,6.0,5.0,6.556510925292969e-06,0.0,True,more is better,proven: more is better
+number sold,photo_worn,main photo shows the jewellery worn,yesno,24,-0.059,8,0.125,0.15,0.03584937324277264,0.0597,False,less is better,not proven
+number sold,photo_face,main photo shows a face,yesno,8,-0.107,0,0.05,0.05,0.0078125,0.0195,True,less is better,proven: less is better
+number sold,description_words,words in the description,number,25,-0.01,12,90.5,76.5,0.6338268518447876,0.6791,False,less is better,not proven
+number sold,bullet_count,bullet points in the description,number,25,-0.031,9,0.0,0.0,0.4741646647453308,0.5471,False,less is better,not proven
+number sold,variant_count,colour / size options,number,25,0.167,17,2.0,2.0,0.0010271072387695312,0.0051,True,more is better,proven: more is better

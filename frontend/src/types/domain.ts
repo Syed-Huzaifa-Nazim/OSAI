@@ -18,12 +18,7 @@ export interface AuthUser {
 /* --------------------------------------------------------------- project: */
 
 export type ProjectStatus =
-  | 'draft'
-  | 'running'
-  | 'awaiting_review'
-  | 'complete'
-  | 'failed'
-  | 'archived'
+  'draft' | 'running' | 'awaiting_review' | 'complete' | 'failed' | 'archived'
 
 export type Industry =
   | 'saas'
@@ -97,13 +92,7 @@ export interface Competitor {
   createdAt: string
 }
 
-export type SocialPlatform =
-  | 'instagram'
-  | 'linkedin'
-  | 'x'
-  | 'facebook'
-  | 'tiktok'
-  | 'youtube'
+export type SocialPlatform = 'instagram' | 'linkedin' | 'x' | 'facebook' | 'tiktok' | 'youtube'
 
 export interface SocialHandle {
   platform: SocialPlatform
@@ -276,6 +265,8 @@ export interface ScrapedPostMedia {
   mediaType: string | null
   /** Instagram's own CDN URL. Nothing is downloaded or re-hosted. */
   mediaUrl: string
+  /** The still picture; for a video, its cover frame. Missing on rows scraped before migration 0013. */
+  thumbnailUrl?: string | null
 }
 
 /** One public comment collected for a post. */
@@ -356,6 +347,9 @@ export interface ScrapedPost {
    *  for the same reason as `ScrapedPage.images`: an older API omits them. */
   media?: ScrapedPostMedia[]
   comments?: ScrapedPostComment[]
+  /** The profile's follower count and picture (from its profile stats). Absent on older APIs and older scrapes. */
+  followersCount?: number | null
+  profilePicture?: string | null
 }
 
 /** Everything a website or social comparison collected, both sides together. */
@@ -433,13 +427,7 @@ export interface ParameterComparison {
 /* ------------------------------------------ stage 4/5: gaps & HITL #1 ----- */
 
 export type GapCategory =
-  | 'content'
-  | 'seo'
-  | 'social_engagement'
-  | 'positioning'
-  | 'audience'
-  | 'conversion'
-  | 'pricing'
+  'content' | 'seo' | 'social_engagement' | 'positioning' | 'audience' | 'conversion' | 'pricing'
 
 export type GapPriority = 'critical' | 'high' | 'medium' | 'low'
 
@@ -460,10 +448,95 @@ export interface Gap {
   /** Why the agent believes this. The evidence trail is the trust feature. */
   evidence: Evidence[]
   opportunity: string
+  /** Plain-language extras (how sure, example posts, numbers). Absent on older gaps. */
+  details?: GapDetails
   decision: GapDecision
   /** Free-text annotation the reviewer leaves at HITL #1. */
   reviewerNote: string | null
   createdAt: string
+}
+
+export type HowSure = 'Low' | 'Medium' | 'High'
+
+/** One real post shown next to a gap, so the reader can see it for themselves. */
+export interface GapExample {
+  who: 'competitor' | 'you'
+  postUrl: string
+  imageUrl: string
+  date: string | null
+  format: string
+  likes: number | null
+  comments: number | null
+  caption: string
+}
+
+export interface GapNumbersRow {
+  label: string
+  you: string | null
+  competitor: string | null
+  typical: string | null
+}
+
+export interface GapDetails {
+  kind?:
+    | 'format'
+    | 'timing'
+    | 'reach'
+    | 'topic'
+    | 'hashtag'
+    | 'media'
+    | 'weakness'
+    | 'habit'
+    | 'profile'
+    /** Layer 6: what the captions say, what the pictures show, how the reels open. */
+    | 'caption'
+    | 'picture'
+    | 'reel'
+    /** Daraz listings: levers proven on Daraz jewellery data, and what customers say. */
+    | 'daraz_price'
+    | 'daraz_offer'
+    | 'daraz_title'
+    | 'daraz_photos'
+    | 'daraz_content'
+    | 'daraz_reviews'
+  /** How sure we are, from a statistical test and how many posts were read. */
+  howSure?: HowSure
+  who?: string
+  context?: 'behind' | 'even' | 'ahead' | 'unknown'
+  examples?: GapExample[]
+  numbers?: GapNumbersRow[]
+  /** The method behind the finding, for people who want it. */
+  technical?: string[]
+  /** A real difference that is not proven yet (too few posts): something to test, not a confirmed gap. */
+  unproven?: boolean
+  /** Compared with the typical jewellery shop (the dataset), not only the competitor. */
+  market?: boolean
+  /** The last explanation made with the Explain button, saved by the backend (snake_case, as stored). */
+  explanation?: SavedExplanation
+}
+
+export interface SavedExplanation {
+  found?: string
+  why?: string
+  general?: string
+  explanation?: string
+  grounded?: boolean
+  evidence_used?: string[]
+  knowledge_used?: string[]
+  unknown_citations?: string[]
+  evidence?: {
+    id: string
+    side: 'competitor' | 'you'
+    format?: string | null
+    date?: string | null
+    likes?: number | null
+    comments?: number | null
+    post_url?: string | null
+    image_url?: string | null
+    retrieved?: boolean | null
+    text?: string
+  }[]
+  knowledge?: { id: string; text: string; source: string; url: string; verified: boolean }[]
 }
 
 /** A citation back to a scraped source. Never render a claim without one. */
@@ -479,12 +552,7 @@ export interface Evidence {
 /* --------------------------------- stage 6/7: strategy, critic & HITL #2: */
 
 export type StrategyStatus =
-  | 'generating'
-  | 'draft'
-  | 'critiqued'
-  | 'awaiting_approval'
-  | 'approved'
-  | 'revision_requested'
+  'generating' | 'draft' | 'critiqued' | 'awaiting_approval' | 'approved' | 'revision_requested'
 
 export interface Strategy {
   id: string

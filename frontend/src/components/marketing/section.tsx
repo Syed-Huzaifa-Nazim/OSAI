@@ -24,7 +24,7 @@ export function Section({
   align = 'left',
 }: SectionProps) {
   return (
-    <section className={cn('py-20 sm:py-28', tinted && 'bg-card/30', className)}>
+    <section className={cn('py-10 sm:py-14', tinted && 'bg-card/30', className)}>
       <div className="container">
         {eyebrow || title || description ? (
           <motion.div
@@ -33,7 +33,7 @@ export function Section({
             whileInView="whileInView"
             viewport={viewportOnce}
             className={cn(
-              'mb-12 max-w-2xl space-y-3',
+              'mb-8 max-w-2xl space-y-3',
               align === 'center' && 'mx-auto text-center',
             )}
           >

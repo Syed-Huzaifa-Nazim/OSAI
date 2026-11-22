@@ -77,7 +77,7 @@ export function PipelineStepper({
       aria-label="Analysis pipeline"
       className={cn(
         isHorizontal
-          ? 'no-scrollbar flex items-stretch overflow-x-auto pb-2'
+          ? 'flex flex-wrap items-stretch gap-y-3'
           : 'flex flex-col',
         className,
       )}

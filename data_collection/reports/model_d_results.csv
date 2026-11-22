@@ -1,0 +1,7 @@
+tag,method,accuracy,macro_f1,n_pictures,n_shops
+jewellery_shown,majority class,0.473,0.161,300,54
+jewellery_shown,CLIP zero-shot (drafts),0.623,0.64,300,54
+jewellery_shown,CLIP + trained head (Model D),0.783,0.769,300,54
+face,majority class,0.873,0.466,300,54
+face,CLIP zero-shot (drafts),0.923,0.762,300,54
+face,CLIP + trained head (Model D),0.963,0.923,300,54

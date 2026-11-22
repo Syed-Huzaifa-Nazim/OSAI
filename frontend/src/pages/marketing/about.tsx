@@ -1,11 +1,14 @@
 import { motion } from 'framer-motion'
-import { GraduationCap, Target } from 'lucide-react'
+import { Database, GraduationCap, Quote, Scale, ShieldQuestion } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Section } from '@/components/marketing/section'
+import { FanCards, type FanItem } from '@/components/marketing/fan-cards'
+import { TiltCard } from '@/components/marketing/tilt-card'
+import { LoopVisual, PlatformsVisual, RagVisual } from '@/components/marketing/extra-visuals'
+import { ExplainVisual } from '@/components/marketing/feature-visuals'
 import { useDocumentTitle } from '@/hooks/use-document-title'
-import { initials } from '@/lib/utils'
+import { cn, initials } from '@/lib/utils'
 import { revealOnScroll, spring, staggerContainer, staggerItem, viewportOnce } from '@/lib/motion'
 
 const TEAM = [
@@ -15,26 +18,48 @@ const TEAM = [
   { name: 'Muhammad Umar Khan', roll: '23-AI-71' },
 ]
 
+/** Colours for the team cards' header strip and avatar. */
+const TEAM_TONES = ['from-primary to-blush', 'from-warning to-blush', 'from-primary to-warning', 'from-blush to-primary']
+
 const OBJECTIVES = [
   {
     title: 'RAG pipeline',
+    visual: RagVisual,
     body: 'Implement a multi-agent retrieval-augmented-generation pipeline that extracts, processes and analyses real-world competitor data rather than reasoning from a model’s priors.',
   },
   {
     title: 'Multi-platform analysis',
-    body: 'Perform comparative analysis across both landing pages and social media, so findings hold across the channels a business actually competes on.',
+    visual: PlatformsVisual,
+    body: 'Compare a business with its competitor where it actually sells: Instagram today, and Daraz and Alibaba product listings. Facebook is planned.',
   },
   {
     title: 'Human-in-the-loop',
+    visual: LoopVisual,
     body: 'Let users validate and refine AI-generated insights through explicit evaluation and approval steps, rather than accepting model output on trust.',
   },
 ]
 
-const PROBLEMS = [
-  'SMEs have access to large amounts of competitor data, but it is unstructured and hard to interpret.',
-  'Existing tools do not perform true comparative analysis between a business and its competitors.',
-  'Most AI tools generate generic, non-contextual suggestions that do not fit the specific business.',
-  'Existing systems lack evidence-based reasoning, so their outputs are hard to trust or validate.',
+const PROBLEMS: FanItem[] = [
+  {
+    icon: Database,
+    title: 'Plenty of data, hard to read',
+    body: 'SMEs have access to large amounts of competitor data, but it is unstructured and hard to interpret.',
+  },
+  {
+    icon: Scale,
+    title: 'No real side-by-side comparison',
+    body: 'Existing tools do not perform true comparative analysis between a business and its competitors.',
+  },
+  {
+    icon: Quote,
+    title: 'Advice that fits nobody',
+    body: 'Most AI tools generate generic, non-contextual suggestions that do not fit the specific business.',
+  },
+  {
+    icon: ShieldQuestion,
+    title: 'Hard to trust',
+    body: 'Existing systems lack evidence-based reasoning, so their outputs are hard to trust or validate.',
+  },
 ]
 
 export default function AboutPage() {
@@ -42,8 +67,8 @@ export default function AboutPage() {
 
   return (
     <>
-      <section className="pb-4 pt-16 sm:pt-24">
-        <div className="container">
+      <section className="pb-0 pt-10 sm:pt-14">
+        <div className="container grid items-center gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -60,6 +85,9 @@ export default function AboutPage() {
               Engineering &amp; Technology.
             </p>
           </motion.div>
+          <motion.div initial={{ opacity: 0, x: 30, rotate: 3 }} animate={{ opacity: 1, x: 0, rotate: 0 }} transition={{ ...spring, delay: 0.15 }}>
+            <ExplainVisual />
+          </motion.div>
         </div>
       </section>
 
@@ -68,24 +96,7 @@ export default function AboutPage() {
         title="Why this project exists"
         description="Four observations that the system is a direct response to."
       >
-        <motion.ul
-          variants={staggerContainer}
-          initial="initial"
-          whileInView="animate"
-          viewport={viewportOnce}
-          className="grid gap-4 sm:grid-cols-2"
-        >
-          {PROBLEMS.map((problem, index) => (
-            <motion.li key={problem} variants={staggerItem}>
-              <Card className="h-full p-6">
-                <span className="font-mono text-xs text-muted-foreground/60">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
-                <p className="mt-3 text-sm leading-relaxed">{problem}</p>
-              </Card>
-            </motion.li>
-          ))}
-        </motion.ul>
+        <FanCards items={PROBLEMS} label="Why this project exists" />
       </Section>
 
       <Section
@@ -102,16 +113,16 @@ export default function AboutPage() {
         >
           {OBJECTIVES.map((objective, index) => (
             <motion.div key={objective.title} variants={staggerItem}>
+              <TiltCard>
               <Card glass className="h-full p-6">
-                <span className="flex size-10 items-center justify-center rounded-full bg-primary/12 text-primary">
-                  <Target className="size-5" />
-                </span>
+                <objective.visual />
                 <p className="eyebrow mt-5">Objective {index + 1}</p>
                 <h3 className="mt-1.5 font-display text-lg font-semibold">{objective.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {objective.body}
                 </p>
               </Card>
+              </TiltCard>
             </motion.div>
           ))}
         </motion.div>
@@ -125,15 +136,24 @@ export default function AboutPage() {
           viewport={viewportOnce}
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
-          {TEAM.map((member) => (
+          {TEAM.map((member, index) => (
             <motion.div key={member.roll} variants={staggerItem}>
-              <Card className="h-full p-6 text-center">
-                <Avatar className="mx-auto size-14">
-                  <AvatarFallback className="text-sm">{initials(member.name)}</AvatarFallback>
-                </Avatar>
+              <TiltCard max={10}>
+              <Card className="group relative h-full overflow-hidden p-6 text-center">
+                <span className={cn('absolute inset-x-0 top-0 h-16 bg-gradient-to-r opacity-60 transition-opacity group-hover:opacity-100', TEAM_TONES[index % TEAM_TONES.length])} aria-hidden="true" />
+                <motion.span
+                  whileHover={{ rotate: 8, scale: 1.08 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 14 }}
+                  className="relative mx-auto mt-4 flex size-16 items-center justify-center rounded-full bg-card shadow-lg ring-4 ring-card"
+                >
+                  <span className={cn('flex size-full items-center justify-center rounded-full bg-gradient-to-br font-display text-lg font-extrabold text-primary-foreground', TEAM_TONES[index % TEAM_TONES.length])}>
+                    {initials(member.name)}
+                  </span>
+                </motion.span>
                 <h3 className="mt-4 font-display text-base font-semibold">{member.name}</h3>
                 <p className="mt-1 font-mono text-xs text-muted-foreground">{member.roll}</p>
               </Card>
+              </TiltCard>
             </motion.div>
           ))}
         </motion.div>

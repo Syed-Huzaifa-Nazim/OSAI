@@ -250,7 +250,9 @@ describe('Scraped data, Instagram', () => {
     const thumbnails = container.querySelectorAll('img[src*="scontent"]')
     expect(thumbnails).toHaveLength(2)
     expect(thumbnails[0]?.getAttribute('src')).toContain('/scrapers/media?url=')
-    expect(screen.getAllByText('Posts read')).toHaveLength(2)
+    expect(screen.getAllByText('Followers')).toHaveLength(2)
+    expect(screen.getAllByText('Posts')).toHaveLength(2)
+    expect(screen.getByText('VS')).toBeInTheDocument()
   })
 
   it('opens a post with its caption, hashtags and comments', () => {

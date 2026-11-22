@@ -1,0 +1,100 @@
+R600: as_pictured+
+R601: quality-; as_pictured-
+R602: quality-
+R603: price_value-; quality-; as_pictured-
+R604: quality-; size_fit-; wrong_or_missing-
+R605: wrong_or_missing-; size_fit-; seller-
+R606: as_pictured-; quality-
+R607: design+; seller+
+R608: design+; comfort+; delivery+; seller+
+R609: quality-; wrong_or_missing-; breakage-; colour_fade-; seller-
+R610: none
+R611: design+
+R612: as_pictured+; comfort+
+R613: design+; packaging-; quality-
+R614: design+; colour_fade-; seller+
+R615: size_fit-; delivery-
+R616: breakage-
+R617: design+; size_fit-
+R618: as_pictured+
+R619: quality+; comfort+; size_fit+
+R620: quality+; wrong_or_missing-
+R621: design+
+R622: quality-; wrong_or_missing-; seller-
+R623: delivery+; packaging+; size_fit-; design+
+R624: quality+; packaging-; price_value+
+R625: design+; as_pictured-
+R626: quality+; as_pictured+; design+
+R627: design+; quality+; size_fit-; wrong_or_missing-
+R628: packaging+; breakage+; seller+; design+; quality+
+R629: size_fit-; price_value-
+R630: design+
+R631: breakage-; quality-
+R632: quality-; design+
+R633: design+; as_pictured-
+R634: as_pictured-; quality+
+R635: quality-; price_value-
+R636: design+; quality+; price_value+; delivery-; seller-
+R637: design+
+R638: quality-; price_value+
+R639: as_pictured+
+R640: as_pictured-; size_fit-
+R641: none
+R642: none
+R643: size_fit+
+R644: packaging-; quality+
+R645: quality+
+R646: as_pictured-; quality-; price_value-
+R647: design+; breakage+
+R648: design+
+R649: design+; quality+; breakage+; price_value-
+R650: as_pictured-
+R651: design+; quality+
+R652: quality+
+R653: design+
+R654: design+; quality-
+R655: price_value-
+R656: as_pictured-
+R657: quality+; as_pictured+
+R658: as_pictured-
+R659: price_value-
+R660: quality+; price_value+; as_pictured+
+R661: design+; quality+
+R662: design+
+R663: as_pictured-; wrong_or_missing-; design-; quality-
+R664: design+; quality+; breakage+; wrong_or_missing-
+R665: quality-
+R666: none
+R667: none
+R668: packaging-; breakage-
+R669: quality+
+R670: size_fit-; design+
+R671: none
+R672: size_fit-
+R673: quality+; as_pictured+
+R674: quality+
+R675: seller+
+R676: design+; seller+
+R677: quality-; wrong_or_missing-; seller-
+R678: wrong_or_missing-
+R679: design-; quality-
+R680: design+
+R681: quality-; price_value-
+R682: wrong_or_missing-
+R683: none
+R684: wrong_or_missing-; quality-
+R685: wrong_or_missing-; as_pictured-
+R686: breakage-; wrong_or_missing-; seller-
+R687: quality+
+R688: breakage+
+R689: design+; as_pictured+; delivery+
+R690: none
+R691: delivery+; as_pictured+; seller+
+R692: stones+; quality+; breakage+
+R693: as_pictured+
+R694: design+; quality+
+R695: as_pictured-
+R696: as_pictured+
+R697: wrong_or_missing-
+R698: size_fit-
+R699: design+; quality+

@@ -123,7 +123,7 @@ export default function ProfileSettingsPage() {
       <Card className="p-6">
         <h2 className="font-display text-base font-semibold">Appearance</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Both themes use the same five brand tokens; only their roles swap.
+          Choose light or dark. Both use the same violet style.
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           {THEMES.map((theme) => {

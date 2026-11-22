@@ -12,7 +12,7 @@ and a consumer marketplace does not show:
     J. Supplier Credibility         years, Gold / Verified / Trade Assurance, track record
 
 Structure, scoring and output shape match the Daraz metrics module, so the
-comparison page, the Insight Agent and the gap triage screen handle both alike.
+comparison page, the Gap Engine and the gap triage screen handle both alike.
 """
 
 from __future__ import annotations

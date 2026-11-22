@@ -48,7 +48,7 @@ export function useStartPipeline(projectId: string) {
     onSuccess: (state) => {
       client.setQueryData(queryKeys.projects.pipeline(projectId), state)
       toast.success('Pipeline started', {
-        description: 'The Scout Agent is collecting competitor data.',
+        description: 'The Scout Engine is collecting competitor data.',
       })
     },
     onError: (error) => {

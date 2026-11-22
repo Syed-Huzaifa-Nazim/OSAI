@@ -45,7 +45,7 @@ export default function StrategyPage() {
     return (
       <div className="space-y-7">
         <PageHeader
-          eyebrow="Stage 6 · Strategist + Critic"
+          eyebrow="Step 4 · Strategy + critic"
           title="Strategy"
           description="Two agents in tension: one drafts, the other challenges."
         />
@@ -79,7 +79,7 @@ export default function StrategyPage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="Stage 6 · Strategist + Critic"
+        eyebrow="Step 4 · Strategy + critic"
         title={strategy.title}
         description="Drafted by the Strategist, then challenged by the Critic. Both passes are on the record."
         actions={

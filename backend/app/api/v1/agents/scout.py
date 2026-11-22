@@ -1,4 +1,4 @@
-"""Stage 2: Scout Agent (data acquisition).
+"""Stage 2: Scout Engine (data acquisition).
 
 MOCK IMPLEMENTATION. Returns the hand-written source set from
 ``app.services.demo_data`` instead of scraping anything.
@@ -26,7 +26,7 @@ logger = logging.getLogger("optistratix.agents.scout")
 
 
 class MockScoutAgent(BaseAgent):
-    name = "Scout Agent"
+    name = "Scout Engine"
     stage = 2
     is_live = False
 

@@ -202,7 +202,7 @@ export function AppSidebar() {
         initial={false}
         animate={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
         transition={spring}
-        className="glass fixed inset-y-0 left-0 z-40 hidden shrink-0 rounded-none border-y-0 border-l-0 md:block"
+        className="fixed inset-y-0 left-0 z-40 hidden shrink-0 border-r border-border/15 bg-card md:block"
       >
         {content(false)}
       </motion.aside>
@@ -231,7 +231,7 @@ export function AppSidebar() {
             onAnimationComplete={() => {
               if (!mobileOpen) setDrawerMounted(false)
             }}
-            className="glass-strong fixed inset-y-0 left-0 z-50 w-[268px] rounded-none border-y-0 border-l-0 md:hidden"
+            className="fixed inset-y-0 left-0 z-50 w-[272px] border-r border-border/15 bg-card shadow-2xl md:hidden"
             role="dialog"
             aria-label="Navigation"
           >

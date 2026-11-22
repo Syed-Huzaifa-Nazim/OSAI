@@ -65,3 +65,31 @@ Thumbs.db
 npm-debug.log*
 coverage/
 .nyc_output/
+
+# --- env backups -------------------------------------------------------------
+.env.bak
+*.env.bak
+
+# --- old working copies (backend_v2 is now copied into backend/) -------------
+backend_v2/
+all_layers/
+
+# --- large local data (kept on the PC, too big for GitHub) -------------------
+# Scraped Instagram posts, pictures and reels (~8 GB) and raw Daraz pages.
+data_collection/data/
+data_collection/daraz/raw/
+data_collection/labels/thumbs/
+data_collection/labels/spotcheck/
+*.mp4
+
+# --- large trained models (see README "Models that are not in git") ----------
+# Model C caption model (466 MB): data_collection/train_caption_model.py, then export_to_app.py
+data_collection/models/
+backend/app/analysis/instagram/models/caption_model/
+# Team's Daraz review model (2.2 GB): get model_package from the team's shared drive
+Daraz_Model/model_package/sentiment_model/
+Daraz_Model/model_package/aspect_model/
+Daraz_Model/model_package/*.joblib
+Daraz_Model/model_package.zip
+Daraz_Model/*.xlsx
+*.safetensors

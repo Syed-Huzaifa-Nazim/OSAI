@@ -1,6 +1,4 @@
-import { Link } from 'react-router-dom'
 import { CreditCard, Info } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/shared/page-header'
@@ -9,7 +7,7 @@ import { useDocumentTitle } from '@/hooks/use-document-title'
 /**
  * PLACEHOLDER. No billing provider is integrated and no payment is collected
  * anywhere in the application. This page exists so the settings area matches
- * the public pricing page, which is itself placeholder content.
+ * the pilot plan described in the project; there are no paid tiers yet.
  */
 export default function BillingSettingsPage() {
   useDocumentTitle('Billing')
@@ -26,12 +24,7 @@ export default function BillingSettingsPage() {
         <Info className="mt-0.5 size-4 shrink-0 text-brand-butter-cream" />
         <p className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Placeholder page.</span> No billing provider
-          is integrated, no card details are collected, and nothing here charges anyone. It mirrors
-          the placeholder tiers on the public{' '}
-          <Link to="/pricing" className="text-primary hover:underline">
-            pricing page
-          </Link>
-          .
+          is integrated, no card details are collected, and nothing here charges anyone.
         </p>
       </Card>
 
@@ -47,9 +40,6 @@ export default function BillingSettingsPage() {
               both human checkpoints are included on every tier.
             </p>
           </div>
-          <Button asChild variant="outline">
-            <Link to="/pricing">Compare plans</Link>
-          </Button>
         </div>
       </Card>
 

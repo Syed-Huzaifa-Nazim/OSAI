@@ -72,7 +72,11 @@ export function PostDetailDialog({ post, username, open, onOpenChange }: PostDet
                   exit={reduced ? undefined : { opacity: 0 }}
                   transition={spring}
                 >
-                  <PostMedia url={url} type={current?.mediaType ?? post.mediaType} />
+                  <PostMedia
+                    url={url}
+                    type={current?.mediaType ?? post.mediaType}
+                    poster={current?.thumbnailUrl ?? null}
+                  />
                 </motion.div>
               </AnimatePresence>
 
@@ -95,7 +99,7 @@ export function PostDetailDialog({ post, username, open, onOpenChange }: PostDet
                       }
                     >
                       <SafeImage
-                        src={mediaSrc(item.mediaUrl)}
+                        src={mediaSrc(item.thumbnailUrl ?? item.mediaUrl)}
                         alt=""
                         className="size-11 border-0"
                         compact
@@ -216,7 +220,7 @@ export function PostDetailDialog({ post, username, open, onOpenChange }: PostDet
 }
 
 /** A post's image, or its video where the CDN gives us a playable one. */
-function PostMedia({ url, type }: { url: string | null; type: string | null }) {
+function PostMedia({ url, type, poster }: { url: string | null; type: string | null; poster: string | null }) {
   if (!url) {
     return (
       <div className="flex aspect-square w-full items-center justify-center rounded-md border border-dashed border-border/25 bg-muted/25 text-sm text-muted-foreground">
@@ -229,6 +233,7 @@ function PostMedia({ url, type }: { url: string | null; type: string | null }) {
     return (
       <video
         src={mediaSrc(url)}
+        poster={poster ? mediaSrc(poster) : undefined}
         controls
         playsInline
         preload="metadata"

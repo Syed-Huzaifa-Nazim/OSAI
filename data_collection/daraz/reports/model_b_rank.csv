@@ -1,0 +1,15 @@
+target,inputs,model,within_word_spearman,words_ranked_right,MAE
+rank_score,levers,baseline: predict the average,0.0,0/25,0.253
+rank_score,levers,ridge regression,0.145,21/25,0.246
+rank_score,levers,random forest,0.177,22/25,0.244
+rank_score,levers,gradient boosting,0.13,20/25,0.246
+rank_score,levers + results,ridge regression,0.28,23/25,0.242
+rank_score,levers + results,random forest,0.292,22/25,0.24
+rank_score,levers + results,gradient boosting,0.257,22/25,0.239
+sold_log,levers,baseline: predict the average,0.0,0/25,1.838
+sold_log,levers,ridge regression,0.386,25/25,1.678
+sold_log,levers,random forest,0.365,23/25,1.674
+sold_log,levers,gradient boosting,0.382,25/25,1.657
+sold_log,levers + results,ridge regression,0.64,25/25,1.064
+sold_log,levers + results,random forest,0.736,25/25,0.616
+sold_log,levers + results,gradient boosting,0.712,25/25,0.626

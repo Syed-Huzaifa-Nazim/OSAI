@@ -336,6 +336,8 @@ create table if not exists public.instagram_posts (
     -- The scraped profile's own handle, from the profile item the actor
     -- returned. What the screen labels this side with. (Migration 0008.)
     profile_username text,
+    -- Followers, following, posts, bio, website, highlights, verified and
+    -- category of the scraped profile, for the engagement model. (Migration 0010.)
     profile_stats   jsonb not null default '{}'::jsonb,
     -- Who wrote this particular post: the profile owner, except on a
     -- collaboration post, where it is the other collaborator.
@@ -375,6 +377,8 @@ create table if not exists public.instagram_post_media (
     media_type  text,
     -- Instagram's own CDN URL. Nothing is downloaded or re-hosted.
     media_url   text not null,
+    -- The still picture; for a video, its cover frame (migration 0013).
+    thumbnail_url text,
     created_at  timestamptz not null default now(),
     constraint instagram_post_media_position_unique unique (post_id, position)
 );
@@ -416,6 +420,8 @@ create table if not exists public.gaps_opportunities (
     -- No agent claim ships without at least one.
     evidence      jsonb not null default '[]'::jsonb,
     opportunity   text not null,
+    -- Plain-language extras: how sure, example posts, numbers, technical notes. (Migration 0012.)
+    details       jsonb not null default '{}'::jsonb,
     decision      text not null default 'pending' check (decision in (
                       'pending','accepted','rejected')),
     reviewer_note text,

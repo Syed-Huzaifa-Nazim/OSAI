@@ -80,9 +80,9 @@ export default function PipelinePage() {
   return (
     <div className="space-y-7">
       <PageHeader
-        eyebrow="The run"
+        eyebrow="Progress"
         title={project.data.brandName}
-        description="Nine stages, live. Select any stage to see what it produced."
+        description="Every step of this analysis. Select one to see what it produced."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {project.data.isDemo ? <DemoBadge /> : null}
@@ -144,7 +144,7 @@ export default function PipelinePage() {
         ) : (
           <Card className="flex items-center p-6">
             <p className="text-sm text-muted-foreground">
-              Source breakdown appears once the Scout Agent has finished collecting.
+              Source breakdown appears once the Scout Engine has finished collecting.
             </p>
           </Card>
         )}

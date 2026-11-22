@@ -3,7 +3,7 @@
 Ported from the standalone scraper's comparison engine. The scoring rules,
 thresholds and wording are unchanged; what differs is where the output goes.
 In the standalone tool these rows were the product. Here they are *evidence*:
-the Insight Agent (stage 4) turns each losing metric into a gap with a
+the Gap Engine (stage 4) turns each losing metric into a gap with a
 quantified justification, so a strategy claim can always be traced back to two
 concrete numbers rather than to a model's opinion.
 
@@ -325,7 +325,7 @@ def build_insights(
 ) -> list[str]:
     """Rule-based findings for one parameter group. No LLM involved.
 
-    These are what the Insight Agent promotes into gap descriptions, so they
+    These are what the Gap Engine promotes into gap descriptions, so they
     are written as statements about the user's listing rather than as neutral
     observations.
     """
@@ -443,7 +443,7 @@ def compare_all(
 
     Returns one entry per group with its metric rows, derived figures and
     rule-based insights. This is the whole structured-comparison surface the
-    Insight Agent works from.
+    Gap Engine works from.
     """
     groups: list[dict[str, Any]] = []
     for param in PARAMETERS:

@@ -186,7 +186,7 @@ export const newProjectSchema = z
     competitors: z
       .array(competitorSchema)
       .min(1, 'Add at least one competitor to analyse')
-      .max(5, 'Five competitors is the current per-run limit'),
+      .max(1, 'One competitor per analysis'),
     comparisonType: z.enum(['website', 'social_media', 'ecommerce_product']),
     ecommercePlatform: z.string().max(40).optional().or(z.literal('')),
     socialPlatform: z.enum(['facebook', 'instagram']).optional().or(z.literal('')),

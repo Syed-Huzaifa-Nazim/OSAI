@@ -437,7 +437,7 @@ REQUEST_HEADERS = {
 
 # Daraz serves reviews from a JSON endpoint rather than in the PDP HTML.
 REVIEW_API_TEMPLATE = (
-    "https://www.daraz.pk/pdp/review/getReviewList"
+    "https://my.daraz.pk/pdp/review/getReviewList"
     "?itemId={item_id}&pageSize=20&filter=0&sort=0&pageNo={page}"
 )
 

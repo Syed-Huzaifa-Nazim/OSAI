@@ -164,8 +164,8 @@ agents on a real comparison by accident.
 
 **Each comparison type opens on its own results page, never on the pipeline
 screen.** That screen lists all nine stages, so a run that legitimately stops at
-stage 3 reads there as a pipeline half-finished: "Scout Agent" and
-"Preprocessing & Storage" tick green while "Insight Agent" sits at *Not
+stage 3 reads there as a pipeline half-finished: "Scout Engine" and
+"Preprocessing & Storage" tick green while "Gap Engine" sits at *Not
 started*. `projectHomePath` therefore sends a product comparison to
 `/comparison` and a website or social one to `/sources`, and `projectNav` gives
 each of them that one page instead of the pipeline's seven. Only the demo

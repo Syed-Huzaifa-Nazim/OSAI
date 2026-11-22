@@ -38,7 +38,7 @@ EVIDENCE_PER_GROUP = 3
 
 
 class EcommerceInsightAgent(BaseAgent):
-    name = "Insight Agent (e-commerce)"
+    name = "Gap Engine (e-commerce)"
     stage = 4
     is_live = True
 

@@ -1,0 +1,235 @@
+{
+ "coherence_by_k": [
+  {
+   "k": 8,
+   "npmi_coherence": 0.1177,
+   "reconstruction_error": 53.639
+  },
+  {
+   "k": 10,
+   "npmi_coherence": 0.1286,
+   "reconstruction_error": 53.432
+  },
+  {
+   "k": 12,
+   "npmi_coherence": 0.1537,
+   "reconstruction_error": 53.235
+  },
+  {
+   "k": 14,
+   "npmi_coherence": 0.1328,
+   "reconstruction_error": 53.06
+  },
+  {
+   "k": 16,
+   "npmi_coherence": 0.112,
+   "reconstruction_error": 52.886
+  },
+  {
+   "k": 18,
+   "npmi_coherence": 0.0637,
+   "reconstruction_error": 52.711
+  },
+  {
+   "k": 20,
+   "npmi_coherence": 0.1341,
+   "reconstruction_error": 52.548
+  },
+  {
+   "k": 22,
+   "npmi_coherence": 0.0637,
+   "reconstruction_error": 52.387
+  },
+  {
+   "k": 24,
+   "npmi_coherence": 0.066,
+   "reconstruction_error": 52.211
+  },
+  {
+   "k": 26,
+   "npmi_coherence": 0.1234,
+   "reconstruction_error": 52.046
+  },
+  {
+   "k": 28,
+   "npmi_coherence": 0.077,
+   "reconstruction_error": 51.896
+  },
+  {
+   "k": 30,
+   "npmi_coherence": 0.0456,
+   "reconstruction_error": 51.722
+  }
+ ],
+ "chosen_k": 12,
+ "topics": {
+  "0": {
+   "terms": [
+    "like",
+    "just",
+    "know",
+    "don",
+    "time",
+    "let",
+    "way",
+    "make",
+    "need",
+    "work"
+   ]
+  },
+  "1": {
+   "terms": [
+    "bio",
+    "link",
+    "check",
+    "click",
+    "read",
+    "tap",
+    "song",
+    "available",
+    "style",
+    "book"
+   ]
+  },
+  "2": {
+   "terms": [
+    "new",
+    "single",
+    "come",
+    "brand",
+    "look",
+    "shop",
+    "wear",
+    "open",
+    "week",
+    "coming"
+   ]
+  },
+  "3": {
+   "terms": [
+    "day",
+    "happy",
+    "mother",
+    "beautiful",
+    "amazing",
+    "mothers",
+    "come",
+    "rest",
+    "father",
+    "valentine"
+   ]
+  },
+  "4": {
+   "terms": [
+    "ready",
+    "summer",
+    "season",
+    "#summer",
+    "dresses",
+    "#dress",
+    "getting",
+    "sunny",
+    "#fyp",
+    "perfect"
+   ]
+  },
+  "5": {
+   "terms": [
+    "order",
+    "available",
+    "measurements",
+    "individual",
+    "sewing",
+    "write",
+    "direct",
+    "pre",
+    "online",
+    "exquisite"
+   ]
+  },
+  "6": {
+   "terms": [
+    "com",
+    "www",
+    "comicon",
+    "sep",
+    "shop",
+    "dec",
+    "#pokemon",
+    "anime",
+    "town",
+    "visit"
+   ]
+  },
+  "7": {
+   "terms": [
+    "year",
+    "happy",
+    "birthday",
+    "wishing",
+    "christmas",
+    "time",
+    "wish",
+    "family",
+    "safe",
+    "merry"
+   ]
+  },
+  "8": {
+   "terms": [
+    "thank",
+    "support",
+    "team",
+    "amazing",
+    "years",
+    "family",
+    "big",
+    "work",
+    "came",
+    "appreciate"
+   ]
+  },
+  "9": {
+   "terms": [
+    "today",
+    "book",
+    "podcasts",
+    "episode",
+    "listen",
+    "leave",
+    "talk",
+    "spotify",
+    "apple",
+    "#bookclub"
+   ]
+  },
+  "10": {
+   "terms": [
+    "music",
+    "night",
+    "great",
+    "weekend",
+    "live",
+    "video",
+    "come",
+    "saturday",
+    "time",
+    "enjoy"
+   ]
+  },
+  "11": {
+   "terms": [
+    "love",
+    "life",
+    "best",
+    "beautiful",
+    "family",
+    "years",
+    "thanks",
+    "#love",
+    "forever",
+    "home"
+   ]
+  }
+ }
+}

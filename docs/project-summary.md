@@ -50,13 +50,13 @@ yours, and the system will not continue without you.**
 **Stage 1: You describe the business.** Your brand, who you sell to, what you
 are trying to achieve, and which competitors matter.
 
-**Stage 2: The Scout Agent collects.** It gathers competitor landing pages,
+**Stage 2: The Scout Engine collects.** It gathers competitor landing pages,
 social posts, customer reviews, forum discussions and trade news.
 
 **Stage 3: Everything is organised.** The collected text is cleaned, split into
 passages and indexed so it can be searched by meaning rather than keyword.
 
-**Stage 4: The Insight Agent compares.** It works out where you stand against
+**Stage 4: The Gap Engine compares.** It works out where you stand against
 that material and produces a list of specific gaps, not "improve your content",
 but "your closest competitor publishes a weekly guide series that ranks on the
 searches your buyers use, and you publish nothing." **Every finding comes with
