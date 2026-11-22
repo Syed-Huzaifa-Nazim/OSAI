@@ -68,18 +68,24 @@ the first human checkpoint, which is the interesting state.
 Full setup, including connecting a real Supabase project, is in
 [`docs/README.md`](docs/README.md).
 
-### Models and data that are not in git
+### Big model files (Git LFS) and data that are not in git
 
-Some files are too big for GitHub, so they stay on the PC and are git-ignored:
+The trained models are in git, but the big weight files are stored with **Git LFS**.
+Install it once before cloning (`sudo apt install git-lfs` / `brew install git-lfs` / Git for Windows has it),
+then `git lfs install`. If you cloned without it, run `git lfs pull`.
+
+| In git with LFS | Size |
+|---|---|
+| Model C caption model (`backend/app/analysis/instagram/models/caption_model/`) | 466 MB |
+| Team's Daraz review model (`Daraz_Model/model_package/`) | 2.2 GB |
+
+Kept on the PC only (git-ignored, too big):
 
 | What | Size | How to get it |
 |---|---|---|
-| Model C caption model (`backend/app/analysis/instagram/models/caption_model/`) | 466 MB | `data_collection/train_caption_model.py`, then `data_collection/export_to_app.py` |
-| Team's Daraz review model (`Daraz_Model/model_package/sentiment_model/`, `aspect_model/`, `*.joblib`) | 2.2 GB | copy `model_package` from the team's shared drive into `Daraz_Model/` |
 | Scraped Instagram posts, pictures and reels (`data_collection/data/`) | 8 GB | `data_collection/collect.py` and `download_media.py` (needs an Apify token) |
 | Raw Daraz pages and reviews (`data_collection/daraz/raw/`) | 100 MB | `data_collection/daraz/collect_search.py`, then `collect_details.py` |
 
-The app still runs without them: the caption layer and the Daraz review layer are skipped, and the other layers work.
 The final datasets, labels and reports (small CSV files) are in git, so every result can be checked.
 
 ---
