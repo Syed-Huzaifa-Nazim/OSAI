@@ -19,6 +19,7 @@ import requests
 from app.analysis.daraz import engine, reviews
 from app.api.v1.agents.base import AgentResult, BaseAgent
 from app.api.v1.agents.ecommerce_insight import EcommerceInsightAgent
+from app.services import jobs
 from app.scrapers import COMPETITOR, OWN
 from app.scrapers.daraz import search
 
@@ -56,16 +57,22 @@ def _side(product: dict[str, Any], live: list[dict[str, Any]]) -> dict[str, Any]
     row = row or {}
     side: dict[str, Any] = {
         "item_id": item_id, "url": url, "title": title, "rank": rank,
-        "price": row.get("price") or meta.get("price"), "discount_pct": row.get("discount_pct", meta.get("discount_percent") or 0) or 0,
+        # The sale price buyers see: from search. The page alone only has the price before discount, which would
+        # make a listing look dearer than it is, so then the price is left unknown (the price check is skipped).
+        "price": row.get("price") or (None if str(meta.get("price_source") or "").startswith("price before discount")
+                                      else meta.get("price")), "discount_pct": row.get("discount_pct", meta.get("discount_percent") or 0) or 0,
         "sold": row.get("sold", meta.get("sold")), "rating": row.get("rating", meta.get("rating")),
         "review_count": row.get("reviews", meta.get("review_count")),
         "image_count": meta.get("image_count"), "description_words": meta.get("description_word_count"),
         "bullet_count": meta.get("bullet_count") or 0, "variant_count": meta.get("variant_count") or 0,
+        "description": ((product.get("text_fields") or {}).get("description") or "")[:5000],
     }
     side["has_discount"] = (side["discount_pct"] or 0) > 0
     for key in ("free_shipping", "voucher", "coins", "daraz_choice"):
         side[key] = row.get(key, meta.get(key))
-    side.update(_photo_tags(row.get("image") or meta.get("search_image")))
+    image = row.get("image") or meta.get("search_image") or meta.get("main_image") or (meta.get("images") or [None])[0]
+    side["image"] = ("https:" + image) if isinstance(image, str) and image.startswith("//") else image
+    side.update(_photo_tags(side["image"]))
     raw_reviews = search.reviews(item_id, url) if item_id else []
     side["analysed_reviews"] = reviews.analyse([r["text"] for r in raw_reviews])
     side["seller_replies"] = sum(r["seller_reply"] for r in raw_reviews)
@@ -95,6 +102,7 @@ class DarazInsightAgent(BaseAgent):
         candidates = engine.candidate_words(own_title) or engine.candidate_words(rivals[0].get("product_name") or "")
         word, live = None, []
         for cand in candidates[:6]:
+            jobs.checkpoint(project_id)
             rows = await asyncio.to_thread(search.search, cand, 2)
             if word is None or any(r["item_id"] in ids for r in rows):
                 word, live = cand, rows
@@ -105,8 +113,10 @@ class DarazInsightAgent(BaseAgent):
             live = await asyncio.to_thread(search.search, query, 2)
         if not live:
             warnings.append("Daraz search could not be read, so your rank and the top listings are not known.")
+        jobs.checkpoint(project_id)
         me = await asyncio.to_thread(_side, own, live)
         for rival in rivals:
+            jobs.checkpoint(project_id)
             them = await asyncio.to_thread(_side, rival, live)
             g, info = engine.analyze(project_id, dict(me), them, word, live)
             gaps.extend(g)

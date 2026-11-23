@@ -328,3 +328,50 @@ def test_run_scrape_never_calls_an_agent_past_stage_3(
     monkeypatch.setattr(pipeline_service, "_run_stage", spy)
     asyncio.run(pipeline_service.run_scrape(project_id, "demo-user-0001"))
     assert stages_run == [2, 3]
+
+
+# ------------------------------------------------ Daraz gap analysis (stage 4) ---
+
+
+def test_daraz_analysis_needs_both_listings_scraped(client: TestClient, stubbed: dict) -> None:
+    project_id = _create(client)
+    response = client.post(f"/api/v1/projects/{project_id}/analysis/run")
+    assert response.status_code == 409
+    assert "scraped" in response.json()["error"]["message"].lower()
+
+
+def test_daraz_analysis_stores_gaps_and_sends_the_standing_to_the_screen(
+    client: TestClient, stubbed: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Find gaps on a scraped Daraz comparison: stage 4 runs the Daraz agent, the gaps are saved,
+    the run parks at the review checkpoint, and the per-competitor results reach the API (metrics.daraz)."""
+    from app.api.v1.agents.base import AgentResult
+    from app.api.v1.agents.daraz_insight import DarazInsightAgent
+
+    seen: dict[str, Any] = {}
+
+    async def fake_run(self: Any, context: dict[str, Any]) -> AgentResult:
+        seen["roles"] = sorted(p["role"] for p in context["ecommerce_products"])
+        gap = {"id": "gap_daraz_1", "project_id": context["project_id"], "title": "Price: lower than the top listings",
+               "description": "d", "category": "pricing", "priority": "medium", "confidence": 0.8, "evidence": [],
+               "opportunity": "Try this: ...", "decision": "pending", "created_at": "2026-11-22T00:00:00Z",
+               "details": {"kind": "daraz_price", "howSure": "Proven"}}
+        part = {"competitor": "HP W10", "search_query": "wireless mouse",
+                "standing": {"you": {"rank": 30}, "competitor": {"rank": 2}}, "comparison": [], "strengths": []}
+        return AgentResult(payload=[gap], artifacts={"daraz_analysis": {"competitors": [part]}}, items_processed=1)
+
+    monkeypatch.setattr(DarazInsightAgent, "run", fake_run)
+    project_id = _create(client)
+    _scrape(client, project_id)
+    response = client.post(f"/api/v1/projects/{project_id}/analysis/run")
+    assert response.status_code == 200, response.json()
+
+    assert seen["roles"] == ["competitor", "own"]
+    state = client.get(f"/api/v1/projects/{project_id}/pipeline").json()
+    assert state["stages"]["4"]["status"] == "complete"
+    assert state["blockedOn"] == 5
+    daraz = state["stages"]["4"]["metrics"]["daraz"]
+    assert daraz[0]["standing"]["competitor"]["rank"] == 2
+    gaps = client.get(f"/api/v1/projects/{project_id}/gaps").json()
+    assert [g["details"]["kind"] for g in gaps] == ["daraz_price"]
+    assert client.get(f"/api/v1/projects/{project_id}").json()["status"] == "awaiting_review"

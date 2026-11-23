@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { AlertTriangle, ArrowRight, ScanSearch } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ScanSearch, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
-/** What the analysis really does, in the order it does it (engine layers 1-6). */
-const STEPS = [
+/** What the Instagram analysis really does, in the order it does it (engine layers 1-6). */
+const INSTAGRAM_STEPS = [
   'Reading your posts and your competitor’s',
   'Comparing reels, photos and carousels',
   'Checking when each account posts (Pakistan time)',
@@ -17,6 +17,28 @@ const STEPS = [
   'Comparing you with other jewellery shops on Instagram',
   'Testing which differences are real, not chance',
 ]
+
+/** What the Daraz analysis really does, in order (DarazInsightAgent + the Daraz Gap Engine). */
+const DARAZ_STEPS = [
+  'Finding the search word buyers use for your listing',
+  'Reading the top 80 Daraz results for that word, with ranks',
+  'Reading both listings: price, offers, photos and options',
+  'Looking at each main photo with our picture model',
+  'Reading the newest reviews with the review models',
+  'Comparing you with the top 20 listings for that word',
+  'Keeping only changes proven to go with rank and sales',
+]
+
+const KINDS = {
+  instagram: {
+    steps: INSTAGRAM_STEPS,
+    time: 'This usually takes 5 to 12 minutes, because every reel is downloaded and watched.',
+  },
+  daraz: {
+    steps: DARAZ_STEPS,
+    time: 'This usually takes 1 to 3 minutes: Daraz search, both listings and their reviews are read live.',
+  },
+} as const
 
 function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
@@ -112,10 +134,26 @@ interface Props {
   message?: string | null
   error?: string | null
   reviewPath: string
+  /** Which analysis runs; it decides the steps and the time shown. */
+  kind?: keyof typeof KINDS
+  /** Stops the analysis; nothing from it is saved and the earlier gaps stay. */
+  onCancel?: () => void
+  cancelling?: boolean
 }
 
 /** Shown while "Find gaps" runs: what is happening now, then a green check and the way to the gaps. */
-export function FindGapsDialog({ open, onOpenChange, state, message, error, reviewPath }: Props) {
+export function FindGapsDialog({
+  open,
+  onOpenChange,
+  state,
+  message,
+  error,
+  reviewPath,
+  kind = 'instagram',
+  onCancel,
+  cancelling = false,
+}: Props) {
+  const { steps: STEPS, time } = KINDS[kind]
   const [step, setStep] = useState(0)
   const [seconds, setSeconds] = useState(0)
 
@@ -133,7 +171,7 @@ export function FindGapsDialog({ open, onOpenChange, state, message, error, revi
       window.clearInterval(tick)
       window.clearInterval(next)
     }
-  }, [open, state])
+  }, [open, state, STEPS.length])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -143,9 +181,7 @@ export function FindGapsDialog({ open, onOpenChange, state, message, error, revi
             <Scanner />
             <div>
               <DialogTitle className="text-xl">Finding your gaps</DialogTitle>
-              <DialogDescription className="mt-1">
-                This usually takes 5 to 12 minutes, because every reel is downloaded and watched.
-              </DialogDescription>
+              <DialogDescription className="mt-1">{time}</DialogDescription>
             </div>
             <div
               className="relative h-12 overflow-hidden rounded-2xl bg-primary/5"
@@ -175,6 +211,17 @@ export function FindGapsDialog({ open, onOpenChange, state, message, error, revi
             <p className="text-xs text-muted-foreground">
               {clock(seconds)} so far · you can close this window, the analysis keeps going
             </p>
+            {onCancel ? (
+              <div className="space-y-1">
+                <Button variant="outline" size="sm" onClick={onCancel} loading={cancelling}>
+                  <X />
+                  Cancel analysis
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Nothing from this run is saved; your earlier gaps stay as they were.
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : state === 'done' ? (
           <div className="space-y-5 py-2">

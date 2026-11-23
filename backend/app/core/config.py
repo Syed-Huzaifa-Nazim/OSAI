@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     scraper_max_reviews: int = 40
     #: The team's Daraz review model (two fine-tuned XLM-RoBERTa models + review_analyzer.py).
     daraz_review_model_dir: str = str(BACKEND_DIR.parent / "Daraz_Model" / "model_package")
+    #: Hosted servers: refuse to start unless every trained model can run (app/core/model_check.py).
+    require_models: bool = False
     # Alibaba (app/scrapers/alibaba/): minimum gap between requests to the site,
     # widened automatically if robots.txt declares a longer Crawl-delay, and how
     # many wordings of a product title are searched before giving up.

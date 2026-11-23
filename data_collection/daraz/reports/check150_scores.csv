@@ -1,0 +1,10 @@
+set,model,reviews,precision,recall,F1,right,extra,missed
+all checked reviews,team model as-is (95% rule),147,0.99,0.49,0.655,96,1,100
+all checked reviews,Model A alone (0.5),147,0.645,0.76,0.698,149,82,47
+all checked reviews,"combined, as in the app",147,0.71,0.75,0.73,147,60,49
+only reviews that name a reason (not just 'good'/'nice'),team model as-is (95% rule),116,0.988,0.525,0.685,85,1,77
+only reviews that name a reason (not just 'good'/'nice'),Model A alone (0.5),116,0.629,0.784,0.698,127,75,35
+only reviews that name a reason (not just 'good'/'nice'),"combined, as in the app",116,0.702,0.784,0.741,127,54,35
+complaints only (what gaps use),team,27,1.0,0.3,0.462,,,
+complaints only (what gaps use),ours,27,0.5,0.633,0.559,,,
+complaints only (what gaps use),combined,27,0.81,0.567,0.667,,,

@@ -7,6 +7,8 @@ import { Loader2 } from 'lucide-react'
 import { projectsApi } from '@/lib/api/services'
 import { queryKeys } from '@/lib/query-client'
 import { isDemoMode } from '@/lib/config'
+import { projectHomePath } from '@/lib/project-routes'
+import { takeCancelled } from '@/lib/cancelled-jobs'
 import type { Project } from '@/types/domain'
 
 const POLL_MS = 5000
@@ -14,6 +16,11 @@ const POLL_MS = 5000
 /** What a running project is doing, from its stage: 2-3 collecting posts, 4 finding gaps. */
 function jobOf(project: Project): 'scrape' | 'analysis' {
   return project.currentStage === 4 ? 'analysis' : 'scrape'
+}
+
+/** A product comparison reads listings; Instagram and websites collect posts and pages. */
+function isListings(project: Project): boolean {
+  return project.comparisonType === 'ecommerce_product'
 }
 
 /**
@@ -42,17 +49,18 @@ export function BackgroundJobs() {
     for (const project of data) {
       const was = before.get(project.id)
       if (was?.status !== 'running' || project.status === 'running') continue
+      if (takeCancelled(project.id)) continue // the user cancelled it: the Cancel toast already said so
       const job = jobOf(was)
       void queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(project.id) })
       if (project.status === 'failed') {
         toast.error(
-          `${project.brandName}: ${job === 'analysis' ? 'finding gaps' : 'collecting posts'} stopped`,
+          `${project.brandName}: ${job === 'analysis' ? 'finding gaps' : isListings(project) ? 'reading listings' : 'collecting posts'} stopped`,
           {
             description: 'Open the project to see why and try again.',
             duration: 15000,
             action: {
               label: 'Open',
-              onClick: () => navigate(`/app/projects/${project.id}/sources`),
+              onClick: () => navigate(projectHomePath(project)),
             },
           },
         )
@@ -66,10 +74,12 @@ export function BackgroundJobs() {
           },
         })
       } else {
-        toast.success(`${project.brandName}: posts collected`, {
-          description: 'Both profiles are read. You can now find the gaps.',
+        toast.success(`${project.brandName}: ${isListings(project) ? 'listings read' : 'posts collected'}`, {
+          description: isListings(project)
+            ? 'Both listings are read. You can now compare them and find the gaps.'
+            : 'Both profiles are read. You can now find the gaps.',
           duration: 15000,
-          action: { label: 'Open', onClick: () => navigate(`/app/projects/${project.id}/sources`) },
+          action: { label: 'Open', onClick: () => navigate(projectHomePath(project)) },
         })
       }
     }
@@ -90,14 +100,19 @@ export function BackgroundJobs() {
           {running.map((project) => (
             <Link
               key={project.id}
-              to={`/app/projects/${project.id}/sources`}
+              to={projectHomePath(project)}
               className="flex items-center gap-3 rounded-full border border-primary/25 bg-card/95 py-2 pl-3 pr-4 text-sm shadow-glow backdrop-blur transition-colors hover:border-primary/50"
             >
               <Loader2 className="size-4 shrink-0 animate-spin text-primary" aria-hidden="true" />
               <span className="min-w-0">
                 <span className="block truncate font-semibold">{project.brandName}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {jobOf(project) === 'analysis' ? 'Finding gaps…' : 'Collecting posts…'} keeps
+                  {jobOf(project) === 'analysis'
+                    ? 'Finding gaps…'
+                    : isListings(project)
+                      ? 'Reading listings…'
+                      : 'Collecting posts…'}{' '}
+                  keeps
                   going in the background
                 </span>
               </span>

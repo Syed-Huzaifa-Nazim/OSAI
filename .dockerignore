@@ -1,0 +1,16 @@
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.env
+**/.env.*
+!**/.env.example
+frontend
+data_collection
+backend_v2
+all_layers
+docs
+Daraz_Model/model_package.zip
+Daraz_Model/*.csv
+Daraz_Model/*.xlsx
+backend/.chroma

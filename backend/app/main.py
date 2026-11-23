@@ -17,6 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
+from app.core import model_check
 from app.api.v1 import api_router
 from app.core.config import settings
 from app.core.errors import register_exception_handlers
@@ -57,6 +58,7 @@ app.include_router(api_router)
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["meta"])
 async def health() -> HealthResponse:
     """What is actually wired up. Useful when a demo behaves unexpectedly."""
+    models = model_check.report()
     return HealthResponse(
         status="ok",
         version=__version__,
@@ -65,6 +67,8 @@ async def health() -> HealthResponse:
         supabase_configured=settings.has_supabase,
         openai_configured=settings.has_openai,
         vectorstore_available=chroma.get_client() is not None,
+        models_ready=models["ready"],
+        models_missing=model_check.summary_lines(models),
     )
 
 
@@ -78,6 +82,15 @@ async def on_startup() -> None:
         settings.has_supabase,
         settings.has_openai,
     )
+    models = model_check.report()
+    if models["ready"]:
+        logger.info("All trained models are ready (Instagram and Daraz).")
+    else:
+        for line in model_check.summary_lines(models):
+            logger.warning("MODEL %s", line)
+        if settings.require_models:
+            raise RuntimeError("REQUIRE_MODELS is on and some trained models cannot run: "
+                               + " | ".join(model_check.summary_lines(models)))
     if settings.is_demo:
         logger.warning(
             "Running in DEMO MODE: the seeded sample project is served and no database is "

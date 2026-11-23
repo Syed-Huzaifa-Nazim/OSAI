@@ -26,6 +26,8 @@ const hooks = vi.hoisted(() => ({
   groups: [] as unknown[],
   detail: undefined as unknown,
   startScrape: vi.fn(),
+  startAnalysis: vi.fn(),
+  cancelJob: vi.fn(),
 }))
 
 vi.mock('@/hooks/use-projects', () => ({
@@ -38,6 +40,8 @@ vi.mock('@/hooks/use-platforms', () => ({
   START_SCRAPE_KEY: ['scrapers', 'start'],
   usePlatforms: () => ({ data: [{ platform: 'daraz', label: 'Daraz', urlHint: '', urlExample: '' }] }),
   useStartScrape: () => ({ mutate: hooks.startScrape, isPending: false }),
+  useCancelJob: () => ({ mutate: hooks.cancelJob, isPending: false }),
+  useStartAnalysis: () => ({ mutate: hooks.startAnalysis, isPending: false, isError: false }),
   useEcommerceProducts: (_id: string, enabled: boolean) => ({
     data: enabled ? hooks.products : undefined,
     isError: false,
@@ -297,6 +301,7 @@ beforeEach(() => {
   hooks.groups = [PRICING, CONTENT]
   hooks.detail = DETAIL
   hooks.startScrape.mockReset()
+  hooks.startAnalysis.mockReset()
 })
 
 describe('Product comparison page', () => {
@@ -329,6 +334,7 @@ describe('Product comparison page', () => {
   })
 
   it('shows both listings and every parameter once scraped', () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' } // the field-by-field view (Daraz has listing cards + Find gaps)
     hooks.pipeline = pipeline('complete', 'complete')
     renderPage()
 
@@ -336,7 +342,7 @@ describe('Product comparison page', () => {
     expect(screen.getByText('Competitor')).toBeInTheDocument()
     expect(screen.getByText('Rs. 626')).toBeInTheDocument()
     expect(screen.getByText('Rs. 689')).toBeInTheDocument()
-    expect(screen.getAllByText(/view on daraz/i)).toHaveLength(2)
+    expect(screen.getAllByText(/view on alibaba/i)).toHaveLength(2)
 
     const pricing = screen.getByRole('button', { name: /pricing intelligence/i })
     expect(within(pricing).getByText('Behind 1–2')).toBeInTheDocument()
@@ -348,6 +354,7 @@ describe('Product comparison page', () => {
   })
 
   it('renders the read-out, metric table and retrieved passages for a parameter', () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' } // the field-by-field view (Daraz has listing cards + Find gaps)
     hooks.pipeline = pipeline('complete', 'complete')
     renderPage()
 
@@ -369,6 +376,7 @@ describe('Product comparison page', () => {
   })
 
   it("shows each listing's main image, with the gallery as thumbnails", () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' } // the large gallery (Daraz cards use a photo strip)
     hooks.pipeline = pipeline('complete', 'complete')
     renderPage()
 
@@ -394,6 +402,7 @@ describe('Product comparison page', () => {
   })
 
   it('replaces a broken image with a placeholder instead of breaking the card', () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' } // the large gallery (Daraz cards use a photo strip)
     hooks.pipeline = pipeline('complete', 'complete')
     renderPage()
 
@@ -405,6 +414,7 @@ describe('Product comparison page', () => {
   })
 
   it('says so when a listing has no images', () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' } // the large gallery (Daraz cards use a photo strip)
     hooks.pipeline = pipeline('complete', 'complete')
     hooks.products = [product('own', 'Dell wireless optical mouse', 626, 0), product('competitor', 'HP W10', 689)]
     renderPage()
@@ -414,6 +424,7 @@ describe('Product comparison page', () => {
   })
 
   it('shows both galleries beside the image metrics', () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' } // the field-by-field view (Daraz has listing cards + Find gaps)
     hooks.pipeline = pipeline('complete', 'complete')
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: /content quality/i }))
@@ -428,6 +439,7 @@ describe('Product comparison page', () => {
   })
 
   it('does not show galleries for parameters that do not compare images', () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' } // the field-by-field view (Daraz has listing cards + Find gaps)
     hooks.pipeline = pipeline('complete', 'complete')
     hooks.detail = { ...DETAIL, parameter: { ...DETAIL.parameter, metrics: [] } }
     renderPage()
@@ -541,5 +553,59 @@ describe('Product comparison page', () => {
     hooks.pipeline = pipeline('idle', 'idle')
     renderPage()
     expect(screen.getByText('pipeline page')).toBeInTheDocument()
+  })
+
+  it('offers Find gaps on a scraped Daraz comparison and starts the analysis', () => {
+    hooks.pipeline = pipeline('complete', 'complete')
+    renderPage()
+    fireEvent.click(screen.getAllByRole('button', { name: /find gaps/i })[0] as HTMLElement)
+    expect(hooks.startAnalysis).toHaveBeenCalledWith('proj_1')
+    expect(screen.queryByRole('link', { name: /review gaps/i })).not.toBeInTheDocument()
+  })
+
+  it('links to the gaps once the Daraz analysis is done', () => {
+    const state = pipeline('complete', 'complete')
+    state.stages[4] = stage(4, 'complete')
+    hooks.pipeline = state
+    renderPage()
+    expect(screen.getByRole('link', { name: /review gaps/i })).toHaveAttribute('href', '/app/projects/proj_1/review-gaps')
+    expect(screen.getByRole('button', { name: /analyse again/i })).toBeInTheDocument()
+  })
+
+  it('has no gap analysis for other marketplaces yet', () => {
+    hooks.project = { ...PROJECT, ecommercePlatform: 'alibaba' }
+    hooks.pipeline = pipeline('complete', 'complete')
+    renderPage()
+    expect(screen.queryByRole('button', { name: /find gaps/i })).not.toBeInTheDocument()
+  })
+
+  it('shows a scraped Daraz listing as a card, without the field-by-field scores', () => {
+    hooks.pipeline = pipeline('complete', 'complete')
+    renderPage()
+    expect(screen.getByText('Your listing')).toBeInTheDocument()
+    expect(screen.getByText('Rs 626')).toBeInTheDocument()
+    expect(screen.getByText('Rs 689')).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: /open on daraz/i })).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: /pricing intelligence/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/next: find what to change/i)).toBeInTheDocument()
+  })
+
+  it('shows Daraz photos three at a time, each opening full size', () => {
+    hooks.pipeline = pipeline('complete', 'complete')
+    hooks.products = [product('own', 'Dell wireless optical mouse', 626, 5), product('competitor', 'HP W10', 689)]
+    renderPage()
+    expect(screen.getByText('1–3 of 5 photos')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Next photos' }))
+    expect(screen.getByText('3–5 of 5 photos')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Open photo 5 of 5' }))
+    expect(screen.getByText('Photo 5 of 5')).toBeInTheDocument()
+  })
+
+  it('offers Cancel while the listings are being read', () => {
+    hooks.pipeline = pipeline('running', 'idle')
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+    expect(hooks.cancelJob).toHaveBeenCalledWith('proj_1')
+    expect(screen.getByText(/nothing from this run is saved/i)).toBeInTheDocument()
   })
 })

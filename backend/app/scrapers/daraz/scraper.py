@@ -26,6 +26,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from app.core.config import settings
+from app.services import jobs
 from . import selectors as S
 from .images import ProductImage, extract_product_images, image_identity
 from .utils import (
@@ -90,9 +91,10 @@ class ScrapedProduct:
 # ---------------------------------------------------------------------------
 def scrape_daraz_product(url: str, product_id: str) -> ScrapedProduct:
     """Scrape one Daraz product page into text chunks + structured metadata."""
+    jobs.checkpoint()
     url = (url or "").strip()
     _validate_url(url)
-    url = canonical_url(url)
+    url = canonical_url(resolve_share_link(url))
 
     warnings: List[str] = []
     html_doc: Optional[str] = None
@@ -112,8 +114,9 @@ def scrape_daraz_product(url: str, product_id: str) -> ScrapedProduct:
             # Daraz now loads the visible price with JavaScript. The page's tracking data still carries it, and the
             # listing's search result adds badges and the number sold; the slow browser fallback is then not needed.
             _fill_from_tracking(product, html_doc)
-            if product.text_fields.get("title"):
-                _fill_from_search(product, warnings)
+        if product.text_fields.get("title"):
+            # Always: the number sold and the search-page badges are only in the search result.
+            _fill_from_search(product, warnings)
 
     if product is None or not _has_required_fields(product):
         missing = _missing_fields(product)
@@ -195,6 +198,41 @@ def canonical_url(url: str) -> str:
         urlencode(kept),
         "",  # drop the fragment
     ))
+
+
+#: The real product link inside a Daraz share page (s.daraz.pk/s.XXXX), plain or JSON-escaped.
+_PRODUCT_LINK = re.compile(r"""https?:(?://|\\/\\/)(?:www\.)?daraz\.pk(?:/|\\/)products(?:/|\\/)[^"'\s<>]+?\.html""")
+
+
+def is_share_link(url: str) -> bool:
+    """Links from Daraz's Share button: s.daraz.pk/s.XXXX (not a product page itself)."""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    return parsed.netloc.lower().startswith("s.daraz.") and "/products/" not in parsed.path
+
+
+def resolve_share_link(url: str) -> str:
+    """A share link opens a small 'bridge' page that holds the real product link; return that link.
+
+    Any other link is returned unchanged.
+    """
+    if not is_share_link(url):
+        return url
+    try:
+        response = requests.get(url, headers=S.REQUEST_HEADERS, timeout=settings.scraper_timeout, allow_redirects=True)
+        if "/products/" in urlparse(response.url).path:          # Daraz redirected straight to the product
+            return response.url
+        found = _PRODUCT_LINK.search(response.text or "")
+    except requests.RequestException as exc:
+        raise ScrapeError(f"The Daraz share link {url} could not be opened ({exc.__class__.__name__}).") from exc
+    if not found:
+        raise ScrapeError(
+            f"The Daraz share link {url} does not lead to a product page. Open it in your browser and paste "
+            "the product page link (it looks like https://www.daraz.pk/products/...) instead."
+        )
+    return found.group(0).replace("\\/", "/").replace("&amp;", "&")
 
 
 def _validate_url(url: str) -> None:
@@ -927,8 +965,10 @@ def _fill_from_tracking(product: ScrapedProduct, html_doc: str) -> None:
         return to_float(m.group(0).replace(",", "")) if m else None
 
     if price and first_number(price.group(1)):
+        # This is the price BEFORE any discount (the crossed-out price on Daraz); the sale price comes from search.
+        product.metadata["original_price"] = first_number(price.group(1))
         product.metadata["price"] = first_number(price.group(1))
-        product.metadata["price_source"] = "page tracking data"
+        product.metadata["price_source"] = "price before discount (page)"
     if discount and first_number(discount.group(1)):
         product.metadata["discount_percent"] = first_number(discount.group(1))
     if photo and not product.metadata.get("search_image"):
@@ -941,13 +981,21 @@ def _fill_from_search(product: ScrapedProduct, warnings: List[str]) -> None:
 
     item_id = product.metadata.get("item_id") or search.item_id_of(product.url)
     row = search.find(str(item_id or ""), product.text_fields.get("title", ""))
-    if row is None:
-        warnings.append("The price is loaded by Daraz with JavaScript and the listing was not found in search.")
-        return
     meta = product.metadata
-    meta["price"] = row["price"]
-    meta["original_price"] = row["original_price"] or row["price"]
-    meta["discount_percent"] = row["discount_pct"] or None
+    if row is None:
+        if meta.get("price") is None:
+            warnings.append("The price is loaded by Daraz with JavaScript and the listing was not found in search.")
+        elif str(meta.get("price_source") or "").startswith("price before discount"):
+            warnings.append(f"The sale price could not be read; Rs {meta['price']:,.0f} is the price before any discount. "
+                            "The number sold is not known either.")
+        else:
+            warnings.append("The listing was not found in Daraz search, so the number sold and badges are not known.")
+        return
+    # The search result is the price buyers see on the search page, so it is used whenever it is there.
+    if row["price"]:
+        meta["price"] = row["price"]
+        meta["original_price"] = row["original_price"] or row["price"]
+        meta["discount_percent"] = row["discount_pct"] or None
     if row["rating"] is not None:
         meta["rating"] = row["rating"]
     if row["reviews"]:
@@ -973,6 +1021,7 @@ def _attach_reviews(product: ScrapedProduct) -> None:
         payload: Any = None
         page = 1
         while len(collected) < settings.scraper_max_reviews and page <= 3:
+            jobs.checkpoint()
             try:
                 response = session.get(
                     S.REVIEW_API_TEMPLATE.format(item_id=item_id, page=page),
@@ -1009,9 +1058,14 @@ def _attach_reviews(product: ScrapedProduct) -> None:
                 collected.append(prefix + body)
             page += 1
 
-        ratings_total = deep_get(payload, "model.ratings.total") if payload else None
-        if to_int(ratings_total) and not product.metadata.get("review_count"):
-            product.metadata["review_count"] = to_int(ratings_total)
+        # The rating and the number of reviews are loaded by JavaScript on the page; the review API has both.
+        ratings = (deep_get(payload, "model.ratings") or {}) if payload else {}
+        total = to_int(ratings.get("reviewCount") or ratings.get("rateCount") or ratings.get("total"))
+        if total and not product.metadata.get("review_count"):
+            product.metadata["review_count"] = total
+        average = to_float(ratings.get("average"))
+        if average and not product.metadata.get("rating"):
+            product.metadata["rating"] = average
 
     if collected:
         product.text_fields["review"] = "\n\n".join(dedupe_preserve_order(collected)[: settings.scraper_max_reviews])

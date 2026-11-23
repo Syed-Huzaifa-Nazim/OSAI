@@ -36,6 +36,28 @@ def _require_client_library() -> None:
         )
 
 
+#: Every database call either answers or fails within this time. Without it, a Supabase connection that dropped
+#: silently (HTTP/2 keeps an idle stream alive) blocked a request -- and the whole server -- for good.
+DB_TIMEOUT_S, DB_CONNECT_TIMEOUT_S = 30.0, 10.0
+
+
+def _with_time_limit(client: "Client") -> "Client":
+    """Swaps the database (PostgREST) connection for one with a firm time limit, over HTTP/1.1."""
+    import httpx
+
+    rest = client.postgrest
+    old = rest.session
+    rest.session = httpx.Client(
+        base_url=old.base_url,
+        headers=old.headers,
+        timeout=httpx.Timeout(DB_TIMEOUT_S, connect=DB_CONNECT_TIMEOUT_S),
+        follow_redirects=True,
+        http2=False,
+    )
+    old.close()
+    return client
+
+
 def get_user_client(token: str) -> "Client":
     """A client scoped to one user's JWT. RLS decides what it can see."""
     if not settings.has_supabase:
@@ -45,7 +67,7 @@ def get_user_client(token: str) -> "Client":
         )
     _require_client_library()
 
-    client = create_client(settings.supabase_url, settings.supabase_anon_key)
+    client = _with_time_limit(create_client(settings.supabase_url, settings.supabase_anon_key))
     # Every PostgREST call now carries the user's token, so RLS policies apply.
     client.postgrest.auth(token)
     return client
@@ -59,4 +81,4 @@ def get_service_client() -> "Client":
             "SUPABASE_SERVICE_ROLE_KEY is not configured; background jobs cannot run."
         )
     _require_client_library()
-    return create_client(settings.supabase_url, settings.supabase_service_role_key)
+    return _with_time_limit(create_client(settings.supabase_url, settings.supabase_service_role_key))

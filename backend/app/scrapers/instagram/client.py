@@ -11,10 +11,12 @@ user, because that is what the pipeline shows on the failed stage.
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 from app.core.config import settings
 from app.scrapers.base import ScraperError
+from app.services import jobs
 from . import selectors as S
 
 log = logging.getLogger("optistratix.scrapers.instagram")
@@ -36,11 +38,27 @@ def _client() -> Any:
     return ApifyClient(settings.apify_api_token)
 
 
+def _as_dict(run: Any) -> dict[str, Any]:
+    # apify-client 3.x returns a typed Run object instead of a dict.
+    if run is not None and not isinstance(run, dict) and hasattr(run, "model_dump"):
+        return run.model_dump(by_alias=True, mode="json")
+    return run or {}
+
+
+#: Apify run states that are still going.
+_UNFINISHED = {"READY", "RUNNING"}
+
+
 def _run_actor(client: Any, run_input: dict[str, Any]) -> list[dict[str, Any]]:
-    """Runs the actor to completion and returns its dataset items."""
+    """Runs the actor to completion and returns its dataset items.
+
+    The run is started, then waited on 5 seconds at a time, so a cancelled job (services/jobs.py) stops it on Apify
+    too, instead of letting it run on and use credits.
+    """
     actor_id = settings.apify_instagram_actor_id or S.DEFAULT_ACTOR_ID
+    jobs.checkpoint()
     try:
-        run = client.actor(actor_id).call(run_input=run_input)
+        run = _as_dict(client.actor(actor_id).start(run_input=run_input))
     except Exception as exc:  # noqa: BLE001 - the client raises several unrelated types
         message = str(exc)
         if "401" in message or "unauthor" in message.lower() or "token" in message.lower():
@@ -49,10 +67,18 @@ def _run_actor(client: Any, run_input: dict[str, Any]) -> list[dict[str, Any]]:
             ) from exc
         raise ScraperError(f"Apify could not run the Instagram scraper ({message}).") from exc
 
-    # apify-client 3.x returns a typed Run object instead of a dict.
-    # Turn it back into the dict shape the rest of this function reads.
-    if run is not None and not isinstance(run, dict) and hasattr(run, "model_dump"):
-        run = run.model_dump(by_alias=True, mode="json")
+    run_id = run.get("id")
+    try:
+        while run_id and (run.get("status") or "").upper() in _UNFINISHED:
+            jobs.checkpoint()
+            run = _as_dict(client.run(run_id).wait_for_finish(wait_duration=timedelta(seconds=5))) or run
+    except jobs.JobCancelled:
+        try:
+            client.run(run_id).abort()
+            log.info("Aborted Apify run %s because the job was cancelled", run_id)
+        except Exception as exc:  # noqa: BLE001 - the job stops either way
+            log.warning("Could not abort Apify run %s: %s", run_id, exc)
+        raise
 
     if not run or not run.get("defaultDatasetId"):
         raise ScraperError("Apify returned no dataset for the Instagram run.")

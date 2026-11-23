@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Logo } from '@/components/shared/logo'
 import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
@@ -31,9 +33,19 @@ interface ScrapeLoaderProps {
   embedStep: string
   /** What is happening underneath, in one sentence. */
   description: string
+  /** Shows a Cancel button: stops the run, and nothing from it is saved. */
+  onCancel?: () => void
+  cancelling?: boolean
 }
 
-export function ScrapeLoader({ phase, steps, embedStep, description }: ScrapeLoaderProps) {
+export function ScrapeLoader({
+  phase,
+  steps,
+  embedStep,
+  description,
+  onCancel,
+  cancelling = false,
+}: ScrapeLoaderProps) {
   const [step, setStep] = useState(0)
   const reduced = usePrefersReducedMotion()
 
@@ -83,6 +95,11 @@ export function ScrapeLoader({ phase, steps, embedStep, description }: ScrapeLoa
         </AnimatePresence>
 
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        {onCancel ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Taking too long? Cancel stops it; nothing from this run is saved.
+          </p>
+        ) : null}
 
         {/* Indeterminate: a scrape cannot honestly report a percentage. */}
         <div
@@ -114,6 +131,12 @@ export function ScrapeLoader({ phase, steps, embedStep, description }: ScrapeLoa
           </div>
         ) : null}
       </div>
+      {onCancel ? (
+        <Button variant="outline" size="sm" className="shrink-0" onClick={onCancel} loading={cancelling}>
+          <X />
+          Cancel
+        </Button>
+      ) : null}
     </Card>
   )
 }

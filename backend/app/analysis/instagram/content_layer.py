@@ -31,6 +31,7 @@ from PIL import Image
 
 from . import media_scoring as ms, post_results as pr
 from .gap_common import NOT_PROVEN, P_SHOWN, P_STRONG, Pair, _evidence, _gap, _p, bh_accept, count_text, more_text
+from app.services import jobs as job_control
 
 logger = logging.getLogger("optistratix.analysis.content")
 
@@ -240,7 +241,7 @@ def measure(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
     reels = set(df[is_video].sort_values("when", ascending=False).head(MAX_REELS).index)
     jobs = [(i, "video" if is_video[i] else "image", df.at[i, "media_url"]) for i in df.index if (not is_video[i]) or i in reels]
     with ThreadPoolExecutor(max_workers=ms.WORKERS) as pool:
-        blobs = dict(zip([j[0] for j in jobs], pool.map(lambda j: _fetch(j[1], j[2]), jobs)))
+        blobs = dict(zip([j[0] for j in jobs], pool.map(job_control.carry(lambda j: _fetch(j[1], j[2])), jobs)))
     stills, still_idx, opening = [], [], {}
     reel_rows: dict[int, dict[str, Any]] = {}
     for i, kind, _ in jobs:

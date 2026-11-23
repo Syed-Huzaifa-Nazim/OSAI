@@ -20,6 +20,7 @@ interface ProductGalleryProps {
  */
 export function ProductGallery({ images, productName }: ProductGalleryProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const selected = images.find((image) => image.id === selectedId) ?? images[0]
 
   if (!selected) {
@@ -31,7 +32,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
     )
   }
 
-  const hidden = Math.max(0, images.length - VISIBLE_THUMBNAILS)
+  const hidden = showAll ? 0 : Math.max(0, images.length - VISIBLE_THUMBNAILS)
 
   return (
     <div className="space-y-2">
@@ -45,7 +46,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
 
       {images.length > 1 ? (
         <div className="flex flex-wrap items-center gap-1.5">
-          {images.slice(0, VISIBLE_THUMBNAILS).map((image) => {
+          {(showAll ? images : images.slice(0, VISIBLE_THUMBNAILS)).map((image) => {
             const isSelected = image.id === selected.id
             return (
               <button
@@ -66,7 +67,15 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
             )
           })}
           {hidden > 0 ? (
-            <span className="px-1 text-xs text-muted-foreground">+{hidden} more</span>
+            <button
+              type="button"
+              onClick={() => {
+                setShowAll(true)
+              }}
+              className="rounded-md px-1.5 py-1 text-xs font-medium text-primary hover:underline"
+            >
+              +{hidden} more
+            </button>
           ) : null}
         </div>
       ) : null}

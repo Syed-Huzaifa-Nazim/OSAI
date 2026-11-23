@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import threading
 import time
 from typing import Any
 from urllib.parse import quote_plus
@@ -16,6 +17,7 @@ from urllib.parse import quote_plus
 import requests
 
 from app.core.config import get_settings
+from app.services import jobs
 from app.scrapers.daraz import selectors as S
 
 log = logging.getLogger(__name__)
@@ -59,6 +61,25 @@ def listing_row(it: dict[str, Any], rank: int) -> dict[str, Any]:
     }
 
 
+#: One Daraz search request at a time, at least GAP_S apart: two listings are read in parallel, and Daraz refuses
+#: (empty page) when requests arrive together. Polite and more reliable.
+_LOCK = threading.Lock()
+_LAST = [0.0]
+GAP_S = 1.0
+
+
+def _get(url: str) -> requests.Response:
+    jobs.checkpoint()                               # a cancelled job stops before its next request
+    with _LOCK:
+        wait = _LAST[0] + GAP_S - time.monotonic()
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            return requests.get(url, headers=HEADERS, timeout=get_settings().scraper_timeout)
+        finally:
+            _LAST[0] = time.monotonic()
+
+
 def search(query: str, pages: int = 2) -> list[dict[str, Any]]:
     """The first `pages` result pages for a search word, in Daraz's default order (rank 1 = first)."""
     out: list[dict[str, Any]] = []
@@ -66,8 +87,7 @@ def search(query: str, pages: int = 2) -> list[dict[str, Any]]:
         items = None
         for attempt in (1, 2, 3):                   # Daraz sometimes refuses a request; polite retries
             try:
-                r = requests.get(SEARCH_URL.format(q=quote_plus(query), page=page), headers=HEADERS,
-                                 timeout=get_settings().scraper_timeout)
+                r = _get(SEARCH_URL.format(q=quote_plus(query), page=page))
                 r.raise_for_status()
                 items = ((r.json() or {}).get("mods") or {}).get("listItems") or []
                 if items or page > 1 or attempt == 3:
@@ -89,12 +109,18 @@ def search(query: str, pages: int = 2) -> list[dict[str, Any]]:
 
 def find(item_id: str, title: str) -> dict[str, Any] | None:
     """A listing's own search row (price, badges, sold...), found by searching its title."""
-    words = re.findall(r"[A-Za-z0-9]+", title or "")[:10]
+    words = re.findall(r"[A-Za-z0-9]+", title or "")
     if not item_id or not words:
         return None
-    for row in search(" ".join(words), pages=2):
-        if row["item_id"] == item_id:
-            return row
+    tried: set[str] = set()
+    for n in (10, 6, 4):                       # long titles can miss; shorter ones search wider
+        query = " ".join(words[:n])
+        if query in tried:
+            continue
+        tried.add(query)
+        for row in search(query, pages=2):
+            if row["item_id"] == item_id:
+                return row
     return None
 
 
@@ -104,6 +130,7 @@ def reviews(item_id: str, referer: str, limit: int = 40) -> list[dict[str, Any]]
     s.headers.update({**HEADERS, "Referer": referer})
     out: list[dict[str, Any]] = []
     for page in (1, 2, 3):
+        jobs.checkpoint()
         try:
             r = s.get(REVIEW_URL.format(item_id=item_id, page=page), timeout=get_settings().scraper_timeout)
             if "json" not in r.headers.get("content-type", ""):

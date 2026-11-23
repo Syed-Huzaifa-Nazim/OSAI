@@ -103,7 +103,7 @@ export interface ComparisonRow {
   kind: 'caption' | 'picture' | 'reel' | DarazKind
   /** do_more: works for jewellery shops and you rarely do it · doing_well: works and you do it ·
    *  competitor_does: your competitor clearly does it more (not proven to work). */
-  group: 'do_more' | 'doing_well' | 'competitor_does'
+  group: 'do_more' | 'doing_well' | 'competitor_does' | 'fine'
   title: string
   /** What jewellery shops gained from it, in words ("" when not proven). */
   why: string

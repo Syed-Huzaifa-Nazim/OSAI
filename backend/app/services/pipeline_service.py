@@ -20,7 +20,8 @@ from app.api.v1.agents.registry import get_agent, get_critic
 from app.core.errors import ConflictError
 from app.models.pipeline import CHECKPOINT_STAGES, StageStatus
 from app.scrapers import is_source_supported, source_kind_for, source_kinds
-from app.services import demo_data
+from app.services import demo_data, jobs
+from app.services.staging import StagedRepository
 from app.services.repository import Repository, get_worker_repository, new_id
 from app.vectorstore import chroma
 
@@ -152,6 +153,7 @@ async def _run_stage(
     repo: Repository, project_id: str, state: dict[str, Any], stage_id: int
 ) -> None:
     """Executes one automated stage and persists whatever it produced."""
+    jobs.checkpoint(project_id)
     _set_stage(
         state,
         stage_id,
@@ -168,10 +170,12 @@ async def _run_stage(
 
     project = repo.get_project(project_id)
     context: dict[str, Any] = {"project_id": project_id, "project": project}
+    jobs.checkpoint(project_id)
 
     if stage_id == 2:
         context["competitors"] = repo.list_competitors(project_id)
         result = await get_agent(2, project).run(context)
+        jobs.checkpoint(project_id)
         repo.replace_sources(project_id, result.payload)
         # An e-commerce Scout also returns the structured listings behind those
         # sources. Persisting them here keeps the agent free of storage concerns,
@@ -249,6 +253,7 @@ async def _run_stage(
         context["ecommerce_products"] = repo.list_ecommerce_products(project_id)
         context["source_documents"] = _source_documents(repo, project)
         result = await get_agent(3, project).run(context)
+        jobs.checkpoint(project_id)
         instagram_chunks = result.artifacts.pop("instagram_chunks", None)
         if instagram_chunks is not None:
             # Instagram posts: vectors go to Supabase (pgvector), not Chroma.
@@ -283,6 +288,7 @@ async def _run_stage(
             context["instagram_post_comments"] = repo.list_instagram_post_comments(project_id)
         agent = get_agent(4, project)
         result = await agent.run(context)
+        jobs.checkpoint(project_id)
         repo.replace_gaps(project_id, result.payload)
         repo.update_project(project_id, {"gap_count": len(result.payload)})
         message = (result.warnings[0] if getattr(agent, "not_built", False) and result.warnings
@@ -544,8 +550,14 @@ def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
     ):
         raise ConflictError("These listings are already being scraped.")
 
+    if jobs.running(project_id):
+        raise ConflictError("Something is already running on this project. Cancel it or wait for it to finish.")
+    # Kept so a cancel can put the project back exactly as it was.
+    jobs.begin(project_id, _snapshot(project, current))
+
     # Every scrape starts clean, so a re-run never mixes old vectors or an old
-    # stage error into the new result.
+    # stage error into the new result. The old rows and vectors stay until the
+    # new run is saved in full (run_scrape), so a cancel loses nothing.
     state = empty_state(project_id)
     _set_stage(
         state,
@@ -557,7 +569,6 @@ def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
     )
     state["current_stage"] = 2
     repo.save_pipeline(project_id, state)
-    chroma.delete_collection(project_id)
     repo.update_project(project_id, {"status": "running", "current_stage": 2})
     return state
 
@@ -565,45 +576,128 @@ def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
 async def run_scrape(project_id: str, user_id: str) -> None:
     """Runs the scrape stages and stops. Never starts an agent.
 
+    Nothing the run reads is written while it runs: rows and vectors are held
+    (services/staging.py) and saved together once both stages have finished,
+    so a cancelled or failed run leaves the database exactly as it was.
+
     A failure is recorded on the stage that failed, in the scraper's own
     words -- those messages are written for the user ("not a Daraz domain",
     "HTTP 404") -- and the project is marked failed so the page can offer a
     retry.
     """
-    repo = get_worker_repository(user_id)
-    state = load_state(repo, project_id)
+    real = get_worker_repository(user_id)
+    repo = StagedRepository(real, project_id, last_stage=SCRAPE_STAGES[-1])
+    jobs.bind(project_id)
+    state = load_state(real, project_id)
+    try:
+        with chroma.holding() as vectors:
+            for stage_id in SCRAPE_STAGES:
+                try:
+                    await _run_stage(repo, project_id, state, stage_id)
+                except jobs.JobCancelled:
+                    raise
+                except Exception as exc:  # noqa: BLE001 - surface it on the stage, then stop
+                    logger.exception("Scrape stage %d failed for project %s", stage_id, project_id)
+                    _set_stage(state, stage_id, status=StageStatus.ERROR.value,
+                               error=str(exc) or type(exc).__name__, message=None)
+                    state["blocked_on"] = None
+                    with jobs.guard(project_id):
+                        real.save_pipeline(project_id, state)
+                        real.update_project(project_id, {"status": "failed"})
+                    return
 
-    for stage_id in SCRAPE_STAGES:
-        try:
-            await _run_stage(repo, project_id, state, stage_id)
-        except Exception as exc:  # noqa: BLE001 - surface it on the stage, then stop
-            logger.exception("Scrape stage %d failed for project %s", stage_id, project_id)
-            _set_stage(
-                state,
-                stage_id,
-                status=StageStatus.ERROR.value,
-                error=str(exc) or type(exc).__name__,
-                message=None,
-            )
-            state["blocked_on"] = None
-            repo.save_pipeline(project_id, state)
-            repo.update_project(project_id, {"status": "failed"})
+        state["blocked_on"] = None
+        with jobs.guard(project_id):                       # the one write: all of it, or none of it
+            try:
+                notes = repo.commit(extra=[
+                    ("replace_gaps", (project_id, []), {}),   # old gaps were found on the old data
+                    ("update_project", (project_id, {"gap_count": 0}), {}),
+                ])
+                chroma.write_held(project_id, vectors)
+            except Exception as exc:  # noqa: BLE001 - the database refused: say why, on the scrape stage
+                logger.exception("Saving the scrape of project %s failed", project_id)
+                _set_stage(state, SCRAPE_STAGES[0], status=StageStatus.ERROR.value, error=str(exc), message=None)
+                for later in SCRAPE_STAGES[1:]:
+                    _set_stage(state, later, status=StageStatus.IDLE.value, progress=0, message=None)
+                real.save_pipeline(project_id, state)
+                real.update_project(project_id, {"status": "failed"})
+                return
+            if notes:
+                metrics = state["stages"][str(SCRAPE_STAGES[0])].get("metrics") or {}
+                metrics["notes"] = [*(metrics.get("notes") or []), *notes]
+                state["stages"][str(SCRAPE_STAGES[0])]["metrics"] = metrics
+            real.save_pipeline(project_id, state)
+            real.update_project(project_id, {"status": "complete", "current_stage": SCRAPE_STAGES[-1]})
+        logger.info("Project %s scraped and embedded", project_id)
+    except jobs.JobCancelled:
+        logger.info("Scrape of project %s was cancelled; nothing from it was saved", project_id)
+    finally:
+        jobs.finish(project_id)
+
+
+def record_crash(project_id: str, user_id: str, stage_ids: list[int], exc: BaseException) -> None:
+    """Last safety net when a job dies in a way its own handlers could not record (for example the database
+    connection itself broke): the running stage is marked failed with the reason, so the project never stays
+    "running" forever. Nothing from the run was saved (results are only written at the very end)."""
+    jobs.finish(project_id)
+    try:
+        repo = get_worker_repository(user_id)
+        state = load_state(repo, project_id)
+        stuck = [i for i in stage_ids if state["stages"][str(i)]["status"] == StageStatus.RUNNING.value]
+        if not stuck:
             return
+        for i in stuck:
+            _set_stage(state, i, status=StageStatus.ERROR.value, message=None,
+                       error=f"The run stopped unexpectedly ({type(exc).__name__}: {exc}). Nothing from it was saved; "
+                             "please try again.")
+        state["blocked_on"] = None
+        repo.save_pipeline(project_id, state)
+        repo.update_project(project_id, {"status": "failed"})
+    except Exception:  # noqa: BLE001 - the database may be the thing that is down
+        logger.exception("Could not record the crash of the job on project %s", project_id)
 
-    state["blocked_on"] = None
+
+def _snapshot(project: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    """The project as it was before a job started, put back if the job is cancelled."""
+    import copy
+
+    return {"state": copy.deepcopy(state),
+            "project": {k: project.get(k) for k in ("status", "current_stage", "gap_count")}}
+
+
+def cancel_job(repo: Repository, project_id: str) -> dict[str, Any]:
+    """Stops the running scrape or Find gaps and puts the project back as it was before it started.
+
+    Nothing the cancelled run read or found is saved. If no job is registered (the
+    server restarted while one was running), the stuck "running" stages are reset.
+    """
+    previous = jobs.cancel(project_id)
+    if previous is not None:
+        repo.save_pipeline(project_id, previous["state"])
+        repo.update_project(project_id, previous["project"])
+        logger.info("Cancelled the job on project %s", project_id)
+        return previous["state"]
+
+    state = load_state(repo, project_id)
+    stuck = [k for k, st in state["stages"].items() if st["status"] == StageStatus.RUNNING.value]
+    if not stuck:
+        raise ConflictError("Nothing is running on this project.")
+    for key in stuck:
+        _set_stage(state, int(key), status=StageStatus.IDLE.value, progress=0, message=None, error=None)
+    scraped = state["stages"][str(SCRAPE_STAGES[-1])]["status"] == StageStatus.COMPLETE.value
     repo.save_pipeline(project_id, state)
-    repo.update_project(project_id, {"status": "complete", "current_stage": SCRAPE_STAGES[-1]})
-    logger.info("Project %s scraped and embedded", project_id)
+    repo.update_project(project_id, {"status": "complete" if scraped else "draft"})
+    return state
 
 
 # ----------------------------------------------- Instagram analysis (stage 4) ---
 
 
 def start_analysis(repo: Repository, project_id: str) -> dict[str, Any]:
-    """Opens an analysis run on an Instagram comparison that is already scraped.
+    """Opens an analysis run on an Instagram or Daraz comparison that is already scraped.
 
-    Runs stage 4 only (the engagement model, content and comment gaps) and then
-    parks at checkpoint 5, so the gaps can be reviewed on the Review gaps page.
+    Runs stage 4 only (the Gap Engine) and then parks at checkpoint 5, so the
+    gaps can be reviewed on the Review gaps page.
     The caller schedules ``run_analysis`` as a background task.
     """
     project = repo.get_project(project_id)
@@ -611,14 +705,21 @@ def start_analysis(repo: Repository, project_id: str) -> dict[str, Any]:
         raise ConflictError(
             "The demo project already has its gaps. Create an analysis of your own."
         )
-    if project.get("social_platform") != "instagram":
-        raise ConflictError("Analysis is available for Instagram comparisons only, for now.")
-    if not repo.list_instagram_posts(project_id):
+    is_daraz = (project.get("comparison_type") == "ecommerce_product"
+                and (project.get("ecommerce_platform") or "") == "daraz")
+    if project.get("social_platform") != "instagram" and not is_daraz:
+        raise ConflictError("Analysis is available for Instagram and Daraz comparisons only, for now.")
+    if is_daraz:
+        roles = {p.get("role") for p in repo.list_ecommerce_products(project_id)}
+        if not {"own", "competitor"} <= roles:
+            raise ConflictError("Both listings must be scraped first. Scrape them, then find gaps.")
+    elif not repo.list_instagram_posts(project_id):
         raise ConflictError("Nothing has been scraped yet. Scrape both profiles first.")
 
     state = load_state(repo, project_id)
-    if state["stages"]["4"]["status"] == StageStatus.RUNNING.value:
+    if state["stages"]["4"]["status"] == StageStatus.RUNNING.value or jobs.running(project_id):
         raise ConflictError("The analysis is already running.")
+    jobs.begin(project_id, _snapshot(project, state))
 
     _set_stage(
         state,
@@ -636,29 +737,47 @@ def start_analysis(repo: Repository, project_id: str) -> dict[str, Any]:
 
 
 async def run_analysis(project_id: str, user_id: str) -> None:
-    """Runs stage 4 and parks at checkpoint 5. Never starts the Strategist."""
-    repo = get_worker_repository(user_id)
-    state = load_state(repo, project_id)
-    try:
-        await _run_stage(repo, project_id, state, 4)
-    except Exception as exc:  # noqa: BLE001 - surface it on the stage, then stop
-        logger.exception("Analysis failed for project %s", project_id)
-        _set_stage(
-            state,
-            4,
-            status=StageStatus.ERROR.value,
-            error=str(exc) or type(exc).__name__,
-            message=None,
-        )
-        state["blocked_on"] = None
-        repo.save_pipeline(project_id, state)
-        repo.update_project(project_id, {"status": "failed"})
-        return
+    """Runs stage 4 and parks at checkpoint 5. Never starts the Strategist.
 
-    _park_at_checkpoint(state, 5)
-    repo.save_pipeline(project_id, state)
-    repo.update_project(project_id, {"status": "awaiting_review", "current_stage": 5})
-    logger.info("Project %s analysed; gaps await review", project_id)
+    The gaps are held and saved together with the finished state, so a cancelled
+    or failed analysis leaves the earlier gaps untouched.
+    """
+    real = get_worker_repository(user_id)
+    repo = StagedRepository(real, project_id, last_stage=4)
+    jobs.bind(project_id)
+    state = load_state(real, project_id)
+    try:
+        try:
+            await _run_stage(repo, project_id, state, 4)
+        except jobs.JobCancelled:
+            raise
+        except Exception as exc:  # noqa: BLE001 - surface it on the stage, then stop
+            logger.exception("Analysis failed for project %s", project_id)
+            _set_stage(state, 4, status=StageStatus.ERROR.value, error=str(exc) or type(exc).__name__, message=None)
+            state["blocked_on"] = None
+            with jobs.guard(project_id):
+                real.save_pipeline(project_id, state)
+                real.update_project(project_id, {"status": "failed"})
+            return
+
+        _park_at_checkpoint(state, 5)
+        with jobs.guard(project_id):                       # gaps + finished state, together
+            try:
+                repo.commit()
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("Saving the gaps of project %s failed", project_id)
+                _set_stage(state, 4, status=StageStatus.ERROR.value, error=str(exc), message=None)
+                state["blocked_on"] = None
+                real.save_pipeline(project_id, state)
+                real.update_project(project_id, {"status": "failed"})
+                return
+            real.save_pipeline(project_id, state)
+            real.update_project(project_id, {"status": "awaiting_review", "current_stage": 5})
+        logger.info("Project %s analysed; gaps await review", project_id)
+    except jobs.JobCancelled:
+        logger.info("Analysis of project %s was cancelled; nothing from it was saved", project_id)
+    finally:
+        jobs.finish(project_id)
 
 
 def reset(repo: Repository, project_id: str) -> dict[str, Any]:

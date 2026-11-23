@@ -53,6 +53,8 @@ class StageMetrics(CamelModel):
     notes: list[str] = []
     #: Stage 4 (Instagram): what each part of the analysis found.
     analysis: list[dict] | None = None
+    #: Stage 4 (Daraz): per competitor, where each listing stands, the full comparison, strengths and reviews.
+    daraz: list[dict] | None = None
 
 
 class StageState(CamelModel):

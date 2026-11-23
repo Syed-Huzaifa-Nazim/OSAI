@@ -33,6 +33,7 @@ vi.mock('@/hooks/use-platforms', () => ({
     isPending: false,
   }),
   useStartScrape: () => ({ mutate: vi.fn(), isPending: false }),
+  useCancelJob: () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
 function renderForm() {
@@ -93,9 +94,9 @@ describe('New analysis, comparison type', () => {
     expect(screen.queryByLabelText(/linkedin/i)).not.toBeInTheDocument()
   })
 
-  it('shows the 120-character limits, and who you sell to as optional', () => {
+  it('shows the character limits, and who you sell to as optional', () => {
     renderForm()
-    expect(screen.getByText('Up to 120 characters')).toBeInTheDocument()
+    expect(screen.getByText('Up to 500 characters')).toBeInTheDocument()
     expect(screen.getByText('Optional, up to 120 characters')).toBeInTheDocument()
     expect(screen.queryByText(/at least 40 characters/i)).not.toBeInTheDocument()
   })

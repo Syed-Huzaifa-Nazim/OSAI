@@ -1,9 +1,14 @@
-"""The team's Daraz review model, loaded once: sentiment (positive / neutral / negative) and reasons
-(Quality, Delivery, Packaging, Seller...) for each review. Two fine-tuned XLM-RoBERTa models, used as they are.
+"""What each Daraz review says: sentiment and reasons.
 
-Measured by the team on 5,138 unseen Daraz reviews: sentiment macro-F1 0.77 (0.85 on Roman Urdu reviews);
-reasons are shown only when the model is at least 95% sure (about 76% of shown reasons are right, but only about
-1 in 4 real reasons is found). So "what customers say" lists the clear reasons only, never a complete list.
+Sentiment: the team's fine-tuned XLM-RoBERTa (Development/Daraz_Model), used as it is. On 148 jewellery reviews
+checked by a person it was right 136 times (92%).
+
+Reasons: the team model and our Model A together (data_collection/daraz/tune_combined.py):
+  1. every reason the team model gives (its own 95% rule: almost always right, but it misses most reasons);
+  2. plus Model A's jewellery reasons when Model A is sure enough: cut-offs chosen on our 800 training labels
+     (praise by F1; complaints by F0.5, because complaints become gaps and a wrong one costs more than a missed one);
+  3. one review never gets the same reason as both praise and complaint.
+Reasons are still not a complete list: "what customers say" counts the clear reasons only.
 """
 from __future__ import annotations
 
@@ -57,8 +62,7 @@ def _team_vectors(texts: list[str]):
     return np.vstack(out)
 
 
-def _reason_probs(texts: list[str]):
-    """Our Model A (jewellery reasons, trained on 800 labelled Daraz jewellery reviews): one probability per reason."""
+def _load_reasons():
     if "reasons" not in _cache:
         if (REASONS_DIR / "reasons.joblib").exists():
             import joblib  # SAFETY: our own trained file (train_review_model.py), never a downloaded one
@@ -73,7 +77,12 @@ def _reason_probs(texts: list[str]):
             head = torch.nn.Linear(enc.config.hidden_size, len(saved["labels"]))
             head.load_state_dict(saved["head"])
             _cache["reasons"] = ("finetuned", (AutoTokenizer.from_pretrained(REASONS_DIR), enc, head.eval(), saved["labels"]))
-    kind, obj = _cache["reasons"]
+    return _cache["reasons"]
+
+
+def _reason_probs(texts: list[str]):
+    """Our Model A (jewellery reasons, trained on 800 labelled Daraz jewellery reviews): one probability per reason."""
+    kind, obj = _load_reasons()
     if kind == "bundle":
         from scipy.sparse import hstack
 
@@ -97,29 +106,67 @@ def _reason_probs(texts: list[str]):
     return np.vstack(rows), labels, 0.5
 
 
-def jewellery_reasons(texts: list[str]) -> list[list[dict[str, Any]]]:
+#: The team model's reason names -> ours (same map as in training, data_collection/daraz/train_review_model.py).
+TEAM_MAP = {"Quality": "quality", "Performance": "quality", "Authenticity": "quality", "Durability": "breakage",
+            "As_Described": "as_pictured", "Size_Capacity": "size_fit", "Design_Comfort": "design", "Price": "price_value",
+            "Delivery": "delivery", "Packaging": "packaging", "Seller": "seller"}
+
+
+def _team_key(reason: dict[str, Any]) -> str | None:
+    ours = TEAM_MAP.get(reason.get("aspect", ""))
+    if not ours or (reason.get("aspect") == "Authenticity" and reason.get("polarity") == "positive"):
+        return None
+    return ours + ("+" if reason.get("polarity") == "positive" else "-")
+
+
+def _cutoffs() -> dict[str, Any]:
+    kind, obj = _load_reasons()
+    return (obj.get("combine") or {}) if kind == "bundle" else {}
+
+
+def jewellery_reasons(texts: list[str], team_reasons: list[list[dict[str, Any]]] | None = None) -> list[list[dict[str, Any]]]:
+    """Reasons per review. With team_reasons (the team model's own reasons, same order) and saved cut-offs:
+    the combined rule above; else Model A alone at its plain 0.5 cut-off."""
+    if not texts:
+        return []
     prob, labels, threshold = _reason_probs(texts)
+    comb = _cutoffs() if team_reasons is not None else {}
+    t_pos, t_neg = comb.get("t_praise", threshold), comb.get("t_complaint", threshold)
     out = []
-    for row in prob:
+    for i, row in enumerate(prob):
+        p = dict(zip(labels, (float(x) for x in row)))
+        team = {k for k in (_team_key(r) for r in (team_reasons[i] if comb else [])) if k in p}
+        keep = team | {lab for lab, v in p.items() if v >= (t_pos if lab.endswith("+") else t_neg)}
+        for lab in list(keep):                       # never both praise and complaint for one reason
+            other = lab[:-1] + ("-" if lab.endswith("+") else "+")
+            if lab in keep and other in keep:
+                if (lab in team) != (other in team):
+                    keep.discard(other if lab in team else lab)
+                else:
+                    keep.discard(other if p[lab] >= p[other] else lab)
         rs = [{"aspect": lab[:-1], "polarity": "positive" if lab.endswith("+") else "negative",
-               "confidence": round(float(p), 3)} for lab, p in zip(labels, row) if p >= threshold]
+               "confidence": round(p[lab], 3),
+               "source": "both models" if lab in team and p[lab] >= (t_pos if lab.endswith("+") else t_neg)
+               else ("team model" if lab in team else "Model A")} for lab in keep]
         out.append(sorted(rs, key=lambda r: -r["confidence"]))
     return out
 
 
 def analyse(texts: list[str]) -> list[dict[str, Any]]:
-    """One result per text: {"sentiment": ..., "reasons": [{"aspect", "polarity", "confidence"}]}.
+    """One result per text: {"sentiment": ..., "reasons": [{"aspect", "polarity", "confidence", "source"}]}.
 
-    Sentiment: the team's model. Reasons: our jewellery model (Model A) when it is installed, else the team's."""
+    Sentiment: the team's model. Reasons: the combined rule (module note) when Model A is installed, else the team's."""
     texts = [t for t in texts if t and t.strip()]
     if not texts or not available():
         return []
     try:
         result = _analyzer().analyze(texts)["per_review"]
         if jewellery_model_available():
-            for r, reasons in zip(result, jewellery_reasons([r["review"] for r in result])):
+            combined = jewellery_reasons([r["review"] for r in result], [r.get("reasons") or [] for r in result])
+            for r, reasons in zip(result, combined):
+                r["team_reasons"] = r.get("reasons") or []
                 r["reasons"] = reasons
-                r["reason_model"] = "jewellery (Model A)"
+                r["reason_model"] = "team model + Model A (jewellery)" if _cutoffs() else "Model A (jewellery)"
         return result
     except Exception as exc:  # noqa: BLE001 - reviews are one layer; the others still run
         logger.warning("Review model failed: %s", exc)

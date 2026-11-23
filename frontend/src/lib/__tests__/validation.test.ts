@@ -126,11 +126,11 @@ describe('newProjectSchema', () => {
     expect(issuePaths(result)).toContain('brandDescription')
   })
 
-  it('caps the description at 120 characters', () => {
+  it('caps the description at 500 characters', () => {
     expect(
-      newProjectSchema.safeParse({ ...VALID_PROJECT, brandDescription: 'x'.repeat(120) }).success,
+      newProjectSchema.safeParse({ ...VALID_PROJECT, brandDescription: 'x'.repeat(500) }).success,
     ).toBe(true)
-    const result = newProjectSchema.safeParse({ ...VALID_PROJECT, brandDescription: 'x'.repeat(121) })
+    const result = newProjectSchema.safeParse({ ...VALID_PROJECT, brandDescription: 'x'.repeat(501) })
     expect(result.success).toBe(false)
     expect(issuePaths(result)).toContain('brandDescription')
   })

@@ -7,8 +7,11 @@ dependency tree, and the API is fully usable in demo mode without it.
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import re
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 from app.core.config import settings
@@ -16,6 +19,28 @@ from app.core.config import settings
 logger = logging.getLogger("optistratix.vectorstore")
 
 _client: Any = None
+
+#: While a background job runs, its chunks are held here and written only when the whole job has finished
+#: (pipeline_service + services/staging.py), so a cancelled run never leaves half a collection behind.
+_held: contextvars.ContextVar[list | None] = contextvars.ContextVar("chroma_held", default=None)
+
+
+@contextmanager
+def holding() -> Iterator[list]:
+    """Inside this block ``add_chunks`` keeps the chunks in memory instead of writing them."""
+    held: list = []
+    token = _held.set(held)
+    try:
+        yield held
+    finally:
+        _held.reset(token)
+
+
+def write_held(project_id: str, held: list) -> None:
+    """Replaces the project's collection with the held chunks (called once the job has finished)."""
+    delete_collection(project_id)
+    for args in held:
+        add_chunks(*args)
 
 
 def _slug(project_id: str) -> str:
@@ -60,6 +85,10 @@ def add_chunks(
     embeddings: list[list[float]] | None = None,
 ) -> int:
     """Writes chunks for one project. Returns how many were stored."""
+    held = _held.get()
+    if held is not None:
+        held.append((project_id, ids, documents, metadatas, embeddings))
+        return len(ids)
     collection = get_collection(project_id)
     if collection is None:
         return 0

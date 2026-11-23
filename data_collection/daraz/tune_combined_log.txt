@@ -1,0 +1,24 @@
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+<frozen site>:107: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /home/hadia/Downloads/OptiStratixAI/Development/backend/.venv, got /home/hadia/Downloads/OptiStratixAI/Development/data_collection/daraz/../../backend/.venv
+Loading weights:   0%|          | 0/197 [00:00<?, ?it/s]Loading weights: 100%|██████████| 197/197 [00:00<00:00, 4342.50it/s]
+[transformers] [1mXLMRobertaModel LOAD REPORT[0m from: /home/hadia/Downloads/OptiStratixAI/Development/Daraz_Model/model_package/aspect_model
+Key                        | Status     | 
+---------------------------+------------+-
+classifier.out_proj.weight | UNEXPECTED | 
+classifier.dense.bias      | UNEXPECTED | 
+classifier.dense.weight    | UNEXPECTED | 
+classifier.out_proj.bias   | UNEXPECTED | 
+pooler.dense.weight        | MISSING    | 
+pooler.dense.bias          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 10812.00it/s]
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 11245.83it/s]
+                                 method  praise_p  praise_r  praise_f1  complaint_p  complaint_r  complaint_f1  all_f1
+                       team model as-is     0.890     0.331      0.483        0.840        0.173         0.287   0.395
+                    Model A alone (0.5)     0.789     0.740      0.763        0.644        0.578         0.609   0.690
+combined (praise 0.55, complaints 0.65)     0.817     0.725      0.768        0.770        0.445         0.564   0.680
+chosen: {'t_praise': np.float64(0.55), 't_complaint': np.float64(0.65), 'praise_p': np.float64(0.817), 'praise_r': np.float64(0.725), 'praise_f1': np.float64(0.768), 'complaint_p': np.float64(0.77), 'complaint_r': np.float64(0.445), 'complaint_f1': np.float64(0.564), 'all_f1': np.float64(0.68), 'complaint_f05': np.float64(0.672)}
+saved cut-offs into /home/hadia/Downloads/OptiStratixAI/Development/backend/app/analysis/daraz/models/review_reasons/reasons.joblib

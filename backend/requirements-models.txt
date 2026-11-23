@@ -1,0 +1,17 @@
+# The trained-model libraries: install these on every server that runs analyses, AFTER requirements.txt.
+#   pip install -r requirements.txt
+#   pip install -r requirements-models.txt
+# Without them every model layer is skipped (fewer gaps, no error). The backend checks at start-up and
+# /api/v1/health shows "modelsReady"; set REQUIRE_MODELS=true on a hosted server to refuse to start without them.
+# Versions are the ones the models were trained and tested with (backend/.venv, Python 3.14).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0+cpu
+torchvision==0.29.2+cpu
+open_clip_torch==4.2.2          # Picture Model (Model D): Instagram pictures, reel openings, Daraz main photo
+transformers==5.23.0            # Caption model (Model C) and the Daraz review models
+tokenizers==0.23.3
+safetensors==0.8.0
+huggingface_hub==2.4.0
+easyocr==1.7.2                  # text on reels and pictures
+scenedetect==0.7.3              # scene cuts in reels
+faster-whisper==1.2.1           # voice detection in reels (its built-in Silero VAD)

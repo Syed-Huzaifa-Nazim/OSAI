@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { pipelineApi, scrapersApi } from '@/lib/api/services'
 import { errorMessage } from '@/lib/api-client'
 import { queryKeys } from '@/lib/query-client'
+import { markCancelled } from '@/lib/cancelled-jobs'
 
 /**
  * The e-commerce platforms a comparison can run against.
@@ -101,6 +102,29 @@ export function useStartScrape() {
  * model, content gaps and comment mood (stage 4). The run is a background
  * task; the pipeline query polls while stage 4 is running.
  */
+/** Cancels the running scrape or Find gaps; nothing from that run is saved. */
+export function useCancelJob() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId: string) => {
+      markCancelled(projectId)
+      return pipelineApi.cancel(projectId)
+    },
+    onSuccess: async (state, projectId) => {
+      client.setQueryData(queryKeys.projects.pipeline(projectId), state)
+      toast.success('Cancelled', { description: 'Nothing from this run was saved. Your earlier results are unchanged.' })
+      await Promise.all([
+        client.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) }),
+        client.invalidateQueries({ queryKey: queryKeys.projects.list() }),
+        client.invalidateQueries({ queryKey: ['projects', projectId] }),
+      ])
+    },
+    onError: (error) => {
+      toast.error('Could not cancel', { description: errorMessage(error) })
+    },
+  })
+}
+
 export function useStartAnalysis() {
   const client = useQueryClient()
   return useMutation({

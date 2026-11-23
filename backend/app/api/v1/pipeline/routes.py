@@ -80,18 +80,32 @@ async def run_instagram_analysis(
     tasks: BackgroundTasks,
     user: CurrentUser = Depends(get_current_user),
 ) -> PipelineState:
-    """Analyses a scraped Instagram comparison (stage 4) and parks at the first
-    checkpoint, so the gaps can be reviewed. Real projects only."""
+    """Analyses a scraped Instagram or Daraz comparison (stage 4) and parks at the
+    first checkpoint, so the gaps can be reviewed. Real projects only."""
     repo = get_repository(user.id, user.token)
     state = pipeline_service.start_analysis(repo, project_id)
 
     def runner() -> None:
         try:
             asyncio.run(pipeline_service.run_analysis(project_id, user.id))
-        except Exception:  # noqa: BLE001 - a crashed task must not be silent
+        except Exception as exc:  # noqa: BLE001 - a crashed task must not be silent
             logger.exception("Background analysis failed for %s", project_id)
+            pipeline_service.record_crash(project_id, user.id, [4], exc)
 
     tasks.add_task(runner)
+    return PipelineState.model_validate(state)
+
+
+@router.post("/jobs/cancel", response_model=PipelineState)
+async def cancel_job(
+    project_id: str,
+    user: CurrentUser = Depends(get_current_user),
+) -> PipelineState:
+    """Cancels the running scrape or Find gaps. Nothing the cancelled run read or found
+    is saved, and the project goes back to exactly how it was before the run started."""
+    repo = get_repository(user.id, user.token)
+    repo.get_project(project_id)
+    state = await asyncio.to_thread(pipeline_service.cancel_job, repo, project_id)
     return PipelineState.model_validate(state)
 
 
@@ -219,7 +233,7 @@ async def explain_gap(
     gap_id: str,
     user: CurrentUser = Depends(get_current_user),
 ) -> dict[str, Any]:
-    """Grounded explanation of one gap (Instagram): what was found and why it is a gap.
+    """Grounded explanation of one gap (Instagram or Daraz): what was found and why it is a gap.
 
     The LLM is given the gap's exact values, the card's example posts and the
     closest posts retrieved from pgvector (instagram_post_chunks) for each side,
@@ -230,8 +244,10 @@ async def explain_gap(
 
     repo = get_repository(user.id, user.token)
     project = repo.get_project(project_id)
-    if project.get("social_platform") != "instagram":
-        raise ConflictError("Explanations are available for Instagram comparisons.")
+    if (project.get("ecommerce_platform") or "") == "daraz":
+        from app.analysis.daraz import explain  # same shape: grounded in Daraz reviews and listings
+    elif project.get("social_platform") != "instagram":
+        raise ConflictError("Explanations are available for Instagram and Daraz comparisons.")
 
     try:
         result = await asyncio.to_thread(

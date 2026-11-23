@@ -35,7 +35,7 @@ import {
 import { useCreateProject } from '@/hooks/use-projects'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { usePlatforms, useStartScrape } from '@/hooks/use-platforms'
-import { MAX_SHORT_TEXT, newProjectSchema, type NewProjectValues } from '@/lib/validation'
+import { MAX_DESCRIPTION, MAX_SHORT_TEXT, newProjectSchema, type NewProjectValues } from '@/lib/validation'
 import { titleCase } from '@/lib/utils'
 import { spring, staggerContainer, staggerItem } from '@/lib/motion'
 import { projectHomePath } from '@/lib/project-routes'
@@ -551,13 +551,13 @@ export default function NewProjectPage() {
                 label="What the business does"
                 htmlFor="brandDescription"
                 error={errors.brandDescription?.message}
-                hint={`Up to ${MAX_SHORT_TEXT} characters`}
+                hint={`Up to ${MAX_DESCRIPTION} characters`}
                 required
               >
                 <div className="relative">
                   <Textarea
                     id="brandDescription"
-                    rows={3}
+                    rows={5}
                     placeholder="e.g. Small-batch coffee roaster selling direct to consumers and independent cafés."
                     aria-invalid={Boolean(errors.brandDescription)}
                     {...register('brandDescription')}
@@ -565,10 +565,10 @@ export default function NewProjectPage() {
                   <span
                     className={cn(
                       'pointer-events-none absolute bottom-2 right-3 text-[11px] tabular-nums',
-                      descriptionLength > MAX_SHORT_TEXT ? 'text-destructive' : 'text-muted-foreground',
+                      descriptionLength > MAX_DESCRIPTION ? 'text-destructive' : 'text-muted-foreground',
                     )}
                   >
-                    {descriptionLength}/{MAX_SHORT_TEXT}
+                    {descriptionLength}/{MAX_DESCRIPTION}
                   </span>
                 </div>
               </FormField>

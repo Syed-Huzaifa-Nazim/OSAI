@@ -26,8 +26,14 @@ Limits:
 
 | Model | Script | What it does | Test | Used in the app |
 |---|---|---|---|---|
-| **A. Jewellery review reasons** | `train_review_model.py` | 22 reasons (quality, colour fading, breakage, wrong/missing item, size, matches photos, comfort, design, value, delivery, packaging, seller; each + / -) | 5-fold GroupKFold by listing; compared with the team model as-is, keyword rules, TF-IDF, frozen XLM-R + LR, fine-tuned MiniLM (`--xlmr`: fine-tuned XLM-R) | yes: reasons in "What customers say" (sentiment stays with the team model) |
+| **A. Jewellery review reasons** | `train_review_model.py` | 22 reasons (quality, colour fading, breakage, wrong/missing item, size, matches photos, comfort, design, value, delivery, packaging, seller; each + / -) | 5-fold GroupKFold by listing; compared with the team model as-is, keyword rules, TF-IDF, frozen XLM-R + LR, fine-tuned MiniLM (`--xlmr`: fine-tuned XLM-R) | yes, **combined with the team model** (`tune_combined.py`): reasons in "What customers say" and the competitor-complaint gaps (sentiment stays with the team model) |
 | **B. Rank / sales from levers** | `train_rank_model.py` | predicts rank score and log(sold) from the 14 levers only | GroupKFold by search word; baseline = average | report only (shows levers matter: sales order right in 25/25 unseen words) |
+
+**Combined reasons** (`tune_combined.py`): every reason the team model gives (its own 95% rule: almost always right,
+misses most) plus Model A's reasons above a cut-off chosen on the 800 training labels only (praise: best F1;
+complaints: best F0.5, because complaints become gaps and a wrong one costs more than a missed one); one review never
+gets the same reason as praise and complaint. Tested once on the 150 person-checked reviews
+(`labels/review_check_150.xlsx` → `labels/review_check_150_gold.csv`, scores in `reports/check150_scores.csv`).
 
 Labels for A: `labels/jewellery_review_labels.csv` (800 reviews, AI-drafted from the full text with `labels/REVIEW_LABEL_GUIDE.md`);
 person check: `labels/review_labels_check_100.xlsx`. Results: `reports/model_a_*.csv`, `reports/model_b_*.csv`.

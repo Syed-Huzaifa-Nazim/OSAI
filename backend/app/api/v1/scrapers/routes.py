@@ -121,8 +121,9 @@ async def start_scrape(
         # loop of its own, hence asyncio.run.
         try:
             asyncio.run(pipeline_service.run_scrape(project_id, user.id))
-        except Exception:  # noqa: BLE001 - a crashed task must not be silent
+        except Exception as exc:  # noqa: BLE001 - a crashed task must not be silent
             logger.exception("Background scrape failed for %s", project_id)
+            pipeline_service.record_crash(project_id, user.id, [2, 3], exc)
 
     tasks.add_task(runner)
     return PipelineState.model_validate(state)

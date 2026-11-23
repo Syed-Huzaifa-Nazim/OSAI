@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -7,26 +7,21 @@ import {
   ArrowRight,
   Download,
   FileText,
-  Filter,
   FolderOpen,
   ListChecks,
-  Globe,
-  Instagram,
   MoreVertical,
-  ShoppingCart,
-  type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SafeImage } from '@/components/shared/safe-image'
+import { PlatformSection } from '@/components/shared/platform-section'
+import { PlatformPicker, type PlatformChoice } from '@/components/shared/platform-picker'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
 import { useCompetitors, useProjects } from '@/hooks/use-projects'
 import { useDocumentTitle } from '@/hooks/use-document-title'
@@ -34,24 +29,16 @@ import { errorMessage } from '@/lib/api-client'
 import { gapsApi, projectsApi } from '@/lib/api/services'
 import { mediaSrc } from '@/lib/media'
 import { projectHomePath } from '@/lib/project-routes'
+import { groupByPlatform, platformInfo, platformOf } from '@/lib/platform-groups'
 import { projectStatus } from '@/lib/project-status'
 import { staggerContainer, staggerItem } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import type { ComparisonType, Project } from '@/types/domain'
+import type { Project } from '@/types/domain'
 
-const TYPE: Record<ComparisonType, { label: string; icon: LucideIcon; tone: string }> = {
-  social_media: { label: 'Instagram', icon: Instagram, tone: 'bg-primary/10 text-primary' },
-  ecommerce_product: {
-    label: 'E-commerce',
-    icon: ShoppingCart,
-    tone: 'bg-warning/15 text-warning-ink',
-  },
-  website: { label: 'Website', icon: Globe, tone: 'bg-success/10 text-success' },
-}
-
-/** A project has a downloadable gap report once an Instagram analysis has found gaps. */
+/** A project has a downloadable gap report once an Instagram or Daraz analysis has found gaps. */
 function hasGapReport(project: Project): boolean {
-  return !project.isDemo && project.comparisonType === 'social_media' && project.gapCount > 0
+  const analysed = project.socialPlatform === 'instagram' || project.ecommercePlatform === 'daraz'
+  return !project.isDemo && analysed && project.gapCount > 0
 }
 
 function comparedOn(iso: string): string {
@@ -62,7 +49,7 @@ function comparedOn(iso: string): string {
 function ReportRow({ project, cover }: { project: Project; cover?: string }) {
   const competitors = useCompetitors(project.id)
   const [busy, setBusy] = useState<'all' | 'kept' | null>(null)
-  const type = TYPE[project.comparisonType] ?? TYPE.website
+  const type = platformInfo(platformOf(project))
   const status = projectStatus(project.status)
   const rival = competitors.data?.[0]?.name
   const [opening, setOpening] = useState(false)
@@ -96,7 +83,7 @@ function ReportRow({ project, cover }: { project: Project; cover?: string }) {
       <span
         className={cn(
           'flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl sm:size-14',
-          type.tone,
+          type.logo && !cover ? 'border border-border/20 bg-white p-2' : type.tone,
         )}
       >
         {cover ? (
@@ -108,7 +95,11 @@ function ReportRow({ project, cover }: { project: Project; cover?: string }) {
             compact
           />
         ) : (
-          <type.icon className="size-6" aria-hidden="true" />
+          type.logo ? (
+            <img src={type.logo} alt="" className="size-full object-contain" />
+          ) : (
+            <type.icon className="size-6" aria-hidden="true" />
+          )
         )}
       </span>
       <div className="min-w-0 flex-1">
@@ -207,13 +198,19 @@ export default function ReportsPage() {
     queryFn: projectsApi.covers,
     staleTime: 5 * 60_000,
   })
-  const [types, setTypes] = useState<ComparisonType[]>([])
+  // The platform card picked (All, Instagram, Daraz...), kept in the link.
+  const [params, setParams] = useSearchParams()
+  const platform = (params.get('platform') as PlatformChoice | null) ?? 'all'
 
   const all = [...(projects ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const shown = types.length === 0 ? all : all.filter((p) => types.includes(p.comparisonType))
-  const present = (Object.keys(TYPE) as ComparisonType[]).filter((t) =>
-    all.some((p) => p.comparisonType === t),
-  )
+  const shown = platform === 'all' ? all : all.filter((p) => platformOf(p) === platform)
+  const platforms = groupByPlatform(all).map((g) => ({
+    ...g,
+    count: g.projects.length,
+    note: g.projects.some(hasGapReport)
+      ? `${g.projects.filter(hasGapReport).length} gap report${g.projects.filter(hasGapReport).length === 1 ? '' : 's'}`
+      : undefined,
+  }))
 
   if (isError) {
     return (
@@ -236,35 +233,18 @@ export default function ReportsPage() {
       </div>
 
       <section className="card-soft border border-border/15 p-4 sm:p-6">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-bold">My comparisons</h2>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={present.length < 2}>
-                <Filter /> Filter
-                {types.length > 0 ? (
-                  <span className="rounded-full bg-primary px-1.5 text-[11px] text-primary-foreground">
-                    {types.length}
-                  </span>
-                ) : null}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Show</DropdownMenuLabel>
-              {present.map((t) => (
-                <DropdownMenuCheckboxItem
-                  key={t}
-                  checked={types.includes(t)}
-                  onCheckedChange={(on) => {
-                    setTypes((cur) => (on ? [...cur, t] : cur.filter((x) => x !== t)))
-                  }}
-                >
-                  {TYPE[t].label}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <h2 className="mb-4 font-display text-lg font-bold">My comparisons</h2>
+        {platforms.length > 1 ? (
+          <div className="mb-5">
+            <PlatformPicker
+              groups={platforms}
+              value={platform}
+              onChange={(value) => {
+                setParams(value === 'all' ? {} : { platform: value }, { replace: true })
+              }}
+            />
+          </div>
+        ) : null}
 
         {isLoading ? (
           <LoadingState rows={3} />
@@ -282,16 +262,27 @@ export default function ReportsPage() {
             }
           />
         ) : (
-          <motion.ul
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-            className="space-y-3"
-          >
-            {shown.map((project) => (
-              <ReportRow key={project.id} project={project} cover={covers.data?.[project.id]} />
+          <div className="space-y-6">
+            {groupByPlatform(shown).map((group) => (
+              <PlatformSection
+                key={group.key}
+                platform={group}
+                count={group.projects.length}
+                className={platform === 'all' ? undefined : '[&>div:first-child]:hidden'}
+              >
+                <motion.ul
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                  className="space-y-3"
+                >
+                  {group.projects.map((project) => (
+                    <ReportRow key={project.id} project={project} cover={covers.data?.[project.id]} />
+                  ))}
+                </motion.ul>
+              </PlatformSection>
             ))}
-          </motion.ul>
+          </div>
         )}
       </section>
     </div>

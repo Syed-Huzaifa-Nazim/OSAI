@@ -88,6 +88,21 @@ Kept on the PC only (git-ignored, too big):
 
 The final datasets, labels and reports (small CSV files) are in git, so every result can be checked.
 
+### Hosting with every model working
+
+Every model layer quietly skips itself when its library or file is missing, so a server set up without them
+gives fewer gaps and no error. To make sure all models run:
+
+1. Clone with the real model files: `git lfs install` then `git lfs pull` (otherwise the model files are tiny placeholders).
+2. Install both lists, in the backend's own environment:
+   `pip install -r backend/requirements.txt` then `pip install -r backend/requirements-models.txt` (CPU PyTorch).
+3. Set `REQUIRE_MODELS=true` in the server's environment: the backend then refuses to start if anything is missing,
+   and says what. `GET /api/v1/health` shows `modelsReady` and `modelsMissing` at any time.
+4. Give the server about 6 GB of RAM (Daraz review models about 2.2 GB, caption and picture models about 1.5 GB).
+5. Or build the ready image: `docker build -f backend/Dockerfile -t optistratix-backend .` from this folder.
+
+Locally, always start the backend from `backend/.venv` (`cd backend && source .venv/bin/activate`), not another environment.
+
 ---
 
 ## Repository layout

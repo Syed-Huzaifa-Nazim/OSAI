@@ -94,6 +94,12 @@ export const pipelineApi = {
       ? mockApi.resetPipeline(projectId)
       : api.post<PipelineState>(`/projects/${projectId}/pipeline/reset`),
 
+  /** Cancels the running scrape or Find gaps. Nothing from that run is saved; the project is put back as it was. */
+  cancel: (projectId: string): Promise<PipelineState> =>
+    isDemoMode
+      ? mockApi.getPipeline(projectId)
+      : api.post<PipelineState>(`/projects/${projectId}/jobs/cancel`),
+
   /** Runs the gap analysis (stage 4) on a scraped Instagram comparison. */
   analyse: (projectId: string): Promise<PipelineState> =>
     isDemoMode

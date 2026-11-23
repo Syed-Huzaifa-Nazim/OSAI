@@ -158,23 +158,16 @@ const DARAZ_GROUPS: Group[] = [
   {
     key: 'do_more',
     title: 'Change this',
-    note: 'Proven to help Daraz jewellery listings rank or sell, and you are below the top listings.',
+    note: 'These help Daraz listings rank or sell, and yours is below the top listings.',
     box: 'border-warning/40 bg-warning/5',
     icon: '✅',
   },
   {
-    key: 'doing_well',
-    title: "You're doing well",
-    note: 'Proven to help, and you already do it better than your competitor.',
-    box: 'border-success/30 bg-success/5',
-    icon: '⭐',
-  },
-  {
-    key: 'competitor_does',
-    title: 'Your competitor does a bit better',
-    note: 'A difference, but you are already within the normal range of the top listings.',
+    key: 'fine',
+    title: 'No change needed',
+    note: 'Yours is already in the usual range of the top 20 listings for your search word.',
     box: 'border-border/25 bg-card',
-    icon: '💡',
+    icon: '👍',
   },
 ]
 
@@ -368,7 +361,9 @@ export function GapCategories({
           const decided = list.filter((g) => g.decision !== 'pending').length
           const parts = [
             proven ? `${proven} found` : '',
-            list.length - proven ? `${list.length - proven} to test` : '',
+            list.length - proven
+              ? `${list.length - proven} ${daraz ? 'worth fixing' : 'to test'}`
+              : '',
             `${decided}/${list.length} decided`,
           ]
           return (
@@ -404,10 +399,10 @@ export function GapCategories({
             line={
               [
                 comparison.filter((r) => r.group === 'do_more').length
-                  ? `${comparison.filter((r) => r.group === 'do_more').length} to do more`
+                  ? `${comparison.filter((r) => r.group === 'do_more').length} to ${daraz ? 'change' : 'do more'}`
                   : '',
-                comparison.filter((r) => r.group === 'doing_well').length
-                  ? `${comparison.filter((r) => r.group === 'doing_well').length} going well`
+                comparison.filter((r) => r.group === (daraz ? 'fine' : 'doing_well')).length
+                  ? `${comparison.filter((r) => r.group === (daraz ? 'fine' : 'doing_well')).length} ${daraz ? 'already fine' : 'going well'}`
                   : '',
               ]
                 .filter(Boolean)
@@ -445,8 +440,7 @@ export function GapCategories({
           <DialogHeader>
             <DialogTitle>{current?.label}</DialogTitle>
             <DialogDescription>
-              {current?.hint}. Keep or drop each gap
-              {daraz ? '.' : ', or press Explain for the reasons.'}
+              {current?.hint}. Keep or drop each gap, or press Explain for the reasons.
             </DialogDescription>
           </DialogHeader>
           <div className="min-w-0 space-y-4">
@@ -493,7 +487,7 @@ export function GapCategories({
                 </DialogTitle>
                 <DialogDescription>
                   {daraz
-                    ? 'Every lever proven on Daraz jewellery listings, compared with your competitor and with the top 20 listings for your search word.'
+                    ? 'Each thing below is proven to help Daraz jewellery listings sell or rank. Yours is compared with your competitor and with the top 20 listings for your search word.'
                     : 'What your posts, captions and reels show, compared with your competitor and with what works for jewellery shops on Instagram.'}
                 </DialogDescription>
               </DialogHeader>
@@ -515,7 +509,7 @@ export function GapCategories({
                               <p className="mt-1 text-sm text-muted-foreground">{row.why}</p>
                             ) : null}
                             <MiniBars row={row} />
-                            {g.key !== 'doing_well' ? (
+                            {g.key !== 'doing_well' && row.tip ? (
                               <p className="mt-3 rounded-xl bg-card/80 px-3 py-2 text-sm">
                                 <span className="font-semibold text-primary">Try this: </span>
                                 {row.tip}

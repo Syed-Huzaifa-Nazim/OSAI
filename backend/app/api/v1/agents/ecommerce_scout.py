@@ -29,6 +29,7 @@ import time
 from typing import Any
 
 from app.api.v1.agents.base import AgentResult, BaseAgent
+from app.services import jobs as job_control
 from app.core.errors import ConflictError
 from app.scrapers import COMPETITOR, OWN, ScrapedProductRecord, ScraperError, get_scraper
 from app.services import demo_data
@@ -76,6 +77,7 @@ class EcommerceScoutAgent(BaseAgent):
             *(asyncio.to_thread(self._scrape_one, scraper, url, role) for url, role, _ in jobs),
             return_exceptions=True,
         )
+        job_control.checkpoint(project_id)   # a cancel during the reads stops the job here, not as a "failed listing"
 
         sources: list[dict[str, Any]] = []
         products: list[dict[str, Any]] = []

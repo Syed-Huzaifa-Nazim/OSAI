@@ -32,6 +32,7 @@ import {
   useEcommerceComparison,
   useParameterComparison,
   useSourceDocuments,
+  useCancelJob,
   useStartAnalysis,
   useStartScrape,
 } from '@/hooks/use-platforms'
@@ -79,6 +80,8 @@ export default function ProjectSourcesPage() {
   const pipeline = usePipeline(projectId, (state) => phaseOf(state).phase === 'embedding')
   const startScrape = useStartScrape()
   const startAnalysis = useStartAnalysis()
+  // Cancel: stops the scrape or the analysis; nothing from that run is saved.
+  const cancelJob = useCancelJob()
   // The Find gaps dialog: open while the analysis runs, then a green check and the way to the gaps.
   const [gapsDialog, setGapsDialog] = useState(false)
   const stage4Running = pipeline.data?.stages[4]?.status === 'running'
@@ -227,6 +230,15 @@ export default function ProjectSourcesPage() {
         message={analysis?.message}
         error={startAnalysis.isError ? errorMessage(startAnalysis.error) : analysis?.error}
         reviewPath={reviewGapsPath}
+        onCancel={() => {
+          cancelJob.mutate(projectId, {
+            onSuccess: () => {
+              sawRunning.current = false
+              setGapsDialog(false)
+            },
+          })
+        }}
+        cancelling={cancelJob.isPending}
       />
 
       {phase.phase === 'idle' ? (
@@ -256,6 +268,10 @@ export default function ProjectSourcesPage() {
               ? 'Both profiles are read through Apify, one run for the posts and one for the comments on the busiest of them. You can leave this page and come back.'
               : 'Both sites are read in parallel. A page that needs JavaScript is opened in a headless browser, which can take longer. You can leave this page and come back.'
           }
+          onCancel={() => {
+            cancelJob.mutate(projectId)
+          }}
+          cancelling={cancelJob.isPending}
         />
       ) : null}
 

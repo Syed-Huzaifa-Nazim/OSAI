@@ -80,6 +80,8 @@ export const MAX_URL_LENGTH = 8192
 
 /** Shared cap for the two short free-text intake fields. Mirrors the backend. */
 export const MAX_SHORT_TEXT = 120
+/** What the business does: room for products, ordering terms and address. */
+export const MAX_DESCRIPTION = 500
 
 const urlSchema = z
   .string()
@@ -162,7 +164,7 @@ export const newProjectSchema = z
       .string()
       .trim()
       .min(1, 'Describe what the business does')
-      .max(MAX_SHORT_TEXT, `Keep this to ${MAX_SHORT_TEXT} characters or fewer`),
+      .max(MAX_DESCRIPTION, `Keep this to ${MAX_DESCRIPTION} characters or fewer`),
     industry: z.enum([
       'saas',
       'ecommerce',

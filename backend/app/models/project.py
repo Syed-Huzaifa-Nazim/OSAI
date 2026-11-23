@@ -89,6 +89,8 @@ MAX_URL_LENGTH = 8192
 
 #: Shared cap for the two short free-text intake fields.
 MAX_SHORT_TEXT = 120
+#: What the business does: room for products, ordering terms and address (migration 0014).
+MAX_DESCRIPTION = 500
 
 
 def _is_http_url(value: str) -> bool:
@@ -136,7 +138,7 @@ class ProjectCreate(CamelModel):
     #: The user's own link: a website, a social page or a product listing,
     #: depending on comparison_type. Required for all three.
     brand_website: str | None = Field(default=None, max_length=MAX_URL_LENGTH)
-    brand_description: str = Field(max_length=MAX_SHORT_TEXT)
+    brand_description: str = Field(max_length=MAX_DESCRIPTION)
     industry: Industry
     target_audience: str | None = Field(default=None, max_length=MAX_SHORT_TEXT)
     objectives: list[str] = Field(min_length=1, max_length=6)

@@ -13,7 +13,7 @@ and a lever becomes a gap only when it passes all five checks:
   4. it comes with a concrete target (the top listings' typical value and range);
   5. it shows real top listings as examples.
 
-What customers say comes from the team's review model: complaints in the competitor's reviews are openings for
+What customers say comes from the review models (team model + our Model A, reviews.py): complaints in the competitor's reviews are openings for
 you, even when your own listing has no reviews yet. Your own reviews are compared only from MIN_REVIEWS reviews up.
 """
 from __future__ import annotations
@@ -151,11 +151,36 @@ def _why(ev: dict[str, Any], name: str) -> str:
             f"of {ev['words_tested']} jewellery search words, {lead} {' and '.join(ev['outcomes'])}.")
 
 
-def _how(ev: dict[str, Any]) -> list[str]:
-    return [f"Inside each of {ev['words_tested']} Daraz jewellery search words (top 80 listings each), listings were "
-            f"ranked by this lever and by {ev['outcome']} (Spearman, median {ev['median_rho']:+.2f}); across words a "
-            f"Wilcoxon test, corrected for testing many levers (Benjamini-Hochberg): p = {ev['p_corrected']:.3f}.",
-            "Your value is compared with the middle half of the top 20 listings for your search word."]
+def _how(ev: dict[str, Any], where: str) -> list[str]:
+    """Plain words for the screen; the statistics behind it are in the project report (data_collection/daraz)."""
+    return [f"We studied 2,000 real Daraz search results: the top 80 listings for each of {ev['words_tested']} "
+            "jewellery search words, with their rank and sales. This pattern held across most of those searches, "
+            "so it is not chance.",
+            f"Your listing is compared with the top 20 listings for {where} today: a gap is shown only when you are "
+            "outside their usual range."]
+
+
+def _display(name: str) -> str:
+    """'a voucher' -> 'Voucher', 'words in the title' -> 'Words in the title'."""
+    for lead in ("a ", "an ", "the "):
+        if name.startswith(lead):
+            name = name[len(lead):]
+    return name[:1].upper() + name[1:]
+
+
+def _picture_examples(top: list[dict[str, Any]], n: int = 3) -> list[dict[str, Any]]:
+    """Top listings as picture examples for the card (same shape as an Instagram example post)."""
+    out = []
+    for r in top[:n]:
+        if not r.get("item_url"):
+            continue
+        img = r.get("image") or ""
+        out.append({"who": "competitor", "postUrl": r["item_url"],
+                    "imageUrl": ("https:" + img) if img.startswith("//") else img, "date": None, "format": "image",
+                    "likes": None, "comments": None,
+                    "caption": f"#{r['rank']} for this search" + (f" · Rs {r['price']:,.0f}" if r.get("price") else "")
+                               + f" · {r['name'][:80]}"})
+    return out
 
 
 def _gap(project_id: str, title: str, description: str, tip: str, category: str, how_sure: str,
@@ -225,7 +250,7 @@ def analyze(project_id: str, me: dict[str, Any], rival: dict[str, Any], word: st
             market_does = share >= 0.5
             # "they do better" = your competitor has it and you do not (for a lever where having it helps)
             they_do = c is not None and ((bool(c) and not u) if better == 1 else (not c and bool(u)))
-            typical = f"{share:.0%} of the top 20"
+            typical = f"{share:.0%} have it"
             outside = you_short and (they_do or market_does)
             # ahead = you have it and your competitor does not (both having it is not a strength)
             ahead = (not you_short) and c is not None and ((not bool(c)) if better == 1 else bool(c))
@@ -255,29 +280,33 @@ def analyze(project_id: str, me: dict[str, Any], rival: dict[str, Any], word: st
                 extra = " Words most top titles use: " + ", ".join(bench["title_words_majority"][:8]) + "."
             gaps.append(_gap(project_id, title, desc + extra, "Try this: " + TIPS[key], spec["cat"], sure, _examples(top),
                              {"kind": spec["kind"], "market": not they_do,
-                              "numbers": [{"label": spec["name"][0].upper() + spec["name"][1:], "you": shown_u,
+                              "numbers": [{"label": _display(spec["name"]), "you": shown_u,
                                            "competitor": shown_c, "typical": typical}],
-                              "technical": _how(ev)}))
+                              "examples": _picture_examples(top),
+                              "technical": _how(ev, where)}))
             row["group"] = "do_more"
         elif ahead:
+            # shown once, under "Where you're ahead" (not repeated in the check-up)
             strengths.append({"kind": spec["kind"], "label": spec["good"],
-                              "detail": f"You: {shown_u}. Your competitor: {shown_c}. Top listings: {typical}."})
-            row["group"] = "doing_well"
-        elif they_do:
-            row["group"] = "competitor_does"
-            row["title"] = f"{spec['name'][0].upper() + spec['name'][1:]}: your competitor does a bit better"
-        else:
+                              "detail": f"You: {shown_u}. Your competitor: {shown_c}. Top 20 listings: {typical}."})
             continue
+        else:
+            # within the usual range of the top listings: nothing to change, whatever the competitor does
+            row["group"] = "fine"
+            row["title"] = _display(spec["name"])
+            row["why"] = ("Same as most of the top 20 listings, so no change is needed." if spec["fmt"] == "yes"
+                          else "Within the usual range of the top 20 listings, so no change is needed.")
+            row["tip"] = ""
         rows.append(row)
 
     r_gaps, r_info = _reviews(project_id, me, rival)
     gaps.extend(r_gaps)
+    strengths.extend(r_info.pop("strengths", []))
     standing = {"search_word": word, "you": _standing(me), "competitor": _standing(rival),
                 "top_listings": len(live)}
     if not any(g["details"]["kind"] != "daraz_reviews" for g in gaps):
-        standing["note"] = ("On every lever proven on Daraz, your listing is already within the normal range of the top "
-                            "listings. A difference in rank then comes mostly from sales and reviews built up over time; "
-                            "the listing check-up shows the small differences you can still try.")
+        standing["note"] = ("Good news: your price, photos, options, title and offers are already as good as the top "
+                            "listings. From here, rank grows mostly with more sales and good reviews over time.")
     return gaps, {"standing": standing, "comparison": rows, "strengths": strengths, "reviews": r_info,
                   "levers_proven": [k for k in LEVERS if proven(k)]}
 
@@ -326,32 +355,46 @@ def _nice(aspect: str) -> str:
     return NICE.get(aspect, aspect.replace("_", " ").lower())
 
 
-def _reviews(project_id: str, me: dict[str, Any], rival: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    mine, theirs = me.get("analysed_reviews") or [], rival.get("analysed_reviews") or []
-    info = {"you": len(mine), "competitor": len(theirs), "compared": len(mine) >= MIN_REVIEWS and len(theirs) >= MIN_REVIEWS}
-    gaps: list[dict[str, Any]] = []
-    tech = ["Sentiment: the team's review model (fine-tuned XLM-RoBERTa, 34,251 Daraz reviews). Reasons: "
-            + ("our jewellery review model (Model A, trained on 800 labelled Daraz jewellery reviews)."
-               if any(r.get("reason_model") for r in mine + theirs) else
-               "the team's model, counted only when it is at least 95% sure (the clear reasons, not all of them).")]
+#: Size words or measurements in a title/description: the listing already answers "what size is it?".
+SIZE_INFO = re.compile(r"\d+(\.\d+)?\s*(cm|mm|inch|inches|\")|\b(size|length|diameter|width|adjustable)\b", re.I)
 
-    # 1. their buyers' complaints: an opening for you, even with no reviews of your own
-    if len(theirs) >= MIN_REVIEWS:
-        for aspect, texts in sorted(_reason_counts(theirs, "negative").items(), key=lambda kv: -len(kv[1])):
-            if len(texts) < MIN_GROUP:
-                continue
-            gaps.append(_gap(
-                project_id, f"Your competitor's buyers complain about {_nice(aspect)}",
-                f"{len(texts)} of your competitor's last {len(theirs)} reviews complain about {_nice(aspect)}. "
-                "Buyers who read these reviews look for a listing that gets this right.",
-                "Try this: " + REASON_TIPS.get(aspect, f"if your listing does well on {_nice(aspect)}, say so clearly in your title, photos and description."),
-                "positioning", "Medium",
-                [{"source_id": rival.get("item_id") or "", "source_url": rival.get("url") or "", "source_title": "Competitor review",
-                  "quote": t[:240], "relevance": 1.0} for t in texts[:3]],
-                {"kind": "daraz_reviews", "numbers": [{"label": f"Reviews complaining about {_nice(aspect)}",
-                                                        "you": None, "competitor": f"{len(texts)} of {len(theirs)}", "typical": None}],
-                 "technical": tech}))
-    # 2. your own reviews against theirs, only when both have enough
+#: The gap title when the competitor's buyers complain about something your listing does not answer either.
+ANSWER_TITLE = {"size_fit": "Give the exact size in your listing"}
+
+
+def _listing_answers(side: dict[str, Any], aspect: str) -> bool | None:
+    """Does this listing's title or description already answer the complaint? None = cannot be read from a listing."""
+    text = f"{side.get('title') or ''} {side.get('description') or ''}"
+    if aspect == "size_fit":
+        return bool(SIZE_INFO.search(text))
+    return None
+
+
+def _listing_example(side: dict[str, Any], who: str) -> list[dict[str, Any]]:
+    if not side.get("url"):
+        return []
+    return [{"who": who, "postUrl": side["url"], "imageUrl": side.get("image") or "", "date": None, "format": "image",
+             "likes": None, "comments": None,
+             "caption": ("Your listing" if who == "you" else "Your competitor's listing") + f" · {str(side.get('title') or '')[:80]}"}]
+
+
+def _reviews(project_id: str, me: dict[str, Any], rival: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Review gaps are always about YOUR listing:
+    1. your buyers complain about something more than your competitor's buyers do (Fisher test), or
+    2. your competitor's buyers complain about something your own listing does not answer either (for example no
+       size given). A competitor complaint you do not share is a strength, not a gap."""
+    mine, theirs = me.get("analysed_reviews") or [], rival.get("analysed_reviews") or []
+    enough_mine, enough_theirs = len(mine) >= MIN_REVIEWS, len(theirs) >= MIN_REVIEWS
+    info: dict[str, Any] = {"you": len(mine), "competitor": len(theirs), "compared": enough_mine and enough_theirs}
+    gaps: list[dict[str, Any]] = []
+    strengths: list[dict[str, Any]] = []
+    combined = any(r.get("reason_model") for r in mine + theirs)
+    tech = ["We read the newest reviews (up to 40) of both listings with our review models: one says whether a review "
+            "is happy or unhappy, the other what it is about (size, quality, delivery...)."
+            + (" On 150 reviews checked by a person, about 4 in 5 of the complaints it found were right." if combined else "")]
+    cu, cc = _reason_counts(mine, "negative"), _reason_counts(theirs, "negative")
+
+    # 1. your own buyers, compared with your competitor's
     if info["compared"]:
         neg_u = sum(r["sentiment"] == "negative" for r in mine)
         neg_c = sum(r["sentiment"] == "negative" for r in theirs)
@@ -359,35 +402,79 @@ def _reviews(project_id: str, me: dict[str, Any], rival: dict[str, Any]) -> tupl
         if p < P_SHOWN:
             gaps.append(_gap(
                 project_id, "More of your reviews are unhappy than your competitor's",
-                f"{neg_u} of your last {len(mine)} reviews are negative; {neg_c} of your competitor's last {len(theirs)}. "
+                f"{neg_u} of your last {len(mine)} reviews are unhappy; {neg_c} of your competitor's last {len(theirs)}. "
                 "Unhappy reviews lower the rating buyers see on the search page.",
-                "Try this: read your negative reviews below, fix the most common problem, and reply to each one politely.",
+                "Try this: read your unhappy reviews below, fix the most common problem, and reply to each one politely.",
                 "social_engagement", "High" if p < P_STRONG else "Medium",
                 [{"source_id": me.get("item_id") or "", "source_url": me.get("url") or "", "source_title": "Your review",
                   "quote": r["review"][:240], "relevance": 1.0} for r in mine if r["sentiment"] == "negative"][:3],
-                {"kind": "daraz_reviews", "numbers": [{"label": "Negative reviews", "you": f"{neg_u} of {len(mine)}",
+                {"kind": "daraz_reviews", "numbers": [{"label": "Unhappy reviews", "you": f"{neg_u} of {len(mine)}",
                                                         "competitor": f"{neg_c} of {len(theirs)}", "typical": None}],
-                 "technical": tech + [f"Fisher exact test: p = {p:.3f}."]}))
-        cu, cc = _reason_counts(mine, "negative"), _reason_counts(theirs, "negative")
-        for aspect, texts in cu.items():
+                 "examples": _listing_example(me, "you"), "technical": tech}))
+    if enough_mine:
+        for aspect, texts in sorted(cu.items(), key=lambda kv: -len(kv[1])):
             k_c = len(cc.get(aspect, []))
             if len(texts) < MIN_GROUP:
                 continue
-            p = float(fisher_exact([[len(texts), len(mine) - len(texts)], [k_c, len(theirs) - k_c]], alternative="greater")[1])
+            p = (float(fisher_exact([[len(texts), len(mine) - len(texts)], [k_c, len(theirs) - k_c]], alternative="greater")[1])
+                 if enough_theirs else 1.0)
             if p >= P_SHOWN:
+                # your own buyers say it, but not more often than your competitor's: worth fixing, not a proven gap
+                theirs_part = (f" Your competitor's buyers say it about as often ({k_c} of {len(theirs)})."
+                               if enough_theirs else "")
+                gaps.append(_gap(
+                    project_id, f"Some of your buyers complain about {_nice(aspect)}",
+                    f"{len(texts)} of your last {len(mine)} reviews complain about {_nice(aspect)}.{theirs_part} "
+                    "Fixing it can lift your rating above your competitor's.",
+                    "Try this: " + REASON_TIPS.get(aspect, f"fix {_nice(aspect)} first."),
+                    "positioning", "Low",
+                    [{"source_id": me.get("item_id") or "", "source_url": me.get("url") or "", "source_title": "Your review",
+                      "quote": t[:240], "relevance": 1.0} for t in texts[:3]],
+                    {"kind": "daraz_reviews", "unproven": True,
+                     "numbers": [{"label": f"Reviews about {_nice(aspect)}", "you": f"{len(texts)} of {len(mine)}",
+                                  "competitor": f"{k_c} of {len(theirs)}" if enough_theirs else None, "typical": None}],
+                     "examples": _listing_example(me, "you"), "technical": tech}))
                 continue
             gaps.append(_gap(
                 project_id, f"Your buyers complain about {_nice(aspect)}",
-                f"{len(texts)} of your last {len(mine)} reviews complain about {_nice(aspect)}; {k_c} of your competitor's last {len(theirs)}.",
-                f"Try this: fix {_nice(aspect)} first; it is the problem your buyers mention most.",
+                f"{len(texts)} of your last {len(mine)} reviews complain about {_nice(aspect)}; only {k_c} of your "
+                f"competitor's last {len(theirs)} do.",
+                "Try this: " + REASON_TIPS.get(aspect, f"fix {_nice(aspect)} first; it is what your buyers mention most."),
                 "positioning", "High" if p < P_STRONG else "Medium",
                 [{"source_id": me.get("item_id") or "", "source_url": me.get("url") or "", "source_title": "Your review",
                   "quote": t[:240], "relevance": 1.0} for t in texts[:3]],
-                {"kind": "daraz_reviews", "numbers": [{"label": f"Reviews complaining about {_nice(aspect)}",
+                {"kind": "daraz_reviews", "numbers": [{"label": f"Reviews about {_nice(aspect)}",
                                                         "you": f"{len(texts)} of {len(mine)}", "competitor": f"{k_c} of {len(theirs)}", "typical": None}],
-                 "technical": tech + [f"Fisher exact test: p = {p:.3f}."]}))
-    else:
-        info["note"] = (f"Your own reviews are compared from {MIN_REVIEWS} reviews up "
-                        f"(you have {len(mine)}, your competitor {len(theirs)}).")
+                 "examples": _listing_example(me, "you"), "technical": tech}))
+
+    # 2. your competitor's buyers: a gap only if your own listing does not answer it either
+    if enough_theirs:
+        for aspect, texts in sorted(cc.items(), key=lambda kv: -len(kv[1])):
+            if len(texts) < MIN_GROUP:
+                continue
+            k_u = len(cu.get(aspect, []))
+            if enough_mine:
+                if k_u / len(mine) < len(texts) / len(theirs):
+                    strengths.append({"kind": "daraz_reviews", "label": f"Fewer complaints about {_nice(aspect)}",
+                                      "detail": f"{k_u} of your last {len(mine)} reviews, against {len(texts)} of your "
+                                                f"competitor's last {len(theirs)}."})
+                continue                                 # as many or more: part 1 already decides
+            if _listing_answers(me, aspect) is not False:
+                continue                                 # answered already, or nothing a listing can show
+            gaps.append(_gap(
+                project_id, ANSWER_TITLE.get(aspect, f"Answer {_nice(aspect)} in your listing"),
+                f"{len(texts)} of your competitor's last {len(theirs)} reviews complain about {_nice(aspect)}, and your "
+                f"title and description do not mention it. Buyers comparing the two listings pick the one that answers this.",
+                "Try this: " + REASON_TIPS.get(aspect, f"say clearly how your listing handles {_nice(aspect)}."),
+                "positioning", "Medium",
+                [{"source_id": rival.get("item_id") or "", "source_url": rival.get("url") or "", "source_title": "Competitor's buyer",
+                  "quote": t[:240], "relevance": 1.0} for t in texts[:3]],
+                {"kind": "daraz_reviews", "numbers": [{"label": f"Reviews about {_nice(aspect)}",
+                                                        "you": "not mentioned in your listing", "competitor": f"{len(texts)} of {len(theirs)} complain", "typical": None}],
+                 "examples": _listing_example(rival, "competitor"), "technical": tech}))
+    if not enough_mine:
+        info["note"] = (f"You have {len(mine)} review{'s' if len(mine) != 1 else ''} we could read; your own reviews are "
+                        f"compared once you have {MIN_REVIEWS}.")
     info["praise"] = {a: len(t) for a, t in _reason_counts(theirs, "positive").items() if len(t) >= MIN_GROUP}
+    info["strengths"] = strengths
     return gaps, info

@@ -25,6 +25,7 @@ import pandas as pd
 from PIL import Image
 
 from . import cnn_features, media_features as mf
+from app.services import jobs as job_control
 
 logger = logging.getLogger("optistratix.analysis.media")
 
@@ -212,7 +213,7 @@ def score_posts(df: pd.DataFrame, max_videos: int = MAX_VIDEOS_PER_ACCOUNT) -> t
         if _usable(k) and (ext := _extractor(load(k))) is not None:
             _ = ext
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        for (i, _, _), res in zip(jobs, pool.map(lambda j: _score_one(j[1], j[2]), jobs)):
+        for (i, _, _), res in zip(jobs, pool.map(job_control.carry(lambda j: _score_one(j[1], j[2])), jobs)):
             got = False
             for k, v in res.items():
                 if v is not None:

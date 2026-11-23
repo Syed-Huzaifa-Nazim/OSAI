@@ -88,74 +88,33 @@ interface GapCardProps {
 }
 
 /** Daraz gaps have no Explain button: what was found, the numbers, the step to take and the top listings show here. */
+/** A Daraz gap at a glance: the numbers as small chips and one thing to try. The reviews, the top listings and
+ *  why it matters are in Explain (grounded in the real Daraz reviews and listings). */
 function DarazDetails({ gap }: { gap: Gap }) {
-  const rows = gap.details?.numbers ?? []
-  const examples = (gap.evidence ?? []).filter((e) => e.sourceUrl)
+  const row = gap.details?.numbers?.[0]
+  const chips = row
+    ? ([
+        ['You', row.you, 'bg-primary/10 text-primary'],
+        ['Competitor', row.competitor, 'bg-warning/20 text-warning-ink'],
+        ['Top 20 listings', row.typical, 'bg-muted text-foreground'],
+      ] as const).filter(([, v]) => v)
+    : []
   return (
-    <div className="space-y-3 pt-1 text-sm">
-      <p className="text-muted-foreground">{gap.description}</p>
-      {rows.length ? (
-        <dl className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-1 text-xs">
-          {rows
-            .flatMap((r) => [
-              ['You', r.you],
-              ['Competitor', r.competitor],
-              ['Top 20 listings', r.typical],
-            ])
-            .filter(([, v]) => v)
-            .map(([k, v]) => (
-              <div key={k} className="contents">
-                <dt className="font-semibold">{k}</dt>
-                <dd className="text-muted-foreground">{v}</dd>
-              </div>
-            ))}
-        </dl>
+    <div className="space-y-2 pt-0.5 text-sm">
+      {chips.length ? (
+        <ul className="flex flex-wrap gap-1.5 text-xs" aria-label={row?.label}>
+          {chips.map(([who, value, look]) => (
+            <li key={who} className={cn('rounded-full px-2.5 py-1', look)}>
+              <span className="font-semibold">{who}:</span> {value}
+            </li>
+          ))}
+        </ul>
       ) : null}
       {gap.opportunity ? (
-        <p className="rounded-xl bg-primary/5 px-3 py-2">
+        <p className="text-muted-foreground">
           <span className="font-semibold text-primary">Try this: </span>
           {gap.opportunity.replace(/^Try this:\s*/, '')}
         </p>
-      ) : null}
-      {examples.length ? (
-        <div className="text-xs">
-          <p className="font-semibold">
-            {gap.details?.kind === 'daraz_reviews'
-              ? 'From the reviews'
-              : 'Top listings for this search'}
-          </p>
-          <ul className="mt-1 space-y-1">
-            {examples.slice(0, 3).map((e) => (
-              <li
-                key={`${e.sourceId}-${e.quote}`}
-                className="text-muted-foreground [overflow-wrap:anywhere]"
-              >
-                <a
-                  href={e.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium text-primary hover:underline"
-                >
-                  {e.sourceTitle}
-                </a>
-                {': '}
-                {e.quote}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {gap.details?.technical?.length ? (
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer font-semibold text-foreground">
-            How we found this
-          </summary>
-          <ul className="mt-1 list-disc space-y-1 pl-4">
-            {gap.details.technical.map((t) => (
-              <li key={t}>{t}</li>
-            ))}
-          </ul>
-        </details>
       ) : null}
     </div>
   )
@@ -232,7 +191,7 @@ export function GapCard({
             data={explanation}
             values={details?.numbers ?? explanation.values ?? []}
             unproven={details?.unproven}
-            technical={details?.technical}
+            daraz={kind?.startsWith('daraz_')}
             againLoading={explain.isPending}
             onAgain={() => {
               explain.mutate()
@@ -325,9 +284,13 @@ export function GapCard({
                       {details?.unproven ? (
                         <Badge
                           variant="warning"
-                          title="A real difference, but with this many posts it could still be chance."
+                          title={
+                            kind?.startsWith('daraz_')
+                              ? 'Your own buyers say this, but not more often than your competitor’s buyers.'
+                              : 'A real difference, but with this many posts it could still be chance.'
+                          }
                         >
-                          Not proven yet · worth trying
+                          {kind?.startsWith('daraz_') ? 'Worth fixing' : 'Not proven yet · worth trying'}
                         </Badge>
                       ) : (
                         <Badge variant={SURE_VARIANT[details?.howSure ?? 'Low']} title={SURE_HINT}>

@@ -89,8 +89,8 @@ def test_a_short_description_is_now_fine(client: TestClient) -> None:
     assert _post(client, brandDescription="We sell coffee.").status_code == 201
 
 
-def test_description_over_120_characters_is_rejected(client: TestClient) -> None:
-    response = _post(client, brandDescription="x" * 121)
+def test_description_over_500_characters_is_rejected(client: TestClient) -> None:
+    response = _post(client, brandDescription="x" * 501)
     assert response.status_code == 422
     # The field-level map is what lets the form attach the message to the input.
     assert "brandDescription" in _error_fields(response)
@@ -100,8 +100,8 @@ def test_description_is_still_required(client: TestClient) -> None:
     assert _post(client, brandDescription="   ").status_code == 422
 
 
-def test_description_of_exactly_120_characters_is_accepted(client: TestClient) -> None:
-    assert _post(client, brandDescription="x" * 120).status_code == 201
+def test_description_of_exactly_500_characters_is_accepted(client: TestClient) -> None:
+    assert _post(client, brandDescription="x" * 500).status_code == 201
 
 
 def test_target_audience_is_optional(client: TestClient) -> None:

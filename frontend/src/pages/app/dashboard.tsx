@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
   ChevronRight,
@@ -11,19 +10,15 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { SafeImage } from '@/components/shared/safe-image'
 import { ErrorState, LoadingCards } from '@/components/shared/state-views'
 import { useProjects } from '@/hooks/use-projects'
 import { useDocumentTitle } from '@/hooks/use-document-title'
 import { useAuthStore } from '@/stores/auth-store'
 import { errorMessage } from '@/lib/api-client'
-import { projectsApi } from '@/lib/api/services'
-import { mediaSrc } from '@/lib/media'
-import { projectHomePath } from '@/lib/project-routes'
-import { projectStatus } from '@/lib/project-status'
+import { groupByPlatform } from '@/lib/platform-groups'
+import { PlatformLinks } from '@/components/shared/platform-picker'
 import { cn } from '@/lib/utils'
 import { spring, staggerContainer, staggerItem } from '@/lib/motion'
-import type { Project } from '@/types/domain'
 
 function greeting(): string {
   const hour = new Date().getHours()
@@ -105,7 +100,7 @@ function InsightArt() {
 /** A folder with a plus badge and sparkles (the workspace picture). */
 function FolderArt() {
   return (
-    <svg viewBox="0 0 220 140" className="h-32 w-auto" aria-hidden="true">
+    <svg viewBox="0 0 220 140" className="h-20 w-auto lg:h-24" aria-hidden="true">
       <ellipse cx="110" cy="124" rx="92" ry="12" fill="hsl(var(--primary) / 0.08)" />
       <path d="M62 34 h34 l10 12 h50 a10 10 0 0 1 10 10 v52 a10 10 0 0 1 -10 10 h-94 a10 10 0 0 1 -10 -10 v-64 a10 10 0 0 1 10 -10 z" fill="hsl(var(--primary))" />
       <path d="M52 58 h120 a8 8 0 0 1 8 9 l-6 42 a10 10 0 0 1 -10 9 h-104 a10 10 0 0 1 -10 -9 l-6 -42 a8 8 0 0 1 8 -9 z" fill="hsl(var(--primary) / 0.55)" />
@@ -143,47 +138,25 @@ function StatCard({
       <Link
         to={to}
         className={cn(
-          'card-soft group relative flex h-full items-center gap-4 overflow-hidden border border-border/15 bg-gradient-to-br to-transparent p-4',
+          'card-soft group relative flex h-full items-center gap-4 overflow-hidden border border-border/15 bg-gradient-to-br to-transparent px-4 py-3',
           look.card,
         )}
       >
-        <span className={cn('flex size-14 shrink-0 items-center justify-center rounded-full', look.icon)}>
-          <Icon className="size-7" aria-hidden="true" />
+        <span className={cn('flex size-12 shrink-0 items-center justify-center rounded-full', look.icon)}>
+          <Icon className="size-6" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-3xl font-bold tabular-nums leading-none">{value}</p>
+          <p className="font-display text-2xl font-bold tabular-nums leading-none">{value}</p>
           <p className="mt-1 text-sm text-muted-foreground">{label}</p>
         </div>
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-primary shadow-sm transition-transform group-hover:translate-x-0.5">
           <ArrowRight className="size-4" aria-hidden="true" />
         </span>
-        <svg viewBox="0 0 160 40" className="pointer-events-none absolute -bottom-1 right-0 h-9 w-40 opacity-50" aria-hidden="true">
+        <svg viewBox="0 0 160 40" className="pointer-events-none absolute -bottom-1 right-0 h-8 w-40 opacity-50" aria-hidden="true">
           <path d="M0 36 C 40 30, 70 10, 110 18 S 150 12, 160 6 L160 40 L0 40 Z" className="fill-primary/10" />
         </svg>
       </Link>
     </motion.div>
-  )
-}
-
-function QuickProject({ project, cover }: { project: Project; cover?: string }) {
-  const status = projectStatus(project.status)
-  return (
-    <Link
-      to={projectHomePath(project)}
-      className="flex min-w-0 items-center gap-2.5 rounded-2xl border border-border/15 bg-card/80 p-2 pr-3 transition-colors hover:border-primary/40"
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-primary">
-        {cover ? (
-          <SafeImage src={mediaSrc(cover)} alt="" className="size-full border-0" fit="cover" compact />
-        ) : (
-          <Folder className="size-4" aria-hidden="true" />
-        )}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold">{project.brandName}</span>
-        <span className={cn('mt-0.5 inline-block rounded-full px-1.5 text-[10px] font-semibold', status.tone)}>{status.label}</span>
-      </span>
-    </Link>
   )
 }
 
@@ -193,43 +166,43 @@ export default function DashboardPage() {
   useDocumentTitle('Dashboard')
   const { data: projects, isLoading, isError, error, refetch } = useProjects()
   const user = useAuthStore((state) => state.user)
-  const covers = useQuery({ queryKey: ['project-covers'], queryFn: projectsApi.covers, staleTime: 5 * 60_000 })
 
   const list = projects ?? []
   const awaiting = list.filter((project) => project.status === 'awaiting_review')
   const totalGaps = list.reduce((sum, project) => sum + project.gapCount, 0)
-  const recent = [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   const firstName = (user?.fullName ?? '').trim().split(/\s+/)[0]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* hero */}
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={spring}
-        className="card-soft relative overflow-hidden border border-border/15 bg-gradient-to-br from-card via-card to-primary/15 p-6 sm:p-8"
+        className="card-soft relative overflow-hidden border border-border/15 bg-gradient-to-br from-card via-card to-primary/15 px-5 py-5 sm:px-7"
       >
-        <div className="pointer-events-none absolute -right-24 -top-24 size-80 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
-        <div className="relative grid items-center gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
-          <div className="min-w-0">
-            <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+        <div className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
+        <div className="relative flex items-center gap-6">
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
               {greeting()}
-              {firstName ? `, ${firstName}` : ''}! <span aria-hidden="true">👋</span>
+              {firstName ? `, ${firstName}` : ''}!
             </h1>
-            <p className="mt-2 text-muted-foreground sm:text-lg">Let&apos;s turn your competitors&apos; pages into clear insights.</p>
+            <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+              Let&apos;s turn your competitors&apos; pages into clear insights.
+            </p>
             <Link
               to="/app/projects/new"
-              className="group mt-6 flex max-w-md items-center gap-3 rounded-full border border-border/20 bg-card/90 p-2 pr-3 shadow-sm transition-all hover:border-primary/40 hover:shadow-glow"
+              className="group mt-4 flex max-w-sm items-center gap-3 rounded-full border border-border/20 bg-card/90 p-1.5 pr-3 shadow-sm transition-all hover:border-primary/40 hover:shadow-glow"
             >
-              <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <span className="flex size-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <ChevronRight className="size-4" aria-hidden="true" />
               </span>
               <span className="flex-1 text-sm text-muted-foreground">Start a new analysis…</span>
               <ArrowRight className="size-4 text-primary transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
             </Link>
           </div>
-          <div className="hidden h-48 md:block lg:h-56">
+          <div className="hidden h-36 w-80 shrink-0 md:block">
             <InsightArt />
           </div>
         </div>
@@ -243,50 +216,56 @@ export default function DashboardPage() {
           }}
         />
       ) : isLoading ? (
-        <LoadingCards count={4} />
+        <LoadingCards count={3} />
       ) : (
         <>
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
             {/* workspace */}
             <motion.section
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.05 }}
-              className="card-soft flex flex-col border border-border/15 p-5 sm:p-6"
+              className="card-soft flex flex-col border border-border/15 p-4 sm:p-5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Folder className="size-6" aria-hidden="true" />
+                  <span className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Folder className="size-5" aria-hidden="true" />
                   </span>
                   <div>
-                    <h2 className="font-display text-xl font-bold">Your workspace</h2>
-                    <p className="text-sm text-muted-foreground">Quick access to your projects</p>
+                    <h2 className="font-display text-lg font-bold">Your workspace</h2>
+                    <p className="text-sm text-muted-foreground">Your projects by platform</p>
                   </div>
                 </div>
                 <Link to="/app/projects" className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline">
                   View all projects <ArrowRight className="size-4" />
                 </Link>
               </div>
-              {recent.length > 0 ? (
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  {recent.slice(0, 3).map((project) => (
-                    <QuickProject key={project.id} project={project} cover={covers.data?.[project.id]} />
-                  ))}
+              {list.length > 0 ? (
+                <div className="mt-3">
+                  <PlatformLinks
+                    groups={groupByPlatform(list).map((g) => ({
+                      ...g,
+                      count: g.projects.length,
+                      note: g.projects.some((p) => p.status === 'awaiting_review')
+                        ? `${g.projects.filter((p) => p.status === 'awaiting_review').length} awaiting you`
+                        : undefined,
+                    }))}
+                  />
                 </div>
               ) : null}
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 pt-4">
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 pt-3">
                 <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
                   <FolderArt />
                 </motion.div>
                 {list.length === 0 ? (
-                  <Button asChild size="lg" className="rounded-full">
+                  <Button asChild className="rounded-full">
                     <Link to="/app/projects/new">
                       <Plus /> Start your first analysis
                     </Link>
                   </Button>
                 ) : (
-                  <Button asChild size="lg" className="rounded-full">
+                  <Button asChild className="rounded-full">
                     <Link to="/app/projects">
                       Explore projects <ArrowRight />
                     </Link>
@@ -296,7 +275,7 @@ export default function DashboardPage() {
             </motion.section>
 
             {/* numbers */}
-            <motion.div variants={staggerContainer} initial="initial" animate="animate" className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1 lg:grid-rows-3">
+            <motion.div variants={staggerContainer} initial="initial" animate="animate" className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 lg:grid-rows-3">
               <StatCard label="Total projects" value={list.length} icon={Folder} to="/app/projects" tone="primary" />
               <StatCard
                 label="Awaiting you"
@@ -308,7 +287,6 @@ export default function DashboardPage() {
               <StatCard label="Gaps found" value={totalGaps} icon={CircleCheck} to="/app/reports" tone="green" />
             </motion.div>
           </div>
-
         </>
       )}
     </div>

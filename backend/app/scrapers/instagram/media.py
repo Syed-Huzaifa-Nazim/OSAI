@@ -31,6 +31,7 @@ from urllib.parse import urlsplit
 import requests
 
 from app.scrapers.base import ScraperError
+from app.services import jobs
 from app.scrapers.website.safety import UnsafeUrl, require_public_address
 from . import selectors as S
 
@@ -60,6 +61,7 @@ def open_stream(
     Raises :class:`ScraperError` with a user-facing message for anything that
     is not an allowed, public, reasonably sized image or video.
     """
+    jobs.checkpoint()                      # inside a cancelled job, stop before the next download
     if not is_media_url(url):
         raise ScraperError("That link is not an Instagram media address.")
 

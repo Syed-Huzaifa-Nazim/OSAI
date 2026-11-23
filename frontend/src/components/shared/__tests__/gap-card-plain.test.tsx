@@ -103,8 +103,8 @@ describe('GapCard in plain words', () => {
     expect(screen.getByLabelText('0 of 30')).toBeInTheDocument()                    // your tile
     expect(screen.getByRole('link', { name: 'Open post 1' })).toHaveAttribute('href', 'https://www.instagram.com/p/abc/')
     expect(screen.getByText('310')).toBeInTheDocument()
-    expect(screen.getByText('How we found this')).toBeInTheDocument()
-    expect(screen.getByText(/Fisher exact test/)).toBeInTheDocument()
+    expect(screen.queryByText('How we found this')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Fisher exact test/)).not.toBeInTheDocument()
   })
 
   it('closes the explanation after reading, and opens it again', () => {

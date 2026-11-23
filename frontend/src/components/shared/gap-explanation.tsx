@@ -126,8 +126,18 @@ const SIDE = {
   typical: { name: 'Jewellery shops usually', icon: Users, tile: 'border-border/25 from-card to-muted/60', badge: 'bg-muted text-foreground' },
 } as const
 
-function SideTile({ who, value, label }: { who: keyof typeof SIDE; value: string; label: string }) {
-  const side = SIDE[who]
+function SideTile({
+  who,
+  value,
+  label,
+  daraz = false,
+}: {
+  who: keyof typeof SIDE
+  value: string
+  label: string
+  daraz?: boolean
+}) {
+  const side = who === 'typical' && daraz ? { ...SIDE.typical, name: 'Top 20 listings' } : SIDE[who]
   return (
     <div
       className={cn(
@@ -151,7 +161,13 @@ function SideTile({ who, value, label }: { who: keyof typeof SIDE; value: string
 }
 
 /** Each row of numbers as side-by-side tiles: you, the competitor and, when known, similar accounts. */
-function CompareTiles({ rows }: { rows: NonNullable<GapDetails['numbers']> }) {
+function CompareTiles({
+  rows,
+  daraz = false,
+}: {
+  rows: NonNullable<GapDetails['numbers']>
+  daraz?: boolean
+}) {
   return (
     <div className="space-y-3">
       {rows.map((row) => {
@@ -165,7 +181,7 @@ function CompareTiles({ rows }: { rows: NonNullable<GapDetails['numbers']> }) {
                     VS
                   </span>
                 ) : null}
-                <SideTile who={key} value={row[key] as string} label={row.label} />
+                <SideTile who={key} value={row[key] as string} label={row.label} daraz={daraz} />
               </Fragment>
             ))}
           </div>
@@ -255,8 +271,49 @@ function PostCard({ item, cited }: { item: Evidence; cited: boolean }) {
   )
 }
 
+/** One piece of Daraz evidence: a buyer's review (as a quote) or a listing (its picture and text). */
+function ReviewCard({ item, cited }: { item: Evidence; cited: boolean }) {
+  const number = item.id.replace(/^E/, '')
+  const review = item.format === 'review'
+  const body = (
+    <div className="flex h-full flex-col rounded-xl border border-border/20 bg-card p-3">
+      <div className="flex items-center gap-1.5">
+        {cited ? (
+          <span className="inline-flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            {number}
+          </span>
+        ) : null}
+        <span
+          className={cn(
+            'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+            item.side === 'you' ? 'bg-primary/10 text-primary' : 'bg-warning/25 text-warning-ink',
+          )}
+        >
+          {item.side === 'you' ? 'You' : 'Competitor'}
+        </span>
+        <span className="text-[10px] text-muted-foreground">{review ? 'Buyer review' : 'Listing'}</span>
+      </div>
+      {!review && item.imageUrl ? (
+        <SafeImage src={mediaSrc(item.imageUrl)} alt="" className="mt-2 aspect-[4/3] w-full rounded-lg border-0" fit="cover" compact />
+      ) : null}
+      <p className="mt-2 line-clamp-5 text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
+        {review ? `“${item.text}”` : item.text}
+      </p>
+      {item.postUrl ? <span className="mt-auto pt-2 text-xs font-medium text-primary group-hover:underline">Open on Daraz</span> : null}
+    </div>
+  )
+  const box = 'group block w-56 shrink-0 snap-start rounded-xl'
+  return item.postUrl ? (
+    <a href={item.postUrl} target="_blank" rel="noreferrer" className={cn(box, 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
+      {body}
+    </a>
+  ) : (
+    <div className={box}>{body}</div>
+  )
+}
+
 /** The real posts behind the gap in a sliding row; the ones the explanation mentions come first. */
-function PostsStrip({ data }: { data: GapExplanation }) {
+function PostsStrip({ data, daraz = false }: { data: GapExplanation; daraz?: boolean }) {
   const strip = useRef<HTMLDivElement>(null)
   const cited = data.evidence.filter((e) => data.evidenceUsed.includes(e.id))
   const others = data.evidence.filter((e) => !data.evidenceUsed.includes(e.id))
@@ -277,12 +334,16 @@ function PostsStrip({ data }: { data: GapExplanation }) {
           <ImageIcon className="size-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="font-display text-base font-bold">Posts behind this gap</p>
+          <p className="font-display text-base font-bold">
+            {daraz ? 'Reviews and listings behind this gap' : 'Posts behind this gap'}
+          </p>
           <p className="text-sm text-muted-foreground">
             {[fromThem ? `${fromThem} from your competitor` : '', fromYou ? `${fromYou} from you` : '']
               .filter(Boolean)
               .join(', ')}
-            {cited.length ? '. Numbered posts are the ones mentioned above.' : '.'}
+            {cited.length
+              ? `. Numbered ${daraz ? 'ones' : 'posts'} are the ones mentioned above.`
+              : '.'}
           </p>
         </div>
       </div>
@@ -293,9 +354,13 @@ function PostsStrip({ data }: { data: GapExplanation }) {
           </button>
         ) : null}
         <div ref={strip} className="flex snap-x gap-3 overflow-x-auto pb-1 [scrollbar-width:none]">
-          {posts.map((item) => (
-            <PostCard key={item.id} item={item} cited={data.evidenceUsed.includes(item.id)} />
-          ))}
+          {posts.map((item) =>
+            daraz ? (
+              <ReviewCard key={item.id} item={item} cited={data.evidenceUsed.includes(item.id)} />
+            ) : (
+              <PostCard key={item.id} item={item} cited={data.evidenceUsed.includes(item.id)} />
+            ),
+          )}
         </div>
         {posts.length > 3 ? (
           <button type="button" className={cn(arrow, 'right-0 translate-x-1/2')} onClick={() => { slide(1) }} aria-label="Next posts">
@@ -319,7 +384,7 @@ export function GapExplanationLoading() {
           </span>
           <div className="min-w-0 flex-1 space-y-2.5 sm:border-l sm:border-primary/20 sm:pl-6">
             <p className="font-display text-lg font-bold text-primary">Writing your explanation…</p>
-            <p className="text-sm text-muted-foreground">Reading the posts behind this gap and checking every fact. This takes a few seconds.</p>
+            <p className="text-sm text-muted-foreground">Reading what is behind this gap and checking every fact. This takes a few seconds.</p>
             <div className="space-y-2 pt-1" aria-hidden="true">
               <span className="block h-2.5 w-11/12 animate-pulse rounded-full bg-primary/15" />
               <span className="block h-2.5 w-4/5 animate-pulse rounded-full bg-primary/15 [animation-delay:150ms]" />
@@ -341,14 +406,15 @@ export function GapExplanationPanel({
   data,
   values,
   unproven,
-  technical,
   onAgain,
   againLoading = false,
+  daraz = false,
 }: {
   data: GapExplanation
   values: NonNullable<GapDetails['numbers']>
   unproven?: boolean
-  technical?: string[]
+  /** A Daraz gap: the evidence is buyers' reviews and listings, not posts. */
+  daraz?: boolean
   /** Writes a fresh explanation. */
   onAgain?: () => void
   againLoading?: boolean
@@ -371,7 +437,9 @@ export function GapExplanationPanel({
             <div className="flex flex-wrap items-center gap-2 pr-8">
               <p className="font-display text-lg font-bold text-primary sm:text-xl">Key insight</p>
               {data.grounded ? (
-                <Badge variant="success">Based on your real posts</Badge>
+                <Badge variant="success">
+                  {daraz ? 'Based on real Daraz reviews and listings' : 'Based on your real posts'}
+                </Badge>
               ) : (
                 <Badge variant="destructive">Treat with care</Badge>
               )}
@@ -395,7 +463,9 @@ export function GapExplanationPanel({
             ) : null}
             {unproven ? (
               <p className="mt-2 text-xs font-medium text-warning-ink">
-                Based on only a few posts, so this is an idea to try, not a sure result.
+                {daraz
+                  ? 'Your buyers say this, but not more often than your competitor’s buyers: worth fixing, not a proven gap.'
+                  : 'Based on only a few posts, so this is an idea to try, not a sure result.'}
               </p>
             ) : null}
             {onAgain ? (
@@ -407,9 +477,9 @@ export function GapExplanationPanel({
         </div>
       </div>
 
-      {values.length > 0 ? <CompareTiles rows={values} /> : null}
+      {values.length > 0 ? <CompareTiles rows={values} daraz={daraz} /> : null}
 
-      {data.evidence.length > 0 ? <PostsStrip data={data} /> : null}
+      {data.evidence.length > 0 ? <PostsStrip data={data} daraz={daraz} /> : null}
 
       {data.unknownCitations.length > 0 ? (
         <p className="text-xs text-destructive">
@@ -417,16 +487,6 @@ export function GapExplanationPanel({
         </p>
       ) : null}
 
-      {technical && technical.length > 0 ? (
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer select-none font-medium">How we found this</summary>
-          <ul className="mt-1 list-disc space-y-1 pl-4">
-            {technical.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
     </div>
   )
 }

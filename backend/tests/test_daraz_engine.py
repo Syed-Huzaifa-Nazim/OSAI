@@ -64,7 +64,7 @@ def test_a_proven_lever_outside_the_top_listings_range_is_a_gap_with_a_target():
 def test_inside_the_normal_range_is_not_a_gap():
     gaps, info = engine.analyze("p", listing(image_count=6), listing(item_id="2", image_count=9), "kundan set", live())
     assert not [g for g in gaps if g["details"]["kind"] == "daraz_photos"]
-    assert any(r["key"] == "image_count" and r["group"] == "competitor_does" for r in info["comparison"])
+    assert any(r["key"] == "image_count" and r["group"] == "fine" for r in info["comparison"])
 
 
 def test_an_unproven_lever_never_makes_a_gap():
@@ -72,14 +72,45 @@ def test_an_unproven_lever_never_makes_a_gap():
     assert not [g for g in gaps if "option" in g["title"].lower()]
 
 
-def test_competitor_complaints_are_an_opening_even_without_own_reviews():
-    bad = [{"review": f"plating gone {i}", "sentiment": "negative",
-            "reasons": [{"aspect": "Quality", "polarity": "negative", "confidence": 0.97}]} for i in range(4)]
-    ok = [{"review": f"nice {i}", "sentiment": "positive", "reasons": []} for i in range(8)]
-    gaps, info = engine.analyze("p", listing(), listing(item_id="2", analysed_reviews=bad + ok), "kundan set", live())
+def _reviews(n_bad, aspect, n_ok=8):
+    bad = [{"review": f"too small {i}", "sentiment": "negative",
+            "reasons": [{"aspect": aspect, "polarity": "negative", "confidence": 0.9}]} for i in range(n_bad)]
+    return bad + [{"review": f"nice {i}", "sentiment": "positive", "reasons": []} for i in range(n_ok)]
+
+
+def test_a_competitor_complaint_is_your_gap_only_when_your_listing_does_not_answer_it():
+    rival = listing(item_id="2", analysed_reviews=_reviews(4, "size_fit"))
+    gaps, info = engine.analyze("p", listing(description="Beautiful kundan set."), rival, "kundan set", live())
     r = [g for g in gaps if g["details"]["kind"] == "daraz_reviews"]
-    assert len(r) == 1 and "complain about quality" in r[0]["title"]
-    assert "compared from 10 reviews" in info["reviews"]["note"]
+    assert len(r) == 1 and r[0]["title"] == "Give the exact size in your listing"
+    assert "competitor" not in r[0]["title"].lower(), "the gap is about your listing"
+    assert "compared once you have 10" in info["reviews"]["note"]
+    # the same complaint, but your listing already gives the size: nothing to fix
+    gaps, _ = engine.analyze("p", listing(description="Length 4.5 cm, light weight."), rival, "kundan set", live())
+    assert not [g for g in gaps if g["details"]["kind"] == "daraz_reviews"]
+
+
+def test_a_competitor_complaint_a_listing_cannot_answer_is_not_your_gap():
+    rival = listing(item_id="2", analysed_reviews=_reviews(4, "quality"))
+    gaps, _ = engine.analyze("p", listing(), rival, "kundan set", live())
+    assert not [g for g in gaps if g["details"]["kind"] == "daraz_reviews"]
+
+
+def test_fewer_complaints_than_your_competitor_is_a_strength_not_a_gap():
+    me = listing(analysed_reviews=_reviews(0, "size_fit", n_ok=20))
+    rival = listing(item_id="2", analysed_reviews=_reviews(5, "size_fit", n_ok=15))
+    gaps, info = engine.analyze("p", me, rival, "kundan set", live())
+    assert not [g for g in gaps if g["details"]["kind"] == "daraz_reviews"]
+    assert any(s["label"] == "Fewer complaints about size" for s in info["strengths"])
+
+
+def test_your_own_complaints_not_above_your_competitor_are_worth_fixing_not_proven():
+    me = listing(analysed_reviews=_reviews(5, "size_fit", n_ok=35))
+    rival = listing(item_id="2", analysed_reviews=_reviews(4, "size_fit", n_ok=36))
+    gaps, _ = engine.analyze("p", me, rival, "kundan set", live())
+    r = [g for g in gaps if g["details"]["kind"] == "daraz_reviews"]
+    assert len(r) == 1 and r[0]["title"] == "Some of your buyers complain about size"
+    assert r[0]["details"]["unproven"] is True and r[0]["details"]["howSure"] == "Low"
 
 
 def test_search_word_is_picked_from_the_title():

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { RotateCcw, ScanSearch } from 'lucide-react'
+import { RotateCcw, ScanSearch, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { FormField } from '@/components/ui/form-field'
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FindGapsDialog } from '@/components/shared/find-gaps-dialog'
 import { PageHeader } from '@/components/shared/page-header'
 import { ProjectStatusBadge } from '@/components/shared/project-status-badge'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/state-views'
@@ -20,6 +21,7 @@ import { ScrapeLoader } from '@/components/shared/scrape-loader'
 import { ParameterGrid } from '@/components/comparison/parameter-grid'
 import { ParameterResults } from '@/components/comparison/parameter-results'
 import { ProductSummaryCard } from '@/components/comparison/product-summary-card'
+import { DarazListingCard } from '@/components/comparison/daraz-listing-card'
 import { usePipeline } from '@/hooks/use-pipeline'
 import {
   useEcommerceComparison,
@@ -27,6 +29,8 @@ import {
   useParameterComparison,
   usePlatforms,
   START_SCRAPE_KEY,
+  useCancelJob,
+  useStartAnalysis,
   useStartScrape,
 } from '@/hooks/use-platforms'
 import { useProject } from '@/hooks/use-projects'
@@ -65,6 +69,20 @@ export default function ProjectComparisonPage() {
   const pipeline = usePipeline(projectId, (state) => phaseOf(state).phase === 'embedding')
   const platforms = usePlatforms()
   const startScrape = useStartScrape()
+  const startAnalysis = useStartAnalysis()
+  // Cancel: stops the scrape or the analysis; nothing from that run is saved.
+  const cancelJob = useCancelJob()
+  // The Find gaps dialog (Daraz): open while the analysis runs, then a green check and the way to the gaps.
+  const [gapsDialog, setGapsDialog] = useState(false)
+  const stage4Running = pipeline.data?.stages[4]?.status === 'running'
+  // Only a run seen running counts as finished, so an earlier result never flashes the check mark.
+  const sawRunning = useRef(false)
+  useEffect(() => {
+    if (stage4Running) {
+      sawRunning.current = true
+      setGapsDialog(true)
+    }
+  }, [stage4Running])
   const client = useQueryClient()
   // The intake form starts the scrape and navigates here in the same tick, so
   // the first pipeline read can land before the start has registered. Treat an
@@ -143,12 +161,26 @@ export default function ProjectComparisonPage() {
     startScrape.mutate(projectId)
   }
 
+  // Gap analysis (stage 4): Daraz listings only, once both are scraped.
+  const isDaraz = project.data.ecommercePlatform === 'daraz'
+  const canAnalyse = isDaraz && done
+  const analysis = pipeline.data.stages[4] ?? null
+  const analysing = analysis?.status === 'running' || startAnalysis.isPending
+  const analysed = analysis?.status === 'complete'
+  const reviewGapsPath = `/app/projects/${projectId}/review-gaps`
+
   return (
     <div className="space-y-7">
       <PageHeader
         eyebrow={`Product comparison · ${platformLabel}`}
         title={project.data.brandName}
-        description={`Created ${formatDate(project.data.createdAt)}. Both listings are scraped, then compared field by field.`}
+        description={`Created ${formatDate(project.data.createdAt)}. ${
+          analysed
+            ? 'Both listings are read and analysed; the gaps are ready to review.'
+            : isDaraz
+              ? 'Both listings are read from Daraz. Find gaps then shows what to change.'
+              : 'Both listings are scraped, then compared field by field.'
+        }`}
         actions={
           <div className="flex items-center gap-2">
             <ProjectStatusBadge status={project.data.status} />
@@ -158,9 +190,60 @@ export default function ProjectComparisonPage() {
                 Scrape again
               </Button>
             ) : null}
+            {canAnalyse && analysed && !analysing ? (
+              <Button asChild size="sm">
+                <Link to={reviewGapsPath}>
+                  <Sparkles />
+                  Review gaps
+                </Link>
+              </Button>
+            ) : null}
+            {canAnalyse ? (
+              <Button
+                size="sm"
+                variant={analysed ? 'outline' : 'default'}
+                onClick={() => {
+                  sawRunning.current = false
+                  setGapsDialog(true)
+                  startAnalysis.mutate(projectId)
+                }}
+                loading={analysing}
+                disabled={analysing}
+              >
+                <Sparkles />
+                {analysing ? 'Finding gaps…' : analysed ? 'Analyse again' : 'Find gaps'}
+              </Button>
+            ) : null}
           </div>
         }
       />
+
+      {canAnalyse ? (
+        <FindGapsDialog
+          kind="daraz"
+          open={gapsDialog}
+          onOpenChange={setGapsDialog}
+          state={
+            startAnalysis.isError || analysis?.status === 'error'
+              ? 'failed'
+              : analysed && !analysing && sawRunning.current
+                ? 'done'
+                : 'running'
+          }
+          message={analysis?.message}
+          error={startAnalysis.isError ? errorMessage(startAnalysis.error) : analysis?.error}
+          reviewPath={reviewGapsPath}
+          onCancel={() => {
+            cancelJob.mutate(projectId, {
+              onSuccess: () => {
+                sawRunning.current = false
+                setGapsDialog(false)
+              },
+            })
+          }}
+          cancelling={cancelJob.isPending}
+        />
+      ) : null}
 
       {phase.phase === 'idle' ? (
         <EmptyState
@@ -181,6 +264,10 @@ export default function ProjectComparisonPage() {
           steps={SCRAPE_STEPS}
           embedStep={EMBED_STEP}
           description="Both listings are read in parallel. If a page needs JavaScript to show its price, a headless browser pass runs automatically, which can take up to a minute. You can leave this page and come back."
+          onCancel={() => {
+            cancelJob.mutate(projectId)
+          }}
+          cancelling={cancelJob.isPending}
         />
       ) : null}
 
@@ -192,7 +279,67 @@ export default function ProjectComparisonPage() {
         />
       ) : null}
 
-      {done ? (
+      {done && isDaraz ? (
+        products.isError ? (
+          <ErrorState
+            message={errorMessage(products.error)}
+            onRetry={() => {
+              void products.refetch()
+            }}
+          />
+        ) : !own ? (
+          <LoadingState rows={3} />
+        ) : (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={spring}
+            className="space-y-4"
+          >
+            <div>
+              <h2 className="font-display text-base font-semibold">What was read</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Both listings as Daraz shows them today.
+              </p>
+            </div>
+            <div className="relative grid gap-4 md:grid-cols-2 md:gap-8">
+              <span
+                className="absolute left-1/2 top-1/2 z-10 hidden size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card font-display text-base font-extrabold text-primary shadow-lg ring-[6px] ring-primary/10 md:flex"
+                aria-hidden="true"
+              >
+                VS
+              </span>
+              <DarazListingCard product={own} />
+              {competitors.map((product) => (
+                <DarazListingCard key={product.id} product={product} />
+              ))}
+            </div>
+            {!analysed && !analysing ? (
+              <Card className="flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold">Next: find what to change</p>
+                  <p className="text-sm text-muted-foreground">
+                    Find gaps compares both listings with the top Daraz listings for the same search
+                    and reads their reviews. It takes 1 to 3 minutes.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    sawRunning.current = false
+                    setGapsDialog(true)
+                    startAnalysis.mutate(projectId)
+                  }}
+                >
+                  <Sparkles />
+                  Find gaps
+                </Button>
+              </Card>
+            ) : null}
+          </motion.section>
+        )
+      ) : null}
+
+      {done && !isDaraz ? (
         products.isError || comparison.isError ? (
           <ErrorState
             message={errorMessage(products.error ?? comparison.error)}

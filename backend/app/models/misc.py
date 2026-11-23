@@ -66,3 +66,7 @@ class HealthResponse(CamelModel):
     supabase_configured: bool
     openai_configured: bool
     vectorstore_available: bool
+    #: Every trained model can run on this server (libraries installed, real model files present).
+    models_ready: bool = True
+    #: What is missing, per analysis part, when models_ready is false.
+    models_missing: list[str] = []

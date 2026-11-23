@@ -76,7 +76,10 @@ export default function ReviewGapsPage() {
   // Real projects stop at this checkpoint: stages 6-9 are not built yet.
   const isRealProject = project.data ? !project.data.isDemo : false
   const explainProjectId =
-    isRealProject && project.data?.socialPlatform === 'instagram' ? projectId : undefined
+    isRealProject &&
+    (project.data?.socialPlatform === 'instagram' || project.data?.ecommercePlatform === 'daraz')
+      ? projectId
+      : undefined
   const analysisNotes = pipeline.data?.stages[4]?.metrics?.notes ?? []
   // What the analysis measured for the (single) competitor: strengths and the full trait comparison.
   const analysisPart = pipeline.data?.stages[4]?.metrics?.analysis?.[0]
