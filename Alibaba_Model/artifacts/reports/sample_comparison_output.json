@@ -1,0 +1,79 @@
+{
+  "own": {
+    "id": "1600564544619",
+    "project_id": "alibaba_validation_demo",
+    "source_id": "1600564544619",
+    "platform": "alibaba",
+    "role": "own",
+    "url": "https://www.alibaba.com/product-detail/2022-Luxury-Wedding-Dress-Off-Shoulder_1600564544619.html?sku=103183252630",
+    "product_name": "2022 Luxury Wedding Dress Off-shoulder Sweetheart Neck Heavy Beaded Lace Applique Layered Mermaid Wedding Dresses Bridal Gown",
+    "category": "Apparel & Accessories",
+    "price": 526.0,
+    "currency": "USD",
+    "rating": null,
+    "review_count": 1,
+    "text_fields": {
+      "title": "2022 Luxury Wedding Dress Off-shoulder Sweetheart Neck Heavy Beaded Lace Applique Layered Mermaid Wedding Dresses Bridal Gown",
+      "description": "2022 Luxury Wedding Dress Off-shoulder Sweetheart Neck Heavy Beaded Lace Applique Layered Mermaid Wedding Dresses Bridal Gown , Find Complete Details about 2022 Luxury Wedding Dress Off-shoulder Sweetheart Neck Heavy Beaded Lace Applique Layered Mermaid Wedding Dresses Bridal Gown from Suzhou Soleil Wedding Dresses And Evening Dresses Co., Ltd. Supplier or Manufacturer on Alibaba.com",
+      "review": "Good"
+    },
+    "raw_metadata": {},
+    "price_tiers": [],
+    "supplier": null
+  },
+  "competitor": {
+    "id": "1601261150238",
+    "project_id": "alibaba_validation_demo",
+    "source_id": "1601261150238",
+    "platform": "alibaba",
+    "role": "competitor",
+    "url": "https://www.alibaba.com/product-detail/High-Quality-V-Neck-Short-Sleeve_1601261150238.html?sku=106738342447",
+    "product_name": "High Quality V Neck Short Sleeve Mermaid Beaded Lace Applique Wedding Gowns With Tulle Over Skirt Plus Size Bridal Wedding Dress",
+    "category": "Apparel & Accessories",
+    "price": 112.0,
+    "currency": "USD",
+    "rating": null,
+    "review_count": 1,
+    "text_fields": {
+      "title": "High Quality V Neck Short Sleeve Mermaid Beaded Lace Applique Wedding Gowns With Tulle Over Skirt Plus Size Bridal Wedding Dress",
+      "description": "High Quality V Neck Short Sleeve Mermaid Beaded Lace Applique Wedding Gowns With Tulle Over Skirt Plus Size Bridal Wedding Dress , Find Complete Details about High Quality V Neck Short Sleeve Mermaid Beaded Lace Applique Wedding Gowns With Tulle Over Skirt Plus Size Bridal Wedding Dress from Shandong Yazhe E-Business Co., Ltd. Supplier or Manufacturer on Alibaba.com",
+      "review": "Good quality"
+    },
+    "raw_metadata": {},
+    "price_tiers": [],
+    "supplier": null
+  },
+  "review_model_status": "pending training",
+  "gaps_opportunities": [
+    {
+      "id": "gap_e01a1f5dc3a346b0b448ef9262af5aa8",
+      "project_id": "alibaba_validation_demo",
+      "title": "Competitor has a lower unit price",
+      "description": "The competitor leads on price by 414.",
+      "category": "pricing",
+      "priority": "high",
+      "user_priority": null,
+      "confidence": 0.95,
+      "evidence": [
+        {
+          "source_id": "1600564544619",
+          "source_url": "https://www.alibaba.com/product-detail/2022-Luxury-Wedding-Dress-Off-Shoulder_1600564544619.html?sku=103183252630",
+          "source_title": "2022 Luxury Wedding Dress Off-shoulder Sweetheart Neck Heavy Beaded Lace Applique Layered Mermaid Wedding Dresses Bridal Gown",
+          "quote": "Own price: 526; competitor price: 112; difference: 414.",
+          "relevance": 1.0
+        },
+        {
+          "source_id": "1601261150238",
+          "source_url": "https://www.alibaba.com/product-detail/High-Quality-V-Neck-Short-Sleeve_1601261150238.html?sku=106738342447",
+          "source_title": "High Quality V Neck Short Sleeve Mermaid Beaded Lace Applique Wedding Gowns With Tulle Over Skirt Plus Size Bridal Wedding Dress",
+          "quote": "Own price: 526; competitor price: 112; difference: 414.",
+          "relevance": 1.0
+        }
+      ],
+      "opportunity": "Review pricing or show a documented value advantage.",
+      "decision": "pending",
+      "reviewer_note": null,
+      "created_at": "2026-11-22T11:11:13.097529+00:00"
+    }
+  ]
+}
