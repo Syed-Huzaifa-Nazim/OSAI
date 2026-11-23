@@ -1,0 +1,13 @@
+seed: 42
+categories: [Electronics, Home_and_Kitchen, Clothing_Shoes_and_Jewelry]
+raw_per_class: 4500
+min_clean_per_class: 3000
+model_name: distilbert-base-uncased
+max_length: 256
+learning_rate: 0.00002
+batch_size: 16
+epochs: 4
+weight_decay: 0.01
+warmup_ratio: 0.1
+labels: {0: No Gap, 1: Moderate Gap, 2: High Gap}
+
