@@ -32,7 +32,7 @@ from app.models.misc import RunCost
 from app.models.pipeline import PipelineState, StageState
 from app.models.project import ScrapedSource
 from app.models.strategy import Strategy, StrategyReviewSubmit
-from app.services import gap_service, pipeline_service, strategy_service
+from app.services import gap_service, pipeline_service, strategy_service, token_service
 from app.services.repository import get_repository
 
 logger = logging.getLogger("optistratix.pipeline.routes")
@@ -105,7 +105,11 @@ async def cancel_job(
     is saved, and the project goes back to exactly how it was before the run started."""
     repo = get_repository(user.id, user.token)
     repo.get_project(project_id)
+    current = pipeline_service.load_state(repo, project_id)
+    run_id = current.get("token_run_id")
     state = await asyncio.to_thread(pipeline_service.cancel_job, repo, project_id)
+    if run_id and not user.is_demo:
+        token_service.cancel(user, run_id)
     return PipelineState.model_validate(state)
 
 
@@ -133,6 +137,12 @@ async def reset_pipeline(
 ) -> PipelineState:
     repo = get_repository(user.id, user.token)
     repo.get_project(project_id)
+    state = repo.get_pipeline(project_id)
+    if state and any(stage.get("status") == "running" for stage in state.get("stages", {}).values()):
+        await asyncio.to_thread(pipeline_service.cancel_job, repo, project_id)
+    if state and state.get("token_run_id") and not user.is_demo:
+        if token_service.run_status(state["token_run_id"]) == "reserved":
+            token_service.cancel(user, state["token_run_id"])
     return PipelineState.model_validate(pipeline_service.reset(repo, project_id))
 
 
