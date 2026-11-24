@@ -87,6 +87,11 @@ def cancel(project_id: str) -> dict[str, Any] | None:
     if not job:
         return None
     with job["guard"]:
+        # A successful worker can finish while cancel waits for the guard.
+        # In that case the completed result must not be rolled back.
+        with _lock:
+            if _jobs.get(project_id) is not job:
+                return None
         job["cancelled"].set()
     return job["previous"]
 
