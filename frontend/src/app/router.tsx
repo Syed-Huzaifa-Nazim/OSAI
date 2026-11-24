@@ -34,6 +34,7 @@ const ContactPage = lazy(() => import('@/pages/marketing/contact'))
 const DashboardPage = lazy(() => import('@/pages/app/dashboard'))
 const ProjectsPage = lazy(() => import('@/pages/app/projects'))
 const ReportsPage = lazy(() => import('@/pages/app/reports'))
+const AdminUsersPage = lazy(() => import('@/pages/app/admin-users'))
 const NewProjectPage = lazy(() => import('@/pages/app/project-new'))
 const PipelinePage = lazy(() => import('@/pages/app/project-pipeline'))
 const ProjectComparisonPage = lazy(() => import('@/pages/app/project-comparison'))
@@ -48,6 +49,8 @@ const AutomationPage = lazy(() => import('@/pages/app/project-automation'))
 const ProfileSettingsPage = lazy(() => import('@/pages/app/settings-profile'))
 const AccountSettingsPage = lazy(() => import('@/pages/app/settings-account'))
 const BillingSettingsPage = lazy(() => import('@/pages/app/settings-billing'))
+const TokenSettingsPage = lazy(() => import('@/pages/app/settings-tokens'))
+const AdminPortal = lazy(() => import('@/pages/admin/portal'))
 
 /**
  * Routes are declared here only. Teammates' features are mounted from the
@@ -158,6 +161,14 @@ export const routes: RouteObject[] = [
             handle: { crumb: 'My reports' },
           },
           {
+            path: 'users',
+            handle: { crumb: 'Users' },
+            children: [
+              { index: true, element: <AdminUsersPage /> },
+              { path: ':userId', element: <AdminUsersPage />, handle: { crumb: 'User details' } },
+            ],
+          },
+          {
             path: 'settings',
             handle: { crumb: 'Settings' },
             children: [
@@ -177,6 +188,11 @@ export const routes: RouteObject[] = [
                 element: <BillingSettingsPage />,
                 handle: { crumb: 'Billing' },
               },
+              {
+                path: 'tokens',
+                element: <TokenSettingsPage />,
+                handle: { crumb: 'Tokens' },
+              },
             ],
           },
           // Teammates' registered features mount here, one entry each.
@@ -187,6 +203,7 @@ export const routes: RouteObject[] = [
           })),
         ],
       },
+      { path: '/admin/*', element: <AdminPortal /> },
     ],
   },
   { path: '*', element: <NotFoundPage /> },
