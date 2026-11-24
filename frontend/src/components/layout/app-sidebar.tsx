@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useMatch } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { PanelLeftClose, PanelLeftOpen, Plus, X } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Plus, ShieldCheck, UsersRound, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Logo } from '@/components/shared/logo'
@@ -13,6 +13,8 @@ import { featureNavEntries } from '@/features/registry'
 import { useProject } from '@/hooks/use-projects'
 import { MAIN_NAV, SETTINGS_NAV, projectNav } from './nav-config'
 import { SidebarLink } from './sidebar-link'
+import { api } from '@/lib/api-client'
+import { useAuthStore } from '@/stores/auth-store'
 
 const EXPANDED_WIDTH = 244
 const COLLAPSED_WIDTH = 68
@@ -30,6 +32,19 @@ export function AppSidebar() {
   const { pathname } = useLocation()
   const reduced = usePrefersReducedMotion()
   const [drawerMounted, setDrawerMounted] = useState(false)
+  const user = useAuthStore((state) => state.user)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    setIsAdmin(false)
+    if (user?.id) {
+      void api.get<{ isAdmin: boolean }>('/admin/me')
+        .then((result) => { if (active) setIsAdmin(result.isAdmin) })
+        .catch(() => { if (active) setIsAdmin(false) })
+    }
+    return () => { active = false }
+  }, [user?.id])
 
   // Close on route change, not in each link's onClick. See the note in
   // marketing-sidenav.tsx for why the click-time close does not stick.
@@ -96,6 +111,15 @@ export function AppSidebar() {
             />
           ))}
 
+          {isAdmin ? (
+            <SidebarLink
+              to="/app/users"
+              label="Users"
+              icon={UsersRound}
+              expanded={isExpanded}
+            />
+          ) : null}
+
           {featureNavEntries('main').map((entry) => (
             <SidebarLink
               key={entry.to}
@@ -160,6 +184,14 @@ export function AppSidebar() {
               expanded={isExpanded}
             />
           ))}
+          {isAdmin ? (
+            <SidebarLink
+              to="/admin"
+              label="Admin portal"
+              icon={ShieldCheck}
+              expanded={isExpanded}
+            />
+          ) : null}
           {featureNavEntries('settings').map((entry) => (
             <SidebarLink
               key={entry.to}
