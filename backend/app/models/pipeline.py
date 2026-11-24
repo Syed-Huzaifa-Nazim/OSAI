@@ -70,6 +70,7 @@ class StageState(CamelModel):
 
 class PipelineState(CamelModel):
     project_id: str
+    token_run_id: str | None = None
     current_stage: int = 1
     stages: dict[int, StageState]
     #: Set when parked at stage 5 or 7 waiting on a person.
