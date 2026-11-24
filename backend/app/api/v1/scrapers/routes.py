@@ -36,6 +36,7 @@ from app.models.sources import ScrapedDocuments, ScrapedPage, ScrapedPost
 from app.scrapers import available_platforms, source_kind_for
 from app.services import ecommerce_comparison_service as comparison_service
 from app.services import pipeline_service
+from app.services import token_service
 from app.services import site_comparison_service
 from app.services.repository import get_repository
 
@@ -114,15 +115,28 @@ async def start_scrape(
     ``GET /projects/{id}/pipeline`` for progress; stages 2 and 3 are the scrape.
     """
     repo = get_repository(user.id, user.token)
-    state = pipeline_service.start_scrape(repo, project_id)
+    project = repo.get_project(project_id)
+    pipeline_service._require_scrapable(project)
+    run_id = None if user.is_demo else token_service.reserve(user, project_id)
+    try:
+        state = pipeline_service.start_scrape(repo, project_id, run_id)
+    except Exception:
+        if run_id:
+            token_service.finish(run_id, False, "Scrape did not start")
+        raise
 
     def runner() -> None:
         # BackgroundTasks runs sync callables in a worker thread with no event
         # loop of its own, hence asyncio.run.
         try:
-            asyncio.run(pipeline_service.run_scrape(project_id, user.id))
+            asyncio.run(pipeline_service.run_scrape(project_id, user.id, run_id))
         except Exception as exc:  # noqa: BLE001 - a crashed task must not be silent
             logger.exception("Background scrape failed for %s", project_id)
+            if run_id:
+                try:
+                    token_service.finish(run_id, False, "Background scrape interrupted")
+                except Exception:
+                    logger.exception("Could not release scrape token for %s", project_id)
             pipeline_service.record_crash(project_id, user.id, [2, 3], exc)
 
     tasks.add_task(runner)
