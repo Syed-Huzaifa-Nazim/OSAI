@@ -42,6 +42,8 @@ commit, or the two drift apart.
 | `0010_instagram_profile_stats.sql` | Adds `instagram_posts.profile_stats` (JSONB): the scraped profile's followers, following, total posts, bio, website, highlights, verified badge and category, read from the profile item the posts run already returns. The engagement model in `app/analysis/instagram/` grades each side from these plus its posts. Non-destructive: one column, default `{}`. |
 | `0011_instagram_post_chunks_pgvector.sql` | Enables `pgvector` and adds `instagram_post_chunks`: every scraped post's caption, hashtags and comments as chunks with a 384-number embedding, plus `match_instagram_chunks()` for semantic search within one project and side. |
 | `0012_gap_details.sql` | Adds `gaps_opportunities.details` (JSONB): how sure we are, example posts, a small numbers table and technical notes for each gap, so the Review Gaps screen can explain gaps in plain words. Non-destructive: one column, default `{}`. |
+| `0015_admin_tokens.sql` | Admin membership, verified-user starter tokens, scrape reservations, requests, and an audit ledger. Apply after 0014. |
+| `0016_admin_email_outbox.sql` | Stores admin email drafts with an explicit pending-delivery status until GCP mail delivery is connected. Apply after 0015. |
 | `0004_alibaba_platform.sql` | Adds Alibaba as an e-commerce platform: `'alibaba'` allowed in `projects.ecommerce_platform` and `ecommerce_products.platform`; `price`/`original_price` widened to `numeric(14,4)` for sub-cent unit prices; nullable B2B columns `max_price`, `moq`, `moq_unit`, `lead_time_days`; new `ecommerce_product_price_tiers` and `ecommerce_product_suppliers` tables with indexes and RLS. Non-destructive. |
 
 Every migration here is written to be re-runnable — columns are added

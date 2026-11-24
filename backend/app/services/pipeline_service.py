@@ -20,7 +20,7 @@ from app.api.v1.agents.registry import get_agent, get_critic
 from app.core.errors import ConflictError
 from app.models.pipeline import CHECKPOINT_STAGES, StageStatus
 from app.scrapers import is_source_supported, source_kind_for, source_kinds
-from app.services import demo_data, jobs
+from app.services import demo_data, jobs, token_service
 from app.services.staging import StagedRepository
 from app.services.repository import Repository, get_worker_repository, new_id
 from app.vectorstore import chroma
@@ -526,7 +526,7 @@ def start(repo: Repository, project_id: str) -> dict[str, Any]:
     return state
 
 
-def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
+def start_scrape(repo: Repository, project_id: str, run_id: str | None = None) -> dict[str, Any]:
     """Opens a scrape-only run. The caller schedules ``run_scrape`` in the background.
 
     Stage 2 is marked running *before* returning, so a client that starts
@@ -559,6 +559,8 @@ def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
     # stage error into the new result. The old rows and vectors stay until the
     # new run is saved in full (run_scrape), so a cancel loses nothing.
     state = empty_state(project_id)
+    if run_id:
+        state["token_run_id"] = run_id
     _set_stage(
         state,
         2,
@@ -568,12 +570,16 @@ def start_scrape(repo: Repository, project_id: str) -> dict[str, Any]:
         message="Queued",
     )
     state["current_stage"] = 2
-    repo.save_pipeline(project_id, state)
-    repo.update_project(project_id, {"status": "running", "current_stage": 2})
+    try:
+        repo.save_pipeline(project_id, state)
+        repo.update_project(project_id, {"status": "running", "current_stage": 2})
+    except Exception:
+        jobs.finish(project_id)
+        raise
     return state
 
 
-async def run_scrape(project_id: str, user_id: str) -> None:
+async def run_scrape(project_id: str, user_id: str, run_id: str | None = None) -> None:
     """Runs the scrape stages and stops. Never starts an agent.
 
     Nothing the run reads is written while it runs: rows and vectors are held
@@ -598,6 +604,8 @@ async def run_scrape(project_id: str, user_id: str) -> None:
                     raise
                 except Exception as exc:  # noqa: BLE001 - surface it on the stage, then stop
                     logger.exception("Scrape stage %d failed for project %s", stage_id, project_id)
+                    if run_id:
+                        token_service.finish(run_id, False, str(exc))
                     _set_stage(state, stage_id, status=StageStatus.ERROR.value,
                                error=str(exc) or type(exc).__name__, message=None)
                     state["blocked_on"] = None
@@ -616,6 +624,8 @@ async def run_scrape(project_id: str, user_id: str) -> None:
                 chroma.write_held(project_id, vectors)
             except Exception as exc:  # noqa: BLE001 - the database refused: say why, on the scrape stage
                 logger.exception("Saving the scrape of project %s failed", project_id)
+                if run_id:
+                    token_service.finish(run_id, False, str(exc))
                 _set_stage(state, SCRAPE_STAGES[0], status=StageStatus.ERROR.value, error=str(exc), message=None)
                 for later in SCRAPE_STAGES[1:]:
                     _set_stage(state, later, status=StageStatus.IDLE.value, progress=0, message=None)
@@ -628,9 +638,19 @@ async def run_scrape(project_id: str, user_id: str) -> None:
                 state["stages"][str(SCRAPE_STAGES[0])]["metrics"] = metrics
             real.save_pipeline(project_id, state)
             real.update_project(project_id, {"status": "complete", "current_stage": SCRAPE_STAGES[-1]})
+            if run_id:
+                try:
+                    token_service.finish(run_id, True)
+                except Exception:
+                    # The completed project is authoritative. A later account read
+                    # reconciles its reservation as spent if the token RPC was down.
+                    logger.exception("Could not finalize token for completed scrape %s", project_id)
+            jobs.finish(project_id)
         logger.info("Project %s scraped and embedded", project_id)
     except jobs.JobCancelled:
         logger.info("Scrape of project %s was cancelled; nothing from it was saved", project_id)
+        if run_id:
+            token_service.finish(run_id, False, "Scrape cancelled")
     finally:
         jobs.finish(project_id)
 

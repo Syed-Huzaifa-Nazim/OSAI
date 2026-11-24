@@ -9,6 +9,7 @@ import { usePrefersReducedMotion } from '@/hooks/use-reduced-motion'
 import { pageVariants, reduceVariants } from '@/lib/motion'
 import { AppSidebar, SIDEBAR_WIDTHS } from './app-sidebar'
 import { AppTopbar } from './app-topbar'
+import { AdminUsageNotice } from '@/components/shared/admin-usage-notice'
 
 /** Authenticated shell: fixed left rail, sticky topbar, animated page slot. */
 export function AppShell() {
@@ -31,6 +32,7 @@ export function AppShell() {
       >
         <AppTopbar />
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+          <AdminUsageNotice />
           <ErrorBoundary>
             {/* Suspense above AnimatePresence. See marketing-shell.tsx for why. */}
             <Suspense fallback={<RouteFallback />}>

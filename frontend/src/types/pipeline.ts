@@ -240,6 +240,7 @@ export interface AnalysisPart {
 
 export interface PipelineState {
   projectId: string
+  tokenRunId?: string | null
   currentStage: StageId
   stages: Record<StageId, StageState>
   /** Set when the pipeline is parked at stage 5 or 7 waiting on a person. */

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Response, status
 
 from app.core.security import CurrentUser, get_current_user
 from app.models.project import Competitor, Project, ProjectCreate
-from app.services import project_service
+from app.services import pipeline_service, project_service, token_service
 from app.services.repository import get_repository
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -59,6 +59,13 @@ async def delete_project(
     project_id: str, user: CurrentUser = Depends(get_current_user)
 ) -> Response:
     repo = get_repository(user.id, user.token)
+    repo.get_project(project_id)
+    state = repo.get_pipeline(project_id)
+    if state and any(stage.get("status") == "running" for stage in state.get("stages", {}).values()):
+        await asyncio.to_thread(pipeline_service.cancel_job, repo, project_id)
+    if state and state.get("token_run_id") and not user.is_demo:
+        if token_service.run_status(state["token_run_id"]) == "reserved":
+            token_service.cancel(user, state["token_run_id"])
     project_service.delete_project(repo, project_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
