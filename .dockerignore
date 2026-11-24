@@ -14,3 +14,9 @@ Daraz_Model/model_package.zip
 Daraz_Model/*.csv
 Daraz_Model/*.xlsx
 backend/.chroma
+backend/tests
+backend/.env
+backend/.env.*
+!backend/.env.example
+Daraz_Model/*.pdf
+**/*.log
