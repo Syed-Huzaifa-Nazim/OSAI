@@ -1,23 +1,34 @@
-# Backend image with every trained model ready. Build from the Development folder (it needs Daraz_Model too):
-#   git lfs pull                                   # the real model files, not placeholders
-#   docker build -f backend/Dockerfile -t optistratix-backend .
-#   docker run -p 8000:8000 --env-file backend/.env optistratix-backend
-# Needs about 6 GB of RAM while analysing (Daraz review models ~2.2 GB, picture + caption models ~1.5 GB).
+# Build context is the repository root so the Daraz package is available.
 FROM python:3.14-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libgl1 libglib2.0-0 \
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/srv/cache/huggingface \
+    TORCH_HOME=/srv/cache/torch \
+    EASYOCR_MODULE_PATH=/srv/cache/easyocr \
+    OMP_NUM_THREADS=2 \
+    OPENBLAS_NUM_THREADS=2 \
+    MKL_NUM_THREADS=2 \
+    REQUIRE_MODELS=true
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg libgl1 libglib2.0-0 libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /srv/Development/backend
 COPY backend/requirements.txt backend/requirements-models.txt ./
-RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir -r requirements-models.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip install --no-cache-dir -r requirements-models.txt \
+    && python -m playwright install --with-deps chromium \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY backend/ ./
-COPY Daraz_Model/ /srv/Development/Daraz_Model/
+COPY Daraz_Model/model_package/ /srv/Development/Daraz_Model/model_package/
 
-# Refuse to start if any model cannot run, instead of silently giving fewer gaps.
-ENV REQUIRE_MODELS=true \
-    HF_HOME=/srv/cache/huggingface
+# Railway's GitHub checkout contains Git LFS pointer files. Fetch only the six
+# model objects required by Daraz and Instagram, then verify size and SHA-256.
+RUN python scripts/materialize_models.py --root /srv/Development \
+    && python -m scripts.check_model_artifacts
+
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
