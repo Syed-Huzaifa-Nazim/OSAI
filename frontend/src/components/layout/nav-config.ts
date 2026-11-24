@@ -36,6 +36,7 @@ export const SETTINGS_NAV: NavItem[] = [
   { label: 'Profile', to: '/app/settings/profile', icon: User },
   { label: 'Account', to: '/app/settings/account', icon: Settings },
   { label: 'Billing', to: '/app/settings/billing', icon: CreditCard },
+  { label: 'Tokens', to: '/app/settings/tokens', icon: CreditCard },
 ]
 
 /**
