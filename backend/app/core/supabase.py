@@ -6,10 +6,9 @@ Two are available and the distinction matters:
     applies, so a query can only ever return that user's rows. Use this on
     every request path.
 
-  * ``get_service_client()``. Runs as the service role and BYPASSES RLS. Only
-    the background pipeline worker uses it, because it acts on a project after
-    the request that started it has already returned. It must never be reachable
-    from a request handler.
+  * ``get_service_client()``. Runs as the service role and BYPASSES RLS. The
+    background worker uses it, as do admin handlers after a database-backed
+    admin check. Never expose this client or its key to the frontend.
 """
 
 from __future__ import annotations
@@ -75,7 +74,7 @@ def get_user_client(token: str) -> "Client":
 
 @lru_cache
 def get_service_client() -> "Client":
-    """Service-role client. Bypasses RLS, background jobs only."""
+    """Service-role client. Bypasses RLS; callers must enforce authorization."""
     if not settings.supabase_url or not settings.supabase_service_role_key:
         raise ServiceUnavailableError(
             "SUPABASE_SERVICE_ROLE_KEY is not configured; background jobs cannot run."
