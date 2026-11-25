@@ -32,7 +32,7 @@ import { projectHomePath } from '@/lib/project-routes'
 import { groupByPlatform, platformInfo, platformOf } from '@/lib/platform-groups'
 import { projectStatus } from '@/lib/project-status'
 import { staggerContainer, staggerItem } from '@/lib/motion'
-import { cn } from '@/lib/utils'
+import { cn, formatDateTime } from '@/lib/utils'
 import type { Project } from '@/types/domain'
 
 /** A project has a downloadable gap report once an Instagram or Daraz analysis has found gaps. */
@@ -42,8 +42,7 @@ function hasGapReport(project: Project): boolean {
 }
 
 function comparedOn(iso: string): string {
-  const d = new Date(iso)
-  return `${d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+  return formatDateTime(iso)
 }
 
 function ReportRow({ project, cover }: { project: Project; cover?: string }) {
