@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { PageHeader } from '@/components/shared/page-header'
 import { useDocumentTitle } from '@/hooks/use-document-title'
+import { formatDateTime, formatFieldLabel } from '@/lib/utils'
 
 interface Tokens {
   wallet: { balance: number; reserved: number; starter_awarded: boolean }
@@ -60,13 +61,13 @@ export default function TokenSettingsPage() {
     <Card className="p-5"><h2 className="mb-3 font-semibold">Requests</h2>
       {!data ? <p>Loading…</p> : data.requests.length === 0 ? <p className="text-muted-foreground">No requests yet.</p> :
         <div className="space-y-2">{data.requests.map((r) => <div key={r.id} className="border-b py-2 text-sm">
-          <strong>{r.amount} tokens · {r.status}</strong><p>{r.note}</p>{r.admin_response && <p className="text-muted-foreground">Admin: {r.admin_response}</p>}
+          <strong>{r.amount} tokens · {formatFieldLabel(r.status)}</strong><p>{r.note}</p><p className="text-xs text-muted-foreground">Requested {formatDateTime(r.created_at)}</p>{r.admin_response && <p className="text-muted-foreground">Admin: {r.admin_response}</p>}
         </div>)}</div>}
     </Card>
     <Card className="p-5"><h2 className="mb-3 font-semibold">Usage history</h2>
       {!data ? <p>Loading…</p> : data.ledger.length === 0 ? <p className="text-muted-foreground">No token activity yet.</p> :
         <div className="space-y-2">{data.ledger.map((row) => <div key={row.id} className="flex justify-between gap-3 border-b py-2 text-sm">
-          <span>{row.event.replace('_', ' ')}{row.reason ? ` · ${row.reason}` : ''}</span><span>{row.delta > 0 ? '+' : ''}{row.delta} · {row.balance_after} left</span>
+          <span>{formatFieldLabel(row.event)}{row.reason ? ` · ${row.reason}` : ''}<span className="mt-1 block text-xs text-muted-foreground">{formatDateTime(row.created_at)}</span></span><span>{row.delta > 0 ? '+' : ''}{row.delta} · {row.balance_after} left</span>
         </div>)}</div>}
     </Card>
   </div>
