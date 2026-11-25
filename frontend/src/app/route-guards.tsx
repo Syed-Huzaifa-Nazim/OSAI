@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
@@ -22,7 +23,13 @@ export function RequireAuth() {
 
   if (initialising) return <AuthPending />
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />
-  return <Outlet />
+  // /admin is lazy loaded without an app shell. Keep its pending chunk inside
+  // a boundary when auth state changes during the first render.
+  return (
+    <Suspense fallback={<AuthPending />}>
+      <Outlet />
+    </Suspense>
+  )
 }
 
 /** Signed-in users have no business on /login or /signup. */
