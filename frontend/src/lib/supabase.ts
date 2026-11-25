@@ -12,7 +12,9 @@ export const supabase: SupabaseClient | null = hasSupabase
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storageKey: 'optistratix-auth',
+        // Sessions belong to one Supabase project. A database cutover must not
+        // replay a token from the previous project against the new Auth API.
+        storageKey: `optistratix-auth-${new URL(config.supabaseUrl as string).hostname}`,
       },
     })
   : null
