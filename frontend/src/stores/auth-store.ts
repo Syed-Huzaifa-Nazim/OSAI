@@ -35,6 +35,7 @@ const DEMO_USER: AuthUser = {
 }
 
 const DEMO_SESSION_KEY = 'optistratix-demo-session'
+let authSubscription: { unsubscribe: () => void } | null = null
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   user: null,
@@ -49,12 +50,34 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       return
     }
 
-    const { data } = await supabase.auth.getSession()
-    set({ user: data.session ? toAuthUser(data.session.user) : null, initialising: false })
+    let user: AuthUser | null = null
+    try {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) throw error
+      if (data.session) {
+        // A cached session alone does not prove that the current project
+        // accepts it. This also catches revoked and migrated sessions.
+        const verified = await supabase.auth.getUser()
+        if (verified.error || !verified.data.user) throw verified.error ?? new Error('Invalid session')
+        user = toAuthUser(verified.data.user)
+      }
+    } catch {
+      // Invalid sessions should take the visitor to login, not leave a stale
+      // bearer token making every API request fail with 401.
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        // The login screen remains usable if Auth is temporarily unavailable.
+      }
+    }
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    set({ user, initialising: false })
+
+    // App runs in React StrictMode, which calls initialise twice in dev.
+    authSubscription?.unsubscribe()
+    authSubscription = supabase.auth.onAuthStateChange((_event, session) => {
       set({ user: session ? toAuthUser(session.user) : null })
-    })
+    }).data.subscription
   },
 
   signIn: async (email, password) => {
