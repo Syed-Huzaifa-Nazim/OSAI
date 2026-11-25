@@ -14,6 +14,56 @@ export function formatDate(iso: string, pattern = 'd MMM yyyy'): string {
   }
 }
 
+/** Format a stored timestamp for people while keeping the source value intact. */
+export function formatDateTime(value: unknown): string {
+  if (value == null || value === '') return '—'
+  const text = String(value)
+  const date = value instanceof Date
+    ? value
+    : /^\d{4}-\d{2}-\d{2}$/.test(text)
+      ? new Date(`${text}T00:00:00`)
+      : new Date(text)
+  if (Number.isNaN(date.getTime())) return String(value)
+  const hasTime = /T\d{2}:\d{2}/.test(text)
+  return new Intl.DateTimeFormat(undefined, hasTime
+    ? { dateStyle: 'medium', timeStyle: 'short' }
+    : { dateStyle: 'medium' }).format(date)
+}
+
+/** Keep identifiers scannable in tables; the full value remains available in title text. */
+export function formatIdentifier(value: unknown): string {
+  if (value == null || value === '') return '—'
+  const id = String(value)
+  if (/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(id)) {
+    return `${id.slice(0, 8)}…${id.slice(-4)}`
+  }
+  return id.length > 28 ? `${id.slice(0, 12)}…${id.slice(-6)}` : id
+}
+
+/** Convert API field names and machine values into readable labels and dates. */
+export function formatFieldLabel(value: string): string {
+  return value
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .replace(/\bId\b/g, 'ID')
+    .replace(/\bUrl\b/g, 'URL')
+}
+
+export function formatFieldValue(field: string, value: unknown): string {
+  if (value == null || value === '') return '—'
+  if (/(?:^|_)(?:id|uuid)$/.test(field) || /(?:^|_)(?:user|project|request|run|owner)_id$/.test(field)) {
+    return formatIdentifier(value)
+  }
+  if (/(?:^|_)(?:at|on|date|time)$/.test(field)) return formatDateTime(value)
+  if (/(?:^|_)(?:status|event|role|kind|type|decision)$/.test(field)) {
+    return formatFieldLabel(String(value))
+  }
+  if (typeof value === 'string' && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(value)) {
+    return formatIdentifier(value)
+  }
+  return String(value)
+}
+
 export function formatRelative(iso: string): string {
   try {
     return `${formatDistanceToNowStrict(parseISO(iso))} ago`
