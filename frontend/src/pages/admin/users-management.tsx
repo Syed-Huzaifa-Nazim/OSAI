@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { formatDateTime, formatFieldLabel, formatFieldValue, formatIdentifier } from '@/lib/utils'
 
 type UserRow = {
   id: string
@@ -41,7 +42,7 @@ const emailTemplates: Record<EmailType, { label: string; subject: string; body: 
   custom: { label: 'Custom email', subject: '', body: '' },
 }
 const display = (value: unknown) => value == null || value === '' ? '—' : String(value)
-const date = (value: unknown) => value ? new Date(String(value)).toLocaleString() : '—'
+const date = formatDateTime
 
 export function UsersManagement({ detailId, basePath = '/admin/users' }: { detailId?: string; basePath?: string }) {
   const navigate = useNavigate()
@@ -170,7 +171,7 @@ export function UsersManagement({ detailId, basePath = '/admin/users' }: { detai
           <TabsList className="w-full justify-start overflow-x-auto"><TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="activity">Activity</TabsTrigger><TabsTrigger value="email">Email</TabsTrigger></TabsList>
           <TabsContent value="overview" className="space-y-5">
             <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {([['Full name', detail.full_name], ['Email', detail.email], ['User ID', detail.id], ['Role', detail.is_admin ? 'Admin' : 'User'], ['Verification', detail.verified ? 'Verified' : 'Pending'], ['Created', date(detail.created_at)], ['Email confirmed', date(detail.email_confirmed_at)], ['Last sign in', date(detail.last_sign_in_at)], ['Updated', date(detail.updated_at)], ['Available tokens', detail.wallet?.balance ?? 0], ['Reserved tokens', detail.wallet?.reserved ?? 0]] as [string, unknown][]).map(([name, value]) => <div key={name} className="min-w-0 rounded-xl bg-muted/30 p-3"><dt className="text-xs text-muted-foreground">{name}</dt><dd className="mt-1 break-words text-sm font-semibold">{display(value)}</dd></div>)}
+              {([['Full name', detail.full_name], ['Email', detail.email], ['User ID', detail.id], ['Role', detail.is_admin ? 'Admin' : 'User'], ['Verification', detail.verified ? 'Verified' : 'Pending'], ['Created', date(detail.created_at)], ['Email confirmed', date(detail.email_confirmed_at)], ['Last sign in', date(detail.last_sign_in_at)], ['Updated', date(detail.updated_at)], ['Available tokens', detail.wallet?.balance ?? 0], ['Reserved tokens', detail.wallet?.reserved ?? 0]] as [string, unknown][]).map(([name, value]) => <div key={name} className="min-w-0 rounded-xl bg-muted/30 p-3"><dt className="text-xs text-muted-foreground">{name}</dt><dd className="mt-1 break-words text-sm font-semibold" title={name === 'User ID' ? String(value ?? '') : undefined}>{name === 'User ID' ? formatIdentifier(value) : display(value)}</dd></div>)}
             </dl>
             <div className="grid gap-4 lg:grid-cols-2">
               <Card className="space-y-3 p-4"><h3 className="font-semibold">Account controls</h3><div className="flex gap-2"><Input aria-label="Full name" value={fullName} onChange={(event) => setFullName(event.target.value)} maxLength={120} /><Button variant="outline" disabled={busy || !fullName.trim()} onClick={() => void update(() => api.patch(`/admin/users/${detailId}`, { full_name: fullName.trim() }), 'Profile updated.')}>Save</Button></div><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy || detailId === currentUser?.id} onClick={() => { if (window.confirm('Change this user’s admin access?')) void update(() => api.patch(`/admin/users/${detailId}`, { is_admin: !detail.is_admin }), 'Role updated.') }}>{detail.is_admin ? 'Remove admin access' : 'Grant admin access'}</Button><Button variant="destructive" disabled={busy || detailId === currentUser?.id} onClick={() => void removeUser()}>Delete user</Button></div></Card>
@@ -191,7 +192,7 @@ export function UsersManagement({ detailId, basePath = '/admin/users' }: { detai
 }
 
 function ActivityList({ title, rows = [], fields }: { title: string; rows?: Activity[]; fields: string[] }) {
-  return <Card className="p-4"><h3 className="mb-3 font-semibold">{title} <Badge variant="outline">{rows.length}</Badge></h3>{rows.length ? <div className="max-h-64 space-y-2 overflow-y-auto">{rows.map((row) => <dl key={row.id} className="rounded-lg bg-muted/30 p-3 text-xs">{fields.map((field) => <div key={field} className="flex gap-2"><dt className="min-w-24 text-muted-foreground">{field.replaceAll('_', ' ')}</dt><dd className="break-all">{field.endsWith('_at') ? date(row[field]) : display(row[field])}</dd></div>)}</dl>)}</div> : <p className="text-sm text-muted-foreground">No records yet.</p>}</Card>
+  return <Card className="p-4"><h3 className="mb-3 font-semibold">{title} <Badge variant="outline">{rows.length}</Badge></h3>{rows.length ? <div className="max-h-64 space-y-2 overflow-y-auto">{rows.map((row) => <dl key={row.id} className="rounded-lg bg-muted/30 p-3 text-xs">{fields.map((field) => <div key={field} className="flex gap-2"><dt className="min-w-24 text-muted-foreground">{formatFieldLabel(field)}</dt><dd className="break-all" title={field.endsWith('_id') || field === 'id' ? String(row[field] ?? '') : undefined}>{formatFieldValue(field, row[field])}</dd></div>)}</dl>)}</div> : <p className="text-sm text-muted-foreground">No records yet.</p>}</Card>
 }
 
 function UserEmailTab({ userId, recipient }: { userId: string; recipient: string }) {
